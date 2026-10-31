@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
-        android:label="wings_of_power_app"
+        android:label="Wings of Power"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

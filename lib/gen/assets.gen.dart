@@ -17,34 +17,8 @@ class $AssetsIconsGen {
   /// File path: assets/icons/back_arrow_icon.svg
   String get backArrowIcon => 'assets/icons/back_arrow_icon.svg';
 
-  /// File path: assets/icons/block_fill_icon.svg
-  String get blockFillIcon => 'assets/icons/block_fill_icon.svg';
-
-  /// File path: assets/icons/block_icon.svg
-  String get blockIcon => 'assets/icons/block_icon.svg';
-
-  /// File path: assets/icons/home_fill_icon.svg
-  String get homeFillIcon => 'assets/icons/home_fill_icon.svg';
-
-  /// File path: assets/icons/home_icon.svg
-  String get homeIcon => 'assets/icons/home_icon.svg';
-
-  /// File path: assets/icons/profile_fill_icon.svg
-  String get profileFillIcon => 'assets/icons/profile_fill_icon.svg';
-
-  /// File path: assets/icons/profile_icon.svg
-  String get profileIcon => 'assets/icons/profile_icon.svg';
-
   /// List of all assets
-  List<String> get values => [
-    backArrowIcon,
-    blockFillIcon,
-    blockIcon,
-    homeFillIcon,
-    homeIcon,
-    profileFillIcon,
-    profileIcon,
-  ];
+  List<String> get values => [backArrowIcon];
 }
 
 class $AssetsImagesGen {

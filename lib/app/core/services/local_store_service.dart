@@ -2,8 +2,8 @@ import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart' as pathprovider;
 
 class HiveService {
-  static var box;
-  static var searchHistory;
+  static Box<dynamic>? box;
+  static Box<dynamic>? searchHistory;
 
   static Future<void> initHive() async {
     var dir = await pathprovider.getApplicationDocumentsDirectory();
@@ -91,11 +91,11 @@ class HiveService {
   }
 
   static void setLanguage(String language) {
-    box.put('language', language);
+    box?.put('language', language);
   }
 
   static dynamic getLanguage() {
-    return box.get('language', defaultValue: 'en_en');
+    return box?.get('language', defaultValue: 'en_en') ?? 'en_en';
   }
 
   /// Search History

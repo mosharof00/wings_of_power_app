@@ -11,7 +11,7 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColor.background,
-      textTheme: _buildTextTheme(Colors.black87),
+      textTheme: _buildTextTheme(AppColor.secondary),
       colorScheme: ColorScheme.light(
         primary: AppColor.primary,
         secondary: AppColor.secondary,
@@ -19,15 +19,15 @@ class AppTheme {
         surface: AppColor.white,
         onPrimary: AppColor.white,
         onSecondary: AppColor.white,
-        onSurface: Colors.black87,
+        onSurface: AppColor.secondary,
         onError: AppColor.white,
       ),
       appBarTheme: AppBarTheme(
-        titleTextStyle: _font(18.sp, FontWeight.w600, Colors.black87),
+        titleTextStyle: _font(18.sp, FontWeight.w700, AppColor.secondary),
         centerTitle: true,
         elevation: 0,
         backgroundColor: AppColor.background,
-        foregroundColor: Colors.black87,
+        foregroundColor: AppColor.secondary,
       ),
     );
   }
@@ -58,7 +58,7 @@ class AppTheme {
   }
 
   static TextStyle _font(double size, FontWeight weight, Color color) {
-    return GoogleFonts.poppins(
+    return GoogleFonts.nunito(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -67,18 +67,21 @@ class AppTheme {
 
   static TextTheme _buildTextTheme(Color baseColor) {
     return TextTheme(
-      displayLarge: _font(32.sp, FontWeight.w700, baseColor),
-      displayMedium: _font(28.sp, FontWeight.w700, baseColor),
-      headlineLarge: _font(24.sp, FontWeight.w600, baseColor),
-      headlineMedium: _font(20.sp, FontWeight.w600, baseColor),
-      titleLarge: _font(18.sp, FontWeight.w600, baseColor),
-      titleMedium: _font(16.sp, FontWeight.w500, baseColor),
-      titleSmall: _font(14.sp, FontWeight.w500, baseColor),
-      bodyLarge: _font(16.sp, FontWeight.w400, baseColor),
-      bodyMedium: _font(14.sp, FontWeight.w400, baseColor),
-      bodySmall: _font(12.sp, FontWeight.w400, baseColor),
-      labelLarge: _font(14.sp, FontWeight.w500, baseColor),
-      labelSmall: _font(11.sp, FontWeight.w400, baseColor),
+      // Largest type on Home.png and Profile.png is 18pt (greeting and section titles).
+      displayLarge: _font(18.sp, FontWeight.w700, baseColor),
+      displayMedium: _font(18.sp, FontWeight.w700, baseColor),
+      headlineLarge: _font(18.sp, FontWeight.w700, baseColor),
+      headlineMedium: _font(18.sp, FontWeight.w700, baseColor),
+      // Profile name “Sarah” is 28px at 2×.
+      titleLarge: _font(14.sp, FontWeight.w700, baseColor),
+      titleMedium: _font(14.sp, FontWeight.w700, baseColor),
+      titleSmall: _font(14.sp, FontWeight.w600, baseColor),
+      bodyLarge: _font(14.sp, FontWeight.w500, baseColor),
+      // “Ready to learn today?” glyph box is 40px at 3× (~13pt).
+      bodyMedium: _font(13.sp, FontWeight.w500, baseColor),
+      bodySmall: _font(13.sp, FontWeight.w400, baseColor),
+      labelLarge: _font(14.sp, FontWeight.w600, baseColor),
+      labelSmall: _font(13.sp, FontWeight.w600, baseColor),
     );
   }
 }

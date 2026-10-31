@@ -1,6 +1,4 @@
 import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
-import 'package:wings_of_power_app/app/modules/products/controllers/products_controller.dart';
-import 'package:wings_of_power_app/app/modules/profile/controllers/profile_controller.dart';
 import 'package:get/get.dart';
 
 import '../controllers/main_page_controller.dart';
@@ -14,7 +12,5 @@ class MainPageBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<MainPageController>(() => MainPageController());
     Get.lazyPut<HomeController>(() => HomeController());
-    Get.lazyPut<ProductsController>(() => ProductsController());
-    Get.lazyPut<ProfileController>(() => ProfileController());
   }
 }

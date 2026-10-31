@@ -16,8 +16,8 @@ class ImagePickerHelper {
   }
 
   static Future<List<XFile>?> pickMultiFile() async {
-    final List<XFile>? pickedImages = await ImagePicker().pickMultiImage();
-    if (pickedImages != null) {
+    final List<XFile> pickedImages = await ImagePicker().pickMultiImage();
+    if (pickedImages.isNotEmpty) {
       Log.i(pickedImages);
       return pickedImages;
     } else {

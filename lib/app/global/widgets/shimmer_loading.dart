@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:shimmer/shimmer.dart';
 
 
@@ -67,8 +66,8 @@ class ShimmerList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       itemCount: itemCount,
-      separatorBuilder: (_, __) => SizedBox(height: spacing ?? 8.h),
-      itemBuilder: (_, __) =>
+      separatorBuilder: (_, _) => SizedBox(height: spacing ?? 8.h),
+      itemBuilder: (_, _) =>
           ShimmerBox(height: itemHeight, borderRadius: borderRadius),
     );
   }
@@ -102,8 +101,8 @@ class ShimmerHorizontalList extends StatelessWidget {
         padding: padding ?? EdgeInsets.zero,
         scrollDirection: Axis.horizontal,
         itemCount: itemCount,
-        separatorBuilder: (_, __) => SizedBox(width: spacing ?? 10.w),
-        itemBuilder: (_, __) => ShimmerBox(
+        separatorBuilder: (_, _) => SizedBox(width: spacing ?? 10.w),
+        itemBuilder: (_, _) => ShimmerBox(
           height: itemHeight,
           width: itemWidth ?? 140.w,
           borderRadius: borderRadius,
@@ -137,15 +136,18 @@ class ShimmerGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MasonryGridView.count(
+    return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       padding: padding ?? EdgeInsets.zero,
-      crossAxisCount: crossAxisCount,
-      mainAxisSpacing: mainAxisSpacing ?? 10.h,
-      crossAxisSpacing: crossAxisSpacing ?? 10.w,
       itemCount: itemCount,
-      itemBuilder: (_, __) =>
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: mainAxisSpacing ?? 10.h,
+        crossAxisSpacing: crossAxisSpacing ?? 10.w,
+        mainAxisExtent: itemHeight,
+      ),
+      itemBuilder: (_, _) =>
           ShimmerBox(height: itemHeight, borderRadius: borderRadius),
     );
   }

@@ -60,9 +60,9 @@ class CachedImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit ?? BoxFit.cover,
-      placeholder: (_, __) =>
+      placeholder: (_, _) =>
           ShimmerBox(height: height, width: width, borderRadius: borderRadius),
-      errorWidget: (_, __, ___) => Image.asset(
+      errorWidget: (_, _, _) => Image.asset(
         Assets.images.placeholderImage.path,
         height: height,
         width: width,

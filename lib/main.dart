@@ -13,18 +13,6 @@ import 'app/routes/app_pages.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /// Initialize Firebase FIRST
-  // await Firebase.initializeApp(
-  //   name: 'meeza',
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
-  //
-  ///    Initialize Supabase
-  // await Supabase.initialize(
-  //   url: AppConfig.SUPABASE_URL,
-  //   anonKey: AppConfig.SUPABASE_ANON_KEY,
-  // );
-
   await HiveService.initHive();
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -38,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      designSize: const Size(360, 690),
+      designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (_, child) => GetMaterialApp(
@@ -46,15 +34,13 @@ class MyApp extends StatelessWidget {
         title: AppConfig.appName,
         debugShowCheckedModeBanner: false,
 
-        // Add these — was completely missing
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
 
         initialRoute: AppPages.INITIAL,
         getPages: AppPages.routes,
 
-        // init all repository bindings
         initialBinding: AppRepositoryBinding(),
       ),
     );

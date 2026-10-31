@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PaginatedGridView — for paginated APIs
@@ -121,17 +120,7 @@ class PaginatedGridView extends StatelessWidget {
     final totalCount = itemCount + (isLoadingMore ? 1 : 0);
 
     return switch (gridType) {
-      PaginatedGridType.masonry => MasonryGridView.count(
-        controller: scrollController,
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: crossAxisSpacing,
-        mainAxisSpacing: mainAxisSpacing,
-        padding: padding,
-        physics: physics ?? const AlwaysScrollableScrollPhysics(),
-        itemCount: totalCount,
-        itemBuilder: _itemBuilder,
-      ),
-      PaginatedGridType.uniform => GridView.builder(
+      PaginatedGridType.masonry || PaginatedGridType.uniform => GridView.builder(
         controller: scrollController,
         padding: padding,
         physics: physics ?? const AlwaysScrollableScrollPhysics(),

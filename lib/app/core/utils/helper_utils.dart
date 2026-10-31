@@ -178,7 +178,7 @@ class HelperUtils {
     await clearUser();
 
     final context = Get.context;
-    if (context == null) {
+    if (context == null || !context.mounted) {
       await _resetToLogin();
       _isHandlingSessionExpiry = false;
       return;

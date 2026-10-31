@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/core/network/api_client.dart';
 import 'auth_repository.dart';
-import 'product_repository.dart';
 
 class AppRepositoryBinding extends Bindings {
   @override
@@ -12,11 +11,6 @@ class AppRepositoryBinding extends Bindings {
     // Repositories — lazy, created only when first Get.find() is called
     Get.lazyPut<IAuthRepository>(
           () => AuthRepository(Get.find<ApiClient>()),
-      fenix: true,
-    );
-
-    Get.lazyPut<IProductRepository>(
-          () => ProductRepository(Get.find<ApiClient>()),
       fenix: true,
     );
   }

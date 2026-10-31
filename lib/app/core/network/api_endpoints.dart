@@ -22,8 +22,4 @@ class ApiEndpoint {
   /// user profile
   static const String profileDetails = '$baseUrl/profile/details'; // get
   static const String profileUpdate = '$baseUrl/profile/update'; // post
-
-  ///  product
-  static const String productList = 'https://dummyjson.com/products'; // get
-  static const String productDetails = '$baseUrl/product/details'; // get
 }
