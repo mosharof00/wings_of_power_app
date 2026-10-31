@@ -23,7 +23,7 @@ class ShimmerBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColor.primary.withAlpha(20),
+      baseColor: AppColor.chip,
       highlightColor: Theme.of(context).brightness == Brightness.dark
           ? Colors.white12
           : Colors.white70,

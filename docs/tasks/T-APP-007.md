@@ -1,6 +1,6 @@
 # T-APP-007 — Credentials, nickname, real name, account verification
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-006
 
@@ -81,4 +81,12 @@ Mock until `T-BE-010`:
 
 ## Notes
 
--
+- Step labels stay as printed: `1/2` on credentials, `1/2` on nickname, `2/2` on real name. Not renumbered (OPEN_QUESTIONS item 7).
+- Register JSON uses `realName`. Mock token is `mock-setup-token`. User status is always `PENDING`. Nickname is kept on `UserData.about` so the mock does not drop it. `GET /api/auth/me` while `useMocks` returns that user.
+- `code` and `classId` come from the join-success arguments. Register sends `code`, `username`, `password`, `nickname`, `realName`. `classId` is forwarded to the character-choose route for T-APP-009.
+- Empty username, empty password, or a password mismatch stays on credentials. No extra error copy (not on the PNG). Credentials Continue stays enabled on an empty form, matching Profile.png. Nickname Next and real-name Continue stay disabled until the field has text.
+- Real name starts empty with the keyboard up. Filled “Sarah” and nickname “Mini” are screenshot states, not defaults.
+- Account verification is `/pending-approval` (`PopScope` cannot pop, no button). This task’s register path does not open it; Continue on real name goes to a blank `/character-choose` scaffold until T-APP-009. Login and hero select can open the pending route later.
+- `assets/characters/hero_approval.png` is the approval character (sky and the navy title knocked out, shoes kept). The three forms have no character art. Forms and the pending screen use `bg_auth_sky`.
+- Splash is outside this task’s allowed files. A persisted setup token still sends a cold start to the home shell. The pending screen itself has no path into home.
+- Checked on iPhone 18 Pro Max: credentials, nickname (Mini), empty real name (peach Continue, keyboard), Sarah with Continue enabled, and Approval Needed. `flutter analyze` clean. `flutter test` 10 passed. Capture timers removed. Initial route restored to splash.

@@ -1,6 +1,6 @@
 # T-APP-003 — Asset setup
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-001
 
@@ -82,4 +82,10 @@ None.
 
 ## Notes
 
--
+- Empty folders with `.gitkeep`: `assets/backgrounds/`, `assets/badges/`, `assets/book_covers/`, `assets/characters/`, `assets/onboarding/`. `assets/icons/`, `assets/images/`, `assets/logos/`, and `assets/sounds/` already existed. No screen PNG was copied in.
+- `pubspec.yaml` lists those nine folders. Dev dependencies: `build_runner` and `flutter_gen_runner`. `flutter_gen` writes `lib/gen/assets.gen.dart` with the `flutter_svg` integration, and excludes `**/.gitkeep` so placeholder files are not getters.
+- `dart run build_runner build --delete-conflicting-outputs` regenerated the file. Current `build_runner` prints that `--delete-conflicting-outputs` is ignored; the generator still overwrote `assets.gen.dart`. Do not hand-edit it. Re-run the generator after adding a file.
+- Generated getters today: `Assets.icons.backArrowIcon` (`SvgGenImage`), `Assets.images.emptyBox`, `Assets.images.placeholderImage`, `Assets.logos.appIcon`. Empty folders get a class only after a real PNG, WebP, or SVG is added.
+- Naming for later files: `snake_case`; prefixes `bg_`, `cover_`, `hero_`, `ic_`, `badge_`, `logo_`. Icons are SVG. Illustrations are PNG or WebP. One file per asset. No `@2x` copies unless a bitmap is unreadable at 1x.
+- `AppConfig.appLogo` and `AppConfig.splashLogo` are `Assets.logos.appIcon.path`. Splash still loads that path. Home has no asset string. `custom_icon_button.dart` now passes `Assets.icons.backArrowIcon.path` because the SVG integration returns `SvgGenImage`, not a `String`. That file is outside the allowed list; the one-line change is what keeps `flutter analyze` clean.
+- `flutter analyze`: no issues. `flutter test`: passed. iPhone 18 Pro Max launched, guest splash finished, and the login scaffold showed with no missing-asset error.

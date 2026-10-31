@@ -3,6 +3,8 @@ import 'package:wings_of_power_app/app/core/extensions/sizedbox_extension.dart';
 import 'package:wings_of_power_app/app/core/extensions/text_style_extension.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:wings_of_power_app/app/core/theme/app_color.dart';
+
 import '../../../gen/assets.gen.dart';
 import 'app_text.dart';
 import 'global_button.dart';
@@ -41,14 +43,14 @@ class ShowEmptyResult extends StatelessWidget {
             20.height,
             AppText(
               title ?? 'No response found!',
-              style: context.titleSmall,
+              style: context.titleSmall.copyWith(color: AppColor.secondary),
               textAlign: TextAlign.center,
             ),
             5.height,
             if (desc != null)
               AppText(
                 desc!,
-                style: context.bodyMedium.copyWith(color: Colors.grey),
+                style: context.bodyMedium.copyWith(color: AppColor.subtitle),
                 textAlign: TextAlign.center,
               ),
             if (refreshOnTap != null)

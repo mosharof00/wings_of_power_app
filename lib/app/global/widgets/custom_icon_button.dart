@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 
 import '../../../gen/assets.gen.dart';
 import 'custom_svg_image.dart';
@@ -30,11 +31,11 @@ class CustomIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size ?? 35.w,
-      height: size ?? 35.h,
+      width: size ?? 44.w,
+      height: size ?? 44.w,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: backgroundColor ?? Colors.white,
+        color: backgroundColor ?? AppColor.primary,
         border: border,
         boxShadow:
             boxShadow ??
@@ -52,9 +53,10 @@ class CustomIconButton extends StatelessWidget {
         child:
             icon ??
             customSvgImage(
-              imagePath: Assets.icons.backArrowIcon,
-              height: 12.h,
-              width: 12.w,
+              imagePath: Assets.icons.backArrowIcon.path,
+              height: 14.h,
+              width: 14.w,
+              color: iconColor ?? AppColor.white,
             ),
       ),
     );

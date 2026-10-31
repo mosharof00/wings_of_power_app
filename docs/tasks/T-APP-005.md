@@ -1,6 +1,6 @@
 # T-APP-005 — Splash and onboarding
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-004
 
@@ -71,4 +71,12 @@ No API. Local only (`MODULE_MAP`).
 
 ## Notes
 
--
+- Splash waits 2 seconds, then: session → `Routes.MAIN_PAGE` (account verification is T-APP-007); guest who has not seen onboarding → `Routes.ONBOARDING`; guest who has → `Routes.WELCOME`.
+- “Onboarding seen” uses the existing Hive helpers `HiveService.getOnBoardShowed` / `setOnBoardShowed` (box `appData`, key `onboard`). `local_store_service.dart` was not changed.
+- Skip (pages 1–2) and Get Started (page 3) both call `finish()`, which sets that flag and opens `/welcome`.
+- `/welcome` is a blank `Scaffold` until T-APP-006 replaces it.
+- Onboarding titles use measured color `#104F6F`, Nunito 26sp w800 / body 14sp. Theme text slots stop at 18 and theme files are outside this task, so these styles live on the onboarding view.
+- Dots are `StepProgress`. The splash spinner is a 10-dot white ring.
+- Assets: `assets/backgrounds/bg_splash_sky.png`, `assets/logos/logo_wordmark.png` (sky pixels transparent), `assets/onboarding/onboarding_stories.png`, `onboarding_safe_space.png`, `onboarding_play.png`. `lib/gen/assets.gen.dart` was regenerated so those getters exist.
+- Checked on the iPhone 18 Pro Max simulator: splash (wordmark, sky, spinner), all three onboarding pages, finish landing on the blank welcome screen, and a later cold start that skips onboarding.
+- `flutter analyze` clean. `flutter test`: 10 passed.

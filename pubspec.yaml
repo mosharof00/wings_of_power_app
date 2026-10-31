@@ -40,11 +40,22 @@ dev_dependencies:
 
   flutter_launcher_icons: "^0.14.4"
   flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  flutter_gen_runner: ^5.12.0
 
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
   image_path: "assets/logos/app_icon.png"
+
+flutter_gen:
+  output: lib/gen/
+  line_length: 80
+  integrations:
+    flutter_svg: true
+  assets:
+    exclude:
+      - "**/.gitkeep"
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -54,9 +65,14 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/backgrounds/
+    - assets/badges/
+    - assets/book_covers/
+    - assets/characters/
     - assets/icons/
     - assets/images/
     - assets/logos/
+    - assets/onboarding/
     - assets/sounds/
   #    - images/a_dot_ham.jpeg
 

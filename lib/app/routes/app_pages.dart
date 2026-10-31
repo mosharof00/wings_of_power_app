@@ -1,22 +1,32 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../modules/account_setup/bindings/account_setup_binding.dart';
+import '../modules/account_setup/views/account_setup_view.dart';
+import '../modules/account_setup/views/pending_approval_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
+import '../modules/join_class/bindings/join_class_binding.dart';
+import '../modules/join_class/views/join_class_view.dart';
 import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/main_page/bindings/main_page_binding.dart';
 import '../modules/main_page/views/main_page_view.dart';
+import '../modules/onboarding/bindings/onboarding_binding.dart';
+import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
+import '../modules/welcome/bindings/welcome_binding.dart';
+import '../modules/welcome/views/welcome_view.dart';
 
 part 'app_routes.dart';
 
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.SPLASH;
+  static const INITIAL = Routes.LOGIN;
 
   static final routes = [
     GetPage(
@@ -33,6 +43,35 @@ class AppPages {
       name: _Paths.MAIN_PAGE,
       page: () => const MainPageView(),
       binding: MainPageBinding(),
+    ),
+    GetPage(
+      name: _Paths.ONBOARDING,
+      page: () => const OnboardingView(),
+      binding: OnboardingBinding(),
+    ),
+    GetPage(
+      name: _Paths.WELCOME,
+      page: () => const WelcomeView(),
+      binding: WelcomeBinding(),
+    ),
+    GetPage(
+      name: _Paths.JOIN_CLASS,
+      page: () => const JoinClassView(),
+      binding: JoinClassBinding(),
+    ),
+    GetPage(
+      name: _Paths.ACCOUNT_SETUP,
+      page: () => const AccountSetupView(),
+      binding: AccountSetupBinding(),
+    ),
+    GetPage(
+      name: _Paths.PENDING_APPROVAL,
+      page: () => const PendingApprovalView(),
+    ),
+    GetPage(
+      name: _Paths.CHARACTER_CHOOSE,
+      // T-APP-009 replaces this page with the hero grid.
+      page: () => const Scaffold(),
     ),
     GetPage(
       name: _Paths.PROFILE,

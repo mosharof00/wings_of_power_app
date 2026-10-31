@@ -12,6 +12,14 @@ class MainPageController extends GetxController {
 
   void changePage(int index) => selectedIndex.value = index;
 
+  /// Home, stories, badges, and profile switch the shell tab.
+  /// Basketball is drawn on the bar so it matches the screenshot. Opening the
+  /// game is `docs/game/tasks/T-GAME-001`; this tap stays empty.
+  void onNavTap(int index) {
+    if (index == 2) return;
+    changePage(index);
+  }
+
   /// Hardware/gesture back on the main page: close the drawer if one is open,
   /// otherwise confirm before exiting the app.
   void onBackPressed() {

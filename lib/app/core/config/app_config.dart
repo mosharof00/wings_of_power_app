@@ -1,7 +1,9 @@
+import '../../../gen/assets.gen.dart';
+
 class AppConfig {
   /// Logo
-  static String appLogo = "assets/logos/app_icon.png";
-  static String splashLogo = "assets/logos/app_icon.png";
+  static String get appLogo => Assets.logos.appIcon.path;
+  static String get splashLogo => Assets.logos.appIcon.path;
   static String appName = "Wings of Power";
 
   /// Host is unset. Repositories must not call the network while [useMocks] is true.

@@ -1,6 +1,6 @@
 # T-APP-006 — Welcome, class code, and verification states
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-005
 
@@ -88,4 +88,11 @@ Mock until `T-BE-010`:
 
 ## Notes
 
--
+- Welcome opens with Log In filled (`Login.png`). `Get.arguments == WelcomeEmphasis.join` shows Join with Class Code filled (`With code.png`). Both buttons navigate on one tap: Log In → `/login` (T-APP-008), Join with Class Code → `/join-class`.
+- `Role Selection.png` is the empty 6-digit code screen. There is no role picker. The system number pad is the keyboard. Join Class stays disabled until 6 digits, then the pad dismisses.
+- Mock until T-BE-010, and the repository does not call the network while `AppConfig.useMocks` is true. `123456` → Grade 5 / Ms. Smith / `classId` `grade-5-ms-smith`. `000000` → 422 expired. Any other code → 404 wrong.
+- `JoinClassController` keeps `classId` and the code, and “Set Up your Profile” also passes them as arguments to `/account-setup`. That route is a blank `Scaffold` until T-APP-007.
+- Try Again and Ok, Got it return to the empty code screen. Already Joined? Login Here → `/login`.
+- Assets: `assets/characters/welcome_heroes.png`, `assets/backgrounds/bg_auth_sky.png` (flat sky gradient, not the splash clouds). Wrong and expired share `assets/characters/hero_code_error.png` so those frames match; the success rays are drawn, not an image.
+- Checked on the iPhone 18 Pro Max: both welcome button states, empty code with the pad, filled code, wrong, expired, and joined class.
+- `flutter analyze` clean. `flutter test`: 10 passed.

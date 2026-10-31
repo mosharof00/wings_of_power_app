@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wings_of_power_app/app/core/extensions/text_style_extension.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
+import 'package:wings_of_power_app/app/core/theme/app_radius.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -15,13 +16,13 @@ InputDecoration buildAppInputDecoration({
   Widget? prefixIcon,
   Color? fillColor,
   EdgeInsetsGeometry? contentPadding,
-  double borderRadius = 10,
+  double borderRadius = AppRadius.button,
   bool showBorder = true,
   Color? enabledBorderColor,
-  double focusedBorderWidth = 0.8,
+  double focusedBorderWidth = 1.4,
 }) {
-  final radius = BorderRadius.circular(borderRadius);
-  final enabledColor = enabledBorderColor ?? AppColor.hintText;
+  final radius = BorderRadius.circular(borderRadius.r);
+  final enabledColor = enabledBorderColor ?? AppColor.primary;
 
   OutlineInputBorder borderFor(Color color, {double width = 0.5}) {
     return OutlineInputBorder(
@@ -34,6 +35,9 @@ InputDecoration buildAppInputDecoration({
 
   return InputDecoration(
     errorText: errorText,
+    errorStyle: Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: AppColor.error),
     suffixText: suffixText,
     suffixIcon: suffixIcon,
     prefixIcon: prefixIcon,
@@ -75,7 +79,7 @@ class AppInputTextFormField extends StatelessWidget {
     this.onTap,
     this.fillColor,
     this.contentPadding,
-    this.borderRadius = 10,
+    this.borderRadius = AppRadius.button,
     this.showBorder = true,
     this.enabledBorderColor,
     this.textAlign,
@@ -137,7 +141,9 @@ class AppInputTextFormField extends StatelessWidget {
         suffixIcon: suffixIcon,
         prefixIcon: prefixIcon,
         fillColor: fillColor,
-        contentPadding: contentPadding,
+        contentPadding:
+            contentPadding ??
+            EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         borderRadius: borderRadius,
         showBorder: showBorder,
         enabledBorderColor: enabledBorderColor,
@@ -160,14 +166,14 @@ class AppInputTextFormField extends StatelessWidget {
               AppText(
                 label!,
                 style: context.titleSmall.copyWith(
-                  color: labelColor ?? Colors.black,
+                  color: labelColor ?? AppColor.secondary,
                 ),
               ),
               if (validator != null)
                 AppText(
                   '*',
                   style: context.titleSmall.copyWith(
-                    color: Colors.red.shade800,
+                    color: AppColor.error,
                   ),
                 ),
             ],

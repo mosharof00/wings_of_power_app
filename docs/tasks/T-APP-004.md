@@ -1,6 +1,6 @@
 # T-APP-004 — Shared widgets
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-002, T-APP-003
 
@@ -89,4 +89,11 @@ The nav widget calls the shell controller. Tab pages themselves are later tasks.
 
 ## Notes
 
--
+- `GlobalButton` is the only button. `primary` is the orange pill (44pt, radius `AppRadius.button`, 4pt lip). `secondary` is the white pill with orange text from Logout.png. `text` is an orange label with no fill. `isDisabled` and `isLoading` block the tap.
+- Fields stay on `AppInputTextFormField` and `PasswordInputField`. Default field is a white pill with an orange border, matching Login-1.png. `SearchField` is that field with a search icon and a filter slot, borderless, radius `AppRadius.search`.
+- New widgets in `lib/app/global/widgets/`: `PointsChip`, `StoryCard`, `CategoryCard`, `LinearProgressBar`, `StepProgress` (dots and stars), `StudentBottomNav`, `SearchField`, `ErrorBlock`. `LoadingCard` sits next to `GlobalLoading`. Wrong-code and expired-code screens are not this error widget.
+- `CustomIconButton` defaults to the orange back circle and a white arrow.
+- Confirm UI is a cream bottom sheet (`CustomDialog` + `DialogUtils`): handle, title, body, primary button, optional secondary button, top radius `AppRadius.sheet`. `awesome_dialog` stays in `pubspec.yaml` because `helper_utils.dart` (outside this task) still passes `DialogType`. The sheet does not use `AwesomeDialog`.
+- Bottom nav is an orange pill, five icons, no labels. Home, stories, badges, and profile change `MainPageController.selectedIndex`. Basketball calls `onNavTap` and returns without a route (`T-GAME-001`). Placeholder SVGs: `ic_nav_home`, `ic_nav_stories`, `ic_nav_game`, `ic_nav_badges`, `ic_nav_profile`, `ic_points_coin`. Replace the files later; the getters stay. `Assets` was regenerated.
+- The shell shows `HomeView` on the home tab. Stories, badges, and profile are titled blank pages until those screens exist. Profile is not `ProfileView` yet, because that view needs a controller this binding does not create.
+- `flutter analyze`: no issues. `flutter test`: passed, including home selected, profile selected, and the basketball tap leaving the tab unchanged. The shell was also rendered at 375×812: home shows the white circle on the house, profile moves that circle to the person, and a basketball tap does not move it. A guest launch on the iPhone 18 Pro Max still stops on the blank login screen, because login is required and that screen is a later task.
