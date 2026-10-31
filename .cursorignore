@@ -1,0 +1,9 @@
+# wings_of_power_app — Cursor index exclusions
+.dart_tool/**
+build/**
+pubspec.lock
+lib/gen/**
+.flutter-plugins
+.flutter-plugins-dependencies
+flutter_export_environment.sh
+
