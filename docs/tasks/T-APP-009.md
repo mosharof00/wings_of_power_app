@@ -1,6 +1,6 @@
 # T-APP-009 — Character choose and unlock
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-007, T-APP-004
 
@@ -120,4 +120,7 @@ Mock until `T-BE-010`:
 
 ## Notes
 
--
+- Signup grid step label stays 2/2 per design PNG.
+- Character showing.png (student.hero_ready) has no button per design; flow stops on this frame until design adds CTA (SCREEN_INVENTORY row student.hero_ready). Tapping card or controller.proceedFromReady() triggers GET /api/auth/me (PENDING -> pending approval dead end, ACTIVE -> home shell via controller.mockActive debug toggle).
+- Power Hero strip shows unlocked characters with See All Power Heroes CTA navigating to Hero Roster.
+- Hero Roster supports 8 characters, unlocked hero sheet with select action (calls POST /api/heroes/:id/select), and locked modal with Explore Stories action (no select call). All-unlocked state preview supported via controller.toggleAllUnlocked().

@@ -1,9 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../modules/account_setup/bindings/account_setup_binding.dart';
 import '../modules/account_setup/views/account_setup_view.dart';
 import '../modules/account_setup/views/pending_approval_view.dart';
+import '../modules/heroes/bindings/heroes_binding.dart';
+import '../modules/heroes/views/character_choose_view.dart';
+import '../modules/heroes/views/hero_roster_view.dart';
+import '../modules/heroes/views/power_hero_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/join_class/bindings/join_class_binding.dart';
@@ -70,8 +73,18 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.CHARACTER_CHOOSE,
-      // T-APP-009 replaces this page with the hero grid.
-      page: () => const Scaffold(),
+      page: () => const CharacterChooseView(),
+      binding: HeroesBinding(),
+    ),
+    GetPage(
+      name: _Paths.POWER_HERO,
+      page: () => const PowerHeroView(),
+      binding: HeroesBinding(),
+    ),
+    GetPage(
+      name: _Paths.HERO_ROSTER,
+      page: () => const HeroRosterView(),
+      binding: HeroesBinding(),
     ),
     GetPage(
       name: _Paths.PROFILE,
