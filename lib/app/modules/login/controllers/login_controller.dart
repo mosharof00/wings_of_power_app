@@ -17,7 +17,20 @@ class LoginController extends GetxController {
   final remember = false.obs;
   final obscure = true.obs;
   final submitting = false.obs;
+  final isFormFilled = false.obs;
   final error = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    username.addListener(_updateFormFilled);
+    password.addListener(_updateFormFilled);
+  }
+
+  void _updateFormFilled() {
+    isFormFilled.value =
+        username.text.trim().isNotEmpty && password.text.isNotEmpty;
+  }
 
   void toggleRemember() => remember.value = !remember.value;
 
@@ -32,68 +45,12 @@ class LoginController extends GetxController {
     if (error.value.isNotEmpty) error.value = '';
   }
 
-  /// Temporary frame capture. Remove before the task is done.
-  @override
-  void onReady() {
-    super.onReady();
-    _captureFrames();
-  }
-
-  Future<void> _captureFrames() async {
-    debugPrint('CAPTURE frame=empty route=${Get.currentRoute}');
-    await Future<void>.delayed(const Duration(seconds: 3));
-    forgotPassword();
-    debugPrint('CAPTURE forgot_stays=${Get.currentRoute}');
-    username.text = 'sam';
-    password.text = 'secret1';
-    remember.value = true;
-    obscure.value = false;
-    debugPrint('CAPTURE frame=filled');
-    await Future<void>.delayed(const Duration(seconds: 3));
-    obscure.value = true;
-    username.text = 'nope';
-    password.text = 'bad';
-    final wrong = submit();
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    debugPrint('CAPTURE frame=loading submitting=${submitting.value}');
-    await wrong;
-    debugPrint(
-      'CAPTURE frame=error message=${error.value} route=${Get.currentRoute}',
-    );
-    await Future<void>.delayed(const Duration(seconds: 3));
-    openJoin();
-    debugPrint('CAPTURE frame=join route=${Get.currentRoute}');
-    await Future<void>.delayed(const Duration(seconds: 2));
-    Get.back();
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    username.text = 'sam';
-    password.text = 'secret1';
-    remember.value = true;
-    await submit();
-    debugPrint(
-      'CAPTURE frame=home route=${Get.currentRoute} persist=${remember.value}',
-    );
-    await Future<void>.delayed(const Duration(seconds: 2));
-    try {
-      await _auth.loginStudent(
-        username: 'pending',
-        password: 'x',
-        remember: false,
-      );
-    } on ApiException catch (e) {
-      debugPrint('CAPTURE pending_status=${e.statusCode} ${e.message}');
-      Get.offAllNamed(Routes.PENDING_APPROVAL);
-    }
-    debugPrint('CAPTURE frame=pending route=${Get.currentRoute}');
-  }
-
   Future<void> submit() async {
     final name = username.text.trim();
     final pass = password.text;
     if (name.isEmpty || pass.isEmpty || submitting.value) return;
     error.value = '';
     submitting.value = true;
-    await Future<void>.delayed(const Duration(milliseconds: 900));
     try {
       final session = await _auth.loginStudent(
         username: name,
@@ -126,6 +83,8 @@ class LoginController extends GetxController {
 
   @override
   void onClose() {
+    username.removeListener(_updateFormFilled);
+    password.removeListener(_updateFormFilled);
     username.dispose();
     password.dispose();
     super.onClose();

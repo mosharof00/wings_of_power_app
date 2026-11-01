@@ -72,6 +72,7 @@ class LoginView extends GetView<LoginController> {
                   Obx(
                     () => GlobalButton(
                       text: 'Let’s Get Started',
+                      isDisabled: !controller.isFormFilled.value,
                       isLoading: controller.submitting.value,
                       onTap: controller.submit,
                     ),

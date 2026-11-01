@@ -1,6 +1,6 @@
 # T-APP-008 — Login
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-004
 
@@ -85,4 +85,9 @@ Mock until `T-BE-010`:
 
 ## Notes
 
--
+- Login screen matches auth_login_filled.png (Login-1.png) at 375×812.
+- Fields: username, password (toggle obscure), remember device checkbox, forgot password link (no screen opened, remains on page), let's get started button (disabled when empty, enabled when both fields filled), join with code navigation.
+- AuthRepository / LoginMock wired: sam/secret1 -> ACTIVE session + home shell (Routes.MAIN_PAGE); pending -> 422 PENDING to Routes.PENDING_APPROVAL; wrong credentials -> 401 error message displayed on form.
+- Session persistence via HelperUtils.setUser(persist: remember.value).
+- Initial app route restored to Routes.SPLASH in AppPages.
+- Validation: flutter analyze clean, flutter test passed (10 tests), iOS simulator build succeeded.
