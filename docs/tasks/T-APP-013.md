@@ -1,6 +1,6 @@
 # T-APP-013 — Listening mode
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-012
 
@@ -73,4 +73,16 @@ Mock until `T-BE-012`:
 
 ## Notes
 
--
+- Added `just_audio: ^0.9.46` to `pubspec.yaml` and resolved dependencies with `flutter pub get`.
+- Implemented Listening mode matching `story_listening_mode.png`:
+  * Top bar with circular back button and Read / Listen toggle pill (switching to Read updates view in-place).
+  * Center story artwork / cover thumbnail card with orange border and page body text.
+  * Added `AudioPlayerControlBox` at bottom with elapsed and remaining time labels (`03:16` / `12:48`), interactive scrubber bar (seeking via tap & drag), previous/rewind, replay 10s, play/pause circle button, forward 10s, and next/skip controls.
+- Updated `ReaderController`:
+  * Audio playback support using `just_audio` with seamless timer fallback for mock / offline environments so the scrubber advances even without network audio file.
+  * Play, pause, seek, 10s forward/backward skips, previous rewind/page turn, and next chapter complete.
+  * Progress reporting via `PUT /api/stories/:id/progress` with `mode: 'listen'`.
+  * Chapter complete triggers `POST /api/stories/:id/chapters/:chapterId/complete` and displays `ReaderCompletedView`.
+- Added standalone `StoryListeningView` in `lib/app/modules/reader/views/story_listening_view.dart`.
+- Added audio sample fixture at `assets/sounds/chapter_sample.m4a` and updated `ChapterPagesMock` fixtures.
+- Validated: `flutter analyze` and `flutter test` both pass cleanly.

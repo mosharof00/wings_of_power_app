@@ -7,6 +7,7 @@ import 'package:wings_of_power_app/app/data/models/story_models.dart';
 import 'package:wings_of_power_app/app/global/widgets/cached_image.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import '../controllers/reader_controller.dart';
+import 'widgets/audio_player_control_box.dart';
 import 'widgets/reader_completed_view.dart';
 import 'widgets/reader_loading_view.dart';
 
@@ -125,8 +126,10 @@ class ReaderView extends GetView<ReaderController> {
                 ),
               ),
 
-              // 6. Bottom Navigation Controls
-              _buildBottomBar(),
+              // 6. Bottom Navigation Controls (Reading or Listening mode)
+              controller.isReadMode.value
+                  ? _buildBottomBar()
+                  : AudioPlayerControlBox(controller: controller),
             ],
           ),
         ),
@@ -212,7 +215,9 @@ class ReaderView extends GetView<ReaderController> {
                         color: !controller.isReadMode.value
                             ? Colors.white
                             : AppColor.primary,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: !controller.isReadMode.value
+                            ? FontWeight.w700
+                            : FontWeight.w600,
                         fontSize: 13.sp,
                       ),
                     ),

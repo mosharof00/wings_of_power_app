@@ -37,7 +37,7 @@ class ChapterPagesMock {
       chapterNumber: 1,
       title: 'The Girl Who Believed',
       audioUrl: 'https://example.com/audio/gp1-ch-1.mp3',
-      durationMs: 180000,
+      durationMs: 768000,
       hasQuiz: true,
       quizId: 'quiz-gp1-ch-1',
       pages: [
@@ -117,6 +117,8 @@ class ChapterPagesMock {
       storyId: storyId,
       chapterNumber: 1,
       title: 'The Girl Who Believed',
+      audioUrl: 'https://example.com/audio/$chapterId.mp3',
+      durationMs: 768000,
       hasQuiz: true,
       quizId: 'quiz-$chapterId',
       isCompleted: completedChapters.contains('$storyId:$chapterId'),
