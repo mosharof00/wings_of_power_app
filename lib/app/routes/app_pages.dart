@@ -9,6 +9,7 @@ import '../modules/heroes/views/hero_roster_view.dart';
 import '../modules/heroes/views/power_hero_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
+import '../modules/home/views/widgets/safe_space_stub_view.dart';
 import '../modules/join_class/bindings/join_class_binding.dart';
 import '../modules/join_class/views/join_class_view.dart';
 import '../modules/login/bindings/login_binding.dart';
@@ -95,6 +96,10 @@ class AppPages {
       name: _Paths.SPLASH,
       page: () => const SplashView(),
       binding: SplashBinding(),
+    ),
+    GetPage(
+      name: _Paths.SAFE_SPACE_REPORT,
+      page: () => const SafeSpaceStubView(),
     ),
   ];
 }

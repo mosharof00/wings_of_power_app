@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/core/network/api_client.dart';
 import 'auth_repository.dart';
 import 'hero_repository.dart';
+import 'home_repository.dart';
 
 class AppRepositoryBinding extends Bindings {
   @override
@@ -16,6 +17,10 @@ class AppRepositoryBinding extends Bindings {
     );
     Get.lazyPut<IHeroRepository>(
       () => HeroRepository(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<IHomeRepository>(
+      () => HomeRepository(Get.find<ApiClient>()),
       fenix: true,
     );
   }

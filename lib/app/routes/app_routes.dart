@@ -17,6 +17,7 @@ abstract class Routes {
   static const HERO_ROSTER = _Paths.HERO_ROSTER;
   static const PROFILE = _Paths.PROFILE;
   static const SPLASH = _Paths.SPLASH;
+  static const SAFE_SPACE_REPORT = _Paths.SAFE_SPACE_REPORT;
 }
 
 abstract class _Paths {
@@ -34,4 +35,5 @@ abstract class _Paths {
   static const MAIN_PAGE = '/main-page';
   static const PROFILE = '/profile';
   static const SPLASH = '/splash';
+  static const SAFE_SPACE_REPORT = '/safe-space-report';
 }

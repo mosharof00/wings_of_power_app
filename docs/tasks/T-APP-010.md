@@ -1,6 +1,6 @@
 # T-APP-010 — Home
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-004, T-APP-008
 
@@ -96,4 +96,14 @@ Mock until `T-BE-011`:
 
 ## Notes
 
--
+- Student home screen implemented matching home_default.png (Home.png), home_game_unlocked.png (Home-1.png), home_story_in_progress.png (Home-2.png), and home_all_stories_complete.png (Home-3.png) at 375x812.
+- Top header: greeting, PointsChip, avatar, and bell icon (inert / no route per D14).
+- Search bar: SearchField filtering popular stories locally on text change.
+- Dynamic banner card: start reading ("Start your first story!" / "Start Reading"), continue reading ("Keep going!" / progress bar / "Continue"), and quiz ("Finish your quiz to unlock next chapter!" / "Take the Quiz").
+- Book categories: carousel PageView with centered 3D scale/fade animation.
+- Popular stories: 2-column grid cards with title, cover, subtitle. "See all" and covers route to Stories shell tab.
+- Play Game banner: "Ready to Take the Shot?" with basketball hero and empty `onPlayGame` hook for T-GAME-001.
+- Explore More: Kindness Corner and Audio Books (inert / no route per D14); Safe Space Report navigates to `Routes.SAFE_SPACE_REPORT` stub (T-APP-016 placeholder).
+- HomeMock fixture in `lib/app/data/mocks/home.dart` covers newStudent, inProgress, quiz, and errorOverride states.
+- HomeRepository wired in `AppRepositoryBinding` and `HomeBinding` with ApiClient.
+- Validation: flutter analyze clean, flutter test passed (10 repo tests + 7 home verification tests).

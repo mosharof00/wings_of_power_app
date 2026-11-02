@@ -33,6 +33,9 @@ class ApiEndpoint {
   static const String profileDetails = '$baseUrl/profile/details'; // get
   static const String profileUpdate = '$baseUrl/profile/update'; // post
 
+  /// Student Home
+  static const String studentHome = '$baseUrl/student/home'; // get
+
   /// Heroes
   static const String heroes = '$baseUrl/heroes'; // get
   static String heroSelect(String id) => '$baseUrl/heroes/$id/select'; // post
