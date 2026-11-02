@@ -1,6 +1,6 @@
 # T-APP-014 — Quiz round
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-012
 
@@ -153,4 +153,11 @@ Listed in the tables above, plus the leave modal and the three result scores.
 
 ## Notes
 
--
+- Implemented Chapter Quiz flow with host card, 2x2 MCQ options grid, star progress bar, speaker button, and Check Answer / Next Question / See Result state machine.
+- Implemented Leave Questions confirmation dialog matching `chapter_quiz_leave_confirm.png`.
+- Implemented Quiz Result view supporting 1/5 (+2 pts), 3/5 (+6 pts), and 5/5 (+10 pts) scenarios. Result progress bar matched at 10% per specification; Play Again button shown on non-perfect scores and hidden on 5/5 perfect score.
+- Implemented Quick Checkpoint bottom sheet modal over blurred reader screen, with hint modal on 1st wrong attempt, reveal modal on 2nd wrong attempt, and success modal on correct answer, returning to reader.
+- Added reader checkpoint hook in `ReaderController.onNextPage` and `onNextTrackOrSkip`.
+- Added `IQuizRepository` and `QuizRepository` with Dio network implementation and `QuizzesMock` fallback.
+- Added assets: `assets/characters/gabriel_host.png`, `assets/icons/ic_speaker.svg`, `assets/icons/ic_quiz_star.svg`.
+- TTS is unwired per spec (icon button rendered and toggles state without adding extra packages).

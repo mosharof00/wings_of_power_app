@@ -20,6 +20,10 @@ import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
+import '../modules/quiz/bindings/quiz_binding.dart';
+import '../modules/quiz/views/chapter_quiz_result_view.dart';
+import '../modules/quiz/views/chapter_quiz_view.dart';
+import '../modules/quiz/views/checkpoint_quiz_view.dart';
 import '../modules/reader/bindings/reader_binding.dart';
 import '../modules/reader/views/reader_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
@@ -133,7 +137,18 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.CHAPTER_QUIZ,
-      page: () => const ChapterQuizStubView(),
+      page: () => const ChapterQuizView(),
+      binding: QuizBinding(),
+    ),
+    GetPage(
+      name: _Paths.CHAPTER_QUIZ_RESULT,
+      page: () => const ChapterQuizResultView(),
+      binding: QuizBinding(),
+    ),
+    GetPage(
+      name: _Paths.CHECKPOINT_QUIZ,
+      page: () => const CheckpointQuizView(),
+      binding: QuizBinding(),
     ),
   ];
 }

@@ -49,4 +49,16 @@ class ApiEndpoint {
       '$baseUrl/stories/$storyId/progress'; // put
   static String storyChapterComplete(String storyId, String chapterId) =>
       '$baseUrl/stories/$storyId/chapters/$chapterId/complete'; // post
+
+  /// Quizzes
+  static String chapterQuiz(String chapterId) =>
+      '$baseUrl/chapters/$chapterId/quiz'; // get
+  static String chapterCheckpoint(String chapterId) =>
+      '$baseUrl/chapters/$chapterId/checkpoint'; // get
+  static String startQuizAttempt(String quizId) =>
+      '$baseUrl/quizzes/$quizId/attempts'; // post
+  static String submitAnswer(String attemptId) =>
+      '$baseUrl/attempts/$attemptId/answers'; // post
+  static String completeAttempt(String attemptId) =>
+      '$baseUrl/attempts/$attemptId/complete'; // post
 }

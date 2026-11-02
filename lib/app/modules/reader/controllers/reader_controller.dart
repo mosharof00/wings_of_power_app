@@ -23,6 +23,7 @@ class ReaderController extends GetxController {
   final currentPageIndex = 0.obs;
   final isChapterComplete = false.obs;
   final isReadMode = true.obs;
+  final passedCheckpoints = <String>{}.obs;
 
   // Audio Playback Observables
   final isAudioPlaying = false.obs;
@@ -257,6 +258,15 @@ class ReaderController extends GetxController {
   }
 
   Future<void> onNextTrackOrSkip() async {
+    final page = currentPage;
+    final pageKey = page?.id ?? (page != null ? '${page.number}' : null);
+    if (page != null &&
+        page.hasCheckpoint &&
+        pageKey != null &&
+        !passedCheckpoints.contains(pageKey)) {
+      onCheckpointTriggered(page);
+      return;
+    }
     if (!isLastPage) {
       currentPageIndex.value++;
       _reportProgress();
@@ -280,8 +290,13 @@ class ReaderController extends GetxController {
 
   Future<void> onNextPage() async {
     final page = currentPage;
-    if (page != null && page.hasCheckpoint) {
+    final pageKey = page?.id ?? (page != null ? '${page.number}' : null);
+    if (page != null &&
+        page.hasCheckpoint &&
+        pageKey != null &&
+        !passedCheckpoints.contains(pageKey)) {
       onCheckpointTriggered(page);
+      return;
     }
 
     if (isLastPage) {
@@ -348,9 +363,27 @@ class ReaderController extends GetxController {
     _reportProgress();
   }
 
-  void onCheckpointTriggered(ChapterPageModel page) {
-    // Hook for T-APP-014 checkpoint questions between pages.
-    // If a checkpoint route is active, push here; no-op until 014 exists.
+  void onCheckpointTriggered(ChapterPageModel page) async {
+    pauseAudio();
+    final pageKey = page.id ?? '${page.number}';
+    final result = await Get.toNamed(
+      Routes.CHECKPOINT_QUIZ,
+      arguments: {
+        'storyId': storyId,
+        'chapterId': chapterId,
+        'pageId': page.id,
+        'pageNumber': page.number,
+      },
+    );
+    if (result == true) {
+      passedCheckpoints.add(pageKey);
+      if (isLastPage) {
+        await completeChapter();
+      } else {
+        currentPageIndex.value++;
+        _reportProgress();
+      }
+    }
   }
 
   void onTakeQuiz() {
