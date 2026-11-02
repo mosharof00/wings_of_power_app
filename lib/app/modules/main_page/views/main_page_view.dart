@@ -5,6 +5,7 @@ import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/student_bottom_nav.dart';
 
 import '../../home/views/home_view.dart';
+import '../../stories/views/story_library_view.dart';
 import '../controllers/main_page_controller.dart';
 
 class MainPageView extends GetView<MainPageController> {
@@ -25,7 +26,7 @@ class MainPageView extends GetView<MainPageController> {
             index: _bodyIndex(index),
             children: const [
               HomeView(),
-              _ShellTab('Stories'),
+              StoryLibraryView(),
               _ShellTab('Badges'),
               _ShellTab('Profile'),
             ],

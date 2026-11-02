@@ -1,6 +1,6 @@
 # T-APP-011 — Story library, description, and chapters
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-010, T-APP-004
 
@@ -94,4 +94,13 @@ Mock until `T-BE-012`:
 
 ## Notes
 
--
+- Implemented Story Library (`StoryLibraryView`), Story Details (`StoryDetailsView`), and components matching 375×812 designs.
+- Handled all three story details variants: new student (locked chapters), returning student (progress bar & completed checkmark), and retake quiz (chapter rows with Quiz links).
+- Implemented category and age group filter pills and modal sheets, supporting section row grouping and 2-column grid view when both filters are active.
+- Added search field toggling with shared empty state (`ShowEmptyResult`) on empty search results.
+- Added mock stories fixtures with "City of Thieves", "The Ties That Bind Us", "The Golden Pearl Book 1", "The Golden Pearl Book 2", and retake story.
+- Added story API endpoints and repository with `useMocks` support.
+- Registered `IStoryRepository` in `AppRepositoryBinding` and wired book tab in `MainPageView` to `StoryLibraryView`.
+- Added stub routes for T-APP-012 (`STORY_READER`), T-APP-013 (`STORY_LISTENING`), and T-APP-014 (`CHAPTER_QUIZ`).
+- Verified locked chapters prevent opening reader and display notification.
+- Validated with `flutter analyze` (clean) and `flutter test` (all tests passed).

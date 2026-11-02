@@ -39,4 +39,14 @@ class ApiEndpoint {
   /// Heroes
   static const String heroes = '$baseUrl/heroes'; // get
   static String heroSelect(String id) => '$baseUrl/heroes/$id/select'; // post
+
+  /// Stories
+  static const String stories = '$baseUrl/stories'; // get
+  static String storyDetail(String id) => '$baseUrl/stories/$id'; // get
+  static String storyChapter(String storyId, String chapterId) =>
+      '$baseUrl/stories/$storyId/chapters/$chapterId'; // get
+  static String storyProgress(String storyId) =>
+      '$baseUrl/stories/$storyId/progress'; // put
+  static String storyChapterComplete(String storyId, String chapterId) =>
+      '$baseUrl/stories/$storyId/chapters/$chapterId/complete'; // post
 }

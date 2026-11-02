@@ -22,6 +22,10 @@ import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
+import '../modules/stories/bindings/stories_binding.dart';
+import '../modules/stories/views/story_details_view.dart';
+import '../modules/stories/views/story_library_view.dart';
+import '../modules/stories/views/widgets/stubs.dart';
 import '../modules/welcome/bindings/welcome_binding.dart';
 import '../modules/welcome/views/welcome_view.dart';
 
@@ -100,6 +104,28 @@ class AppPages {
     GetPage(
       name: _Paths.SAFE_SPACE_REPORT,
       page: () => const SafeSpaceStubView(),
+    ),
+    GetPage(
+      name: _Paths.STORY_LIBRARY,
+      page: () => const StoryLibraryView(),
+      binding: StoriesBinding(),
+    ),
+    GetPage(
+      name: _Paths.STORY_DETAILS,
+      page: () => const StoryDetailsView(),
+      binding: StoriesBinding(),
+    ),
+    GetPage(
+      name: _Paths.STORY_READER,
+      page: () => const StoryReaderStubView(),
+    ),
+    GetPage(
+      name: _Paths.STORY_LISTENING,
+      page: () => const StoryListeningStubView(),
+    ),
+    GetPage(
+      name: _Paths.CHAPTER_QUIZ,
+      page: () => const ChapterQuizStubView(),
     ),
   ];
 }

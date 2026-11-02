@@ -1,5 +1,7 @@
 import 'package:wings_of_power_app/app/data/repositories/home_repository.dart';
+import 'package:wings_of_power_app/app/data/repositories/story_repository.dart';
 import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
+import 'package:wings_of_power_app/app/modules/stories/controllers/stories_controller.dart';
 import 'package:get/get.dart';
 
 import '../controllers/main_page_controller.dart';
@@ -14,6 +16,9 @@ class MainPageBinding extends Bindings {
     Get.lazyPut<MainPageController>(() => MainPageController());
     Get.lazyPut<HomeController>(
       () => HomeController(Get.find<IHomeRepository>()),
+    );
+    Get.lazyPut<StoriesController>(
+      () => StoriesController(Get.find<IStoryRepository>()),
     );
   }
 }
