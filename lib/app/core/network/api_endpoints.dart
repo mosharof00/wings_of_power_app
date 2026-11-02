@@ -66,6 +66,11 @@ class ApiEndpoint {
   static const String badges = '$baseUrl/badges'; // get
   static String badgeDetail(String id) => '$baseUrl/badges/$id'; // get
 
+  /// Safe Space Reports
+  static const String safeSpaceReports = '$baseUrl/safe-space/reports'; // get, post
+  static String safeSpaceReportDetail(String id) =>
+      '$baseUrl/safe-space/reports/$id'; // get
+
   /// Student Points, Leaderboard & Progress
   static const String studentPoints = '$baseUrl/student/points'; // get
   static String studentLeaderboard([String scope = 'class']) =>

@@ -14,7 +14,12 @@ import '../modules/heroes/views/hero_roster_view.dart';
 import '../modules/heroes/views/power_hero_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
-import '../modules/home/views/widgets/safe_space_stub_view.dart';
+import '../modules/safe_space/bindings/safe_space_binding.dart';
+import '../modules/safe_space/views/safe_space_form_view.dart';
+import '../modules/safe_space/views/safe_space_intro_view.dart';
+import '../modules/safe_space/views/safe_space_report_detail_view.dart';
+import '../modules/safe_space/views/safe_space_reports_list_view.dart';
+import '../modules/safe_space/views/safe_space_submission_success_view.dart';
 import '../modules/join_class/bindings/join_class_binding.dart';
 import '../modules/join_class/views/join_class_view.dart';
 import '../modules/login/bindings/login_binding.dart';
@@ -113,8 +118,35 @@ class AppPages {
       binding: SplashBinding(),
     ),
     GetPage(
-      name: _Paths.SAFE_SPACE_REPORT,
-      page: () => const SafeSpaceStubView(),
+      name: _Paths.SAFE_SPACE,
+      page: () => const SafeSpaceIntroView(),
+      binding: SafeSpaceBinding(),
+    ),
+    GetPage(
+      name: '/safe-space-report',
+      page: () => const SafeSpaceIntroView(),
+      binding: SafeSpaceBinding(),
+    ),
+    GetPage(
+      name: _Paths.SAFE_SPACE_FORM,
+      page: () => const SafeSpaceFormView(),
+      binding: SafeSpaceBinding(),
+    ),
+    GetPage(
+      name: _Paths.SAFE_SPACE_DONE,
+      page: () => const SafeSpaceSubmissionSuccessView(),
+      binding: SafeSpaceBinding(),
+    ),
+    GetPage(
+      name: _Paths.SAFE_SPACE_REPORTS,
+      page: () => const SafeSpaceReportsListView(),
+      binding: SafeSpaceBinding(),
+    ),
+    GetPage(
+      name: _Paths.SAFE_SPACE_REPORT_DETAIL,
+      page: () => const SafeSpaceReportDetailView(),
+      binding: SafeSpaceBinding(),
+      opaque: false,
     ),
     GetPage(
       name: _Paths.STORY_LIBRARY,

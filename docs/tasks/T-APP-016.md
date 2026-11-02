@@ -1,6 +1,6 @@
 # T-APP-016 — Safe Space and Kindness Corner
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-010, T-APP-004
 
@@ -117,4 +117,10 @@ No Kindness Corner call.
 
 ## Notes
 
--
+- Implemented Safe Space flow screens: intro (`safe_space_intro_view`), 3-step form (`safe_space_form_view`), submission complete (`safe_space_submission_success_view`), my reports list (`safe_space_reports_list_view`), and report detail modal (`safe_space_report_detail_view` / `safe_space_report_detail_sheet`).
+- Step 1 disables Next until category selected; Step 2 enforces 200 max char count with 0/200 counter; Step 3 provides Yes/No feel-safe options and Submit Report / Cancel buttons.
+- My Reports supports All, New, Reviewing, Addressed filter chips and empty states; detail view excludes staff notes.
+- Mocks and SafeSpaceRepository wired with realistic fixtures (`WP-1548`, `WP-1549`, `WP-1550`).
+- Routes `/safe-space`, `/safe-space/form`, `/safe-space/done`, `/safe-space/reports`, `/safe-space/reports/:id`, and `/safe-space-report` wired in `app_pages.dart` and `app_routes.dart`.
+- Replaced home tile stub route with real safe space navigation.
+- No Kindness Corner screens built (out of scope).

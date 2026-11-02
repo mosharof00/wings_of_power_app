@@ -17,6 +17,11 @@ abstract class Routes {
   static const HERO_ROSTER = _Paths.HERO_ROSTER;
   static const PROFILE = _Paths.PROFILE;
   static const SPLASH = _Paths.SPLASH;
+  static const SAFE_SPACE = _Paths.SAFE_SPACE;
+  static const SAFE_SPACE_FORM = _Paths.SAFE_SPACE_FORM;
+  static const SAFE_SPACE_DONE = _Paths.SAFE_SPACE_DONE;
+  static const SAFE_SPACE_REPORTS = _Paths.SAFE_SPACE_REPORTS;
+  static const SAFE_SPACE_REPORT_DETAIL = _Paths.SAFE_SPACE_REPORT_DETAIL;
   static const SAFE_SPACE_REPORT = _Paths.SAFE_SPACE_REPORT;
   static const STORY_LIBRARY = _Paths.STORY_LIBRARY;
   static const STORY_DETAILS = _Paths.STORY_DETAILS;
@@ -47,7 +52,12 @@ abstract class _Paths {
   static const MAIN_PAGE = '/main-page';
   static const PROFILE = '/profile';
   static const SPLASH = '/splash';
-  static const SAFE_SPACE_REPORT = '/safe-space-report';
+  static const SAFE_SPACE = '/safe-space';
+  static const SAFE_SPACE_FORM = '/safe-space/form';
+  static const SAFE_SPACE_DONE = '/safe-space/done';
+  static const SAFE_SPACE_REPORTS = '/safe-space/reports';
+  static const SAFE_SPACE_REPORT_DETAIL = '/safe-space/reports/:id';
+  static const SAFE_SPACE_REPORT = '/safe-space';
   static const STORY_LIBRARY = '/story-library';
   static const STORY_DETAILS = '/story-details';
   static const STORY_READER = '/story-reader';

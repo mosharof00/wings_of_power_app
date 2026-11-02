@@ -5,6 +5,7 @@ import 'achievement_repository.dart';
 import 'hero_repository.dart';
 import 'home_repository.dart';
 import 'quiz_repository.dart';
+import 'safe_space_repository.dart';
 import 'story_repository.dart';
 
 class AppRepositoryBinding extends Bindings {
@@ -36,6 +37,10 @@ class AppRepositoryBinding extends Bindings {
     );
     Get.lazyPut<IAchievementRepository>(
       () => AchievementRepository(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<ISafeSpaceRepository>(
+      () => SafeSpaceRepository(Get.find<ApiClient>()),
       fenix: true,
     );
   }
