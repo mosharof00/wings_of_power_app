@@ -1,6 +1,6 @@
 # T-APP-012 — Reading mode
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-011
 
@@ -80,4 +80,11 @@ Mock until `T-BE-012`:
 
 ## Notes
 
--
+- Implemented `student.reader` module (`ReaderView`, `ReaderController`, `ReaderBinding`) matching `story_reading_mode.png`.
+- Top bar includes circular back button and Read / Listen toggle pill (Listen switches to `Routes.STORY_LISTENING` / `T-APP-013`).
+- Loading view matching `story_loading_state.png` built with `LoadingCard` and Faith character art.
+- Completion screen matching `story_completed_screen.png` triggers when advancing past the last page, calls `POST /api/stories/:id/chapters/:chapterId/complete`, and offers "Take Quiz Now!" (`Routes.CHAPTER_QUIZ`) and "Back to Home".
+- Page turns record progress via `PUT /api/stories/:id/progress` through `IStoryRepository` and `ChapterPagesMock`.
+- Left `onCheckpointTriggered` hook in `ReaderController` for mid-chapter checkpoints (`T-APP-014`).
+- Added `Routes.READER` (`/reader`) and mapped both `_Paths.READER` and `_Paths.STORY_READER` in `AppPages`.
+- Added fixture assets `assets/book_covers/page_sample_1.png` and `assets/book_covers/page_sample_2.png`.

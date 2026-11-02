@@ -20,6 +20,8 @@ import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
+import '../modules/reader/bindings/reader_binding.dart';
+import '../modules/reader/views/reader_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/stories/bindings/stories_binding.dart';
@@ -117,7 +119,13 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.STORY_READER,
-      page: () => const StoryReaderStubView(),
+      page: () => const ReaderView(),
+      binding: ReaderBinding(),
+    ),
+    GetPage(
+      name: _Paths.READER,
+      page: () => const ReaderView(),
+      binding: ReaderBinding(),
     ),
     GetPage(
       name: _Paths.STORY_LISTENING,

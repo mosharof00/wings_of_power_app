@@ -21,6 +21,7 @@ abstract class Routes {
   static const STORY_LIBRARY = _Paths.STORY_LIBRARY;
   static const STORY_DETAILS = _Paths.STORY_DETAILS;
   static const STORY_READER = _Paths.STORY_READER;
+  static const READER = _Paths.READER;
   static const STORY_LISTENING = _Paths.STORY_LISTENING;
   static const CHAPTER_QUIZ = _Paths.CHAPTER_QUIZ;
 }
@@ -44,6 +45,7 @@ abstract class _Paths {
   static const STORY_LIBRARY = '/story-library';
   static const STORY_DETAILS = '/story-details';
   static const STORY_READER = '/story-reader';
+  static const READER = '/reader';
   static const STORY_LISTENING = '/story-listening';
   static const CHAPTER_QUIZ = '/chapter-quiz';
 }

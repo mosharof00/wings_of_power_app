@@ -282,3 +282,169 @@ class StoryListResponse {
         'lastPage': lastPage,
       };
 }
+
+class ChapterPageModel {
+  const ChapterPageModel({
+    required this.number,
+    this.id,
+    this.chapterId,
+    this.bodyText = '',
+    this.imageUrl,
+    this.assetPath,
+    this.hasCheckpoint = false,
+    this.checkpointId,
+  });
+
+  final int number;
+  final String? id;
+  final String? chapterId;
+  final String bodyText;
+  final String? imageUrl;
+  final String? assetPath;
+  final bool hasCheckpoint;
+  final String? checkpointId;
+
+  ChapterPageModel copyWith({
+    int? number,
+    String? id,
+    String? chapterId,
+    String? bodyText,
+    String? imageUrl,
+    String? assetPath,
+    bool? hasCheckpoint,
+    String? checkpointId,
+  }) {
+    return ChapterPageModel(
+      number: number ?? this.number,
+      id: id ?? this.id,
+      chapterId: chapterId ?? this.chapterId,
+      bodyText: bodyText ?? this.bodyText,
+      imageUrl: imageUrl ?? this.imageUrl,
+      assetPath: assetPath ?? this.assetPath,
+      hasCheckpoint: hasCheckpoint ?? this.hasCheckpoint,
+      checkpointId: checkpointId ?? this.checkpointId,
+    );
+  }
+
+  factory ChapterPageModel.fromJson(Map<String, dynamic> json) {
+    return ChapterPageModel(
+      number: (json['number'] ?? json['pageNumber'] as num?)?.toInt() ?? 1,
+      id: json['id'] as String?,
+      chapterId: json['chapterId'] ?? json['chapter_id'] as String?,
+      bodyText: json['bodyText'] ?? json['body_text'] as String? ?? '',
+      imageUrl: json['imageUrl'] ?? json['image_url'] as String?,
+      assetPath: json['assetPath'] as String?,
+      hasCheckpoint: json['hasCheckpoint'] as bool? ?? false,
+      checkpointId: json['checkpointId'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'number': number,
+        if (id != null) 'id': id,
+        if (chapterId != null) 'chapterId': chapterId,
+        'bodyText': bodyText,
+        if (imageUrl != null) 'imageUrl': imageUrl,
+        if (assetPath != null) 'assetPath': assetPath,
+        'hasCheckpoint': hasCheckpoint,
+        if (checkpointId != null) 'checkpointId': checkpointId,
+      };
+}
+
+class ChapterDetailModel {
+  const ChapterDetailModel({
+    required this.id,
+    required this.storyId,
+    required this.chapterNumber,
+    required this.title,
+    this.audioUrl,
+    this.durationMs,
+    this.pages = const [],
+    this.isCompleted = false,
+    this.hasQuiz = false,
+    this.quizId,
+  });
+
+  final String id;
+  final String storyId;
+  final int chapterNumber;
+  final String title;
+  final String? audioUrl;
+  final int? durationMs;
+  final List<ChapterPageModel> pages;
+  final bool isCompleted;
+  final bool hasQuiz;
+  final String? quizId;
+
+  int get pageCount => pages.length;
+
+  ChapterDetailModel copyWith({
+    String? id,
+    String? storyId,
+    int? chapterNumber,
+    String? title,
+    String? audioUrl,
+    int? durationMs,
+    List<ChapterPageModel>? pages,
+    bool? isCompleted,
+    bool? hasQuiz,
+    String? quizId,
+  }) {
+    return ChapterDetailModel(
+      id: id ?? this.id,
+      storyId: storyId ?? this.storyId,
+      chapterNumber: chapterNumber ?? this.chapterNumber,
+      title: title ?? this.title,
+      audioUrl: audioUrl ?? this.audioUrl,
+      durationMs: durationMs ?? this.durationMs,
+      pages: pages ?? this.pages,
+      isCompleted: isCompleted ?? this.isCompleted,
+      hasQuiz: hasQuiz ?? this.hasQuiz,
+      quizId: quizId ?? this.quizId,
+    );
+  }
+
+  factory ChapterDetailModel.fromJson(Map<String, dynamic> json) {
+    final rawPages = (json['pages'] as List? ?? []);
+    final pagesList = rawPages
+        .map((e) =>
+            ChapterPageModel.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    pagesList.sort((a, b) => a.number.compareTo(b.number));
+
+    return ChapterDetailModel(
+      id: json['id'] as String? ?? '',
+      storyId: json['storyId'] ?? json['story_id'] as String? ?? '',
+      chapterNumber:
+          (json['chapterNumber'] ?? json['number'] as num?)?.toInt() ?? 1,
+      title: json['title'] as String? ?? '',
+      audioUrl: json['audioUrl'] ??
+          json['audio_url'] ??
+          (json['audio'] is Map ? json['audio']['audioUrl'] as String? : null),
+      durationMs: (json['durationMs'] ??
+              json['duration_ms'] ??
+              (json['audio'] is Map
+                  ? json['audio']['durationMs'] as num?
+                  : null))
+          ?.toInt(),
+      pages: pagesList,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      hasQuiz: json['hasQuiz'] as bool? ?? false,
+      quizId: json['quizId'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'storyId': storyId,
+        'chapterNumber': chapterNumber,
+        'title': title,
+        if (audioUrl != null) 'audioUrl': audioUrl,
+        if (durationMs != null) 'durationMs': durationMs,
+        'pages': pages.map((e) => e.toJson()).toList(),
+        'isCompleted': isCompleted,
+        'hasQuiz': hasQuiz,
+        if (quizId != null) 'quizId': quizId,
+      };
+}
+
