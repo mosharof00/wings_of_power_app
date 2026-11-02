@@ -259,3 +259,4 @@ class CompleteAttemptResponseModel {
         if (badge != null) 'badge': badge,
       };
 }
+

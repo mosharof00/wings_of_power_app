@@ -629,3 +629,4 @@ class ChapterQuizView extends GetView<QuizController> {
     );
   }
 }
+

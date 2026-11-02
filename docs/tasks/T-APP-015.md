@@ -1,6 +1,6 @@
 # T-APP-015 — Badges, points, leaderboard, reading progress
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-004, T-APP-010
 
@@ -134,4 +134,13 @@ Mock until `T-BE-011`:
 
 ## Notes
 
--
+- Implemented `BadgesView`, `PositivePointsView`, `LeaderboardView`, and `ReadingProgressView` under `lib/app/modules/achievements/`.
+- Wired badges tab in bottom navigation to `BadgesView`.
+- Configured routes in `app_pages.dart` and `app_routes.dart` (`Routes.BADGES`, `Routes.POSITIVE_POINTS`, `Routes.LEADERBOARD`, `Routes.READING_PROGRESS`).
+- Extracted and bundled 6 badge illustrations plus locked badge art into `assets/badges/`.
+- Built How-To-Unlock bottom sheets with exact requirements copy matching the 6 design PNGs without inventing thresholds.
+- Built unlock notification dialog (`Awesome!` CTA) and celebration dialog (`View Badge` CTA).
+- Built kindness leaderboard according to Decision 5 (student avatar, student name, and kindness points; top 3 podium + scrollable ranked list with current student highlighted).
+- Built reading progress summary (60% donut progress, 3 stat tiles, chapter progress bars, Explore Stories CTA -> library).
+- Added comprehensive mock fixtures covering partial badges, all locked badges, points history (with empty ledger support), and leaderboard.
+- Validation: `flutter analyze` clean (0 issues), `flutter test` passed (10/10 tests).

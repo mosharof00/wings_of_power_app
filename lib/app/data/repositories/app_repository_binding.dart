@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/core/network/api_client.dart';
 import 'auth_repository.dart';
+import 'achievement_repository.dart';
 import 'hero_repository.dart';
 import 'home_repository.dart';
 import 'quiz_repository.dart';
@@ -31,6 +32,10 @@ class AppRepositoryBinding extends Bindings {
     );
     Get.lazyPut<IQuizRepository>(
       () => QuizRepository(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<IAchievementRepository>(
+      () => AchievementRepository(Get.find<ApiClient>()),
       fenix: true,
     );
   }

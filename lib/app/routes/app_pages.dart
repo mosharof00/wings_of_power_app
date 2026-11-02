@@ -3,6 +3,11 @@ import 'package:get/get.dart';
 import '../modules/account_setup/bindings/account_setup_binding.dart';
 import '../modules/account_setup/views/account_setup_view.dart';
 import '../modules/account_setup/views/pending_approval_view.dart';
+import '../modules/achievements/bindings/achievements_binding.dart';
+import '../modules/achievements/views/badges_view.dart';
+import '../modules/achievements/views/leaderboard_view.dart';
+import '../modules/achievements/views/positive_points_view.dart';
+import '../modules/achievements/views/reading_progress_view.dart';
 import '../modules/heroes/bindings/heroes_binding.dart';
 import '../modules/heroes/views/character_choose_view.dart';
 import '../modules/heroes/views/hero_roster_view.dart';
@@ -149,6 +154,26 @@ class AppPages {
       name: _Paths.CHECKPOINT_QUIZ,
       page: () => const CheckpointQuizView(),
       binding: QuizBinding(),
+    ),
+    GetPage(
+      name: _Paths.BADGES,
+      page: () => const BadgesView(),
+      binding: AchievementsBinding(),
+    ),
+    GetPage(
+      name: _Paths.POSITIVE_POINTS,
+      page: () => const PositivePointsView(),
+      binding: AchievementsBinding(),
+    ),
+    GetPage(
+      name: _Paths.LEADERBOARD,
+      page: () => const LeaderboardView(),
+      binding: AchievementsBinding(),
+    ),
+    GetPage(
+      name: _Paths.READING_PROGRESS,
+      page: () => const ReadingProgressView(),
+      binding: AchievementsBinding(),
     ),
   ];
 }

@@ -26,6 +26,10 @@ abstract class Routes {
   static const CHAPTER_QUIZ = _Paths.CHAPTER_QUIZ;
   static const CHAPTER_QUIZ_RESULT = _Paths.CHAPTER_QUIZ_RESULT;
   static const CHECKPOINT_QUIZ = _Paths.CHECKPOINT_QUIZ;
+  static const BADGES = _Paths.BADGES;
+  static const POSITIVE_POINTS = _Paths.POSITIVE_POINTS;
+  static const LEADERBOARD = _Paths.LEADERBOARD;
+  static const READING_PROGRESS = _Paths.READING_PROGRESS;
 }
 
 abstract class _Paths {
@@ -52,4 +56,8 @@ abstract class _Paths {
   static const CHAPTER_QUIZ = '/chapter-quiz';
   static const CHAPTER_QUIZ_RESULT = '/chapter-quiz-result';
   static const CHECKPOINT_QUIZ = '/checkpoint-quiz';
+  static const BADGES = '/badges';
+  static const POSITIVE_POINTS = '/positive-points';
+  static const LEADERBOARD = '/leaderboard';
+  static const READING_PROGRESS = '/reading-progress';
 }

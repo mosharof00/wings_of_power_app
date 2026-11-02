@@ -4,6 +4,7 @@ import 'package:wings_of_power_app/app/core/extensions/text_style_extension.dart
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/student_bottom_nav.dart';
 
+import '../../achievements/views/badges_view.dart';
 import '../../home/views/home_view.dart';
 import '../../stories/views/story_library_view.dart';
 import '../controllers/main_page_controller.dart';
@@ -27,7 +28,7 @@ class MainPageView extends GetView<MainPageController> {
             children: const [
               HomeView(),
               StoryLibraryView(),
-              _ShellTab('Badges'),
+              BadgesView(isEmbeddedInNav: true),
               _ShellTab('Profile'),
             ],
           );

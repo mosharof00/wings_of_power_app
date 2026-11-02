@@ -10,3 +10,4 @@ class QuizBinding extends Bindings {
     );
   }
 }
+

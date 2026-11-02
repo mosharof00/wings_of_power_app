@@ -61,4 +61,15 @@ class ApiEndpoint {
       '$baseUrl/attempts/$attemptId/answers'; // post
   static String completeAttempt(String attemptId) =>
       '$baseUrl/attempts/$attemptId/complete'; // post
+
+  /// Badges & Achievements
+  static const String badges = '$baseUrl/badges'; // get
+  static String badgeDetail(String id) => '$baseUrl/badges/$id'; // get
+
+  /// Student Points, Leaderboard & Progress
+  static const String studentPoints = '$baseUrl/student/points'; // get
+  static String studentLeaderboard([String scope = 'class']) =>
+      '$baseUrl/student/leaderboard?scope=$scope'; // get
+  static const String studentReadingProgress =
+      '$baseUrl/student/reading-progress'; // get
 }
