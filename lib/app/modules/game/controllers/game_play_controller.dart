@@ -12,6 +12,8 @@ enum GamePhase {
   countdown,
   roundIntro,
   question,
+  shootout,
+  roundComplete,
   complete,
 }
 
@@ -73,10 +75,24 @@ class GamePlayController extends GetxController {
   final hasPassed = false.obs;
   final teamScores = <String, int>{}.obs;
 
+  // Shootout & Round Complete
+  final shootoutStart = Rxn<GameShootoutStartEvent>();
+  final shootoutResult = Rxn<GameShootoutResultEvent>();
+  final roundComplete = Rxn<GameRoundCompleteEvent>();
+  final hasSwiped = false.obs;
+  final isSubmittingAck = false.obs;
+
   // Subscriptions
   final List<StreamSubscription> _subscriptions = [];
 
   String get youParticipantId {
+    if (currentUserId != null && currentUserId!.isNotEmpty) {
+      final mem = snapshot.value.allParticipants
+          .firstWhereOrNull((p) => p.userId == currentUserId && !p.isBot);
+      if (mem?.id != null && mem!.id!.isNotEmpty) {
+        return mem.id!;
+      }
+    }
     final youFromSnap = snapshot.value.you?.participantId;
     if (youFromSnap != null && youFromSnap.isNotEmpty) return youFromSnap;
     final mem = snapshot.value.allParticipants
@@ -100,6 +116,45 @@ class GamePlayController extends GetxController {
       return you?.canPass ?? true;
     }
     return false;
+  }
+
+  bool get isShooter {
+    final start = shootoutStart.value;
+    if (start == null) return false;
+    if (start.shooterParticipantId.isNotEmpty &&
+        start.shooterParticipantId == youParticipantId) {
+      return true;
+    }
+    if (currentUserNickname != null &&
+        start.shooterName.toLowerCase() == currentUserNickname!.toLowerCase()) {
+      return true;
+    }
+    return false;
+  }
+
+  String get shooterTeamLabel {
+    final start = shootoutStart.value;
+    if (start == null) return 'Team A';
+    final pId = start.shooterParticipantId;
+    for (final t in snapshot.value.teams) {
+      if (t.members.any((m) => m.id == pId || m.userId == currentUserId)) {
+        return t.label;
+      }
+    }
+    return 'Team A';
+  }
+
+  int get shooterTeamXp {
+    final start = shootoutStart.value;
+    if (start == null) return 0;
+    for (final t in snapshot.value.teams) {
+      if (t.members.any((m) => m.id == start.shooterParticipantId)) {
+        final score = teamScores[t.id];
+        if (score != null) return score * 2;
+        return t.scoreXp;
+      }
+    }
+    return 0;
   }
 
   @override
@@ -216,8 +271,52 @@ class GamePlayController extends GetxController {
       isBuzzing.value = false;
     }));
 
+    _subscriptions.add(_socketService.onShootoutStart.listen((event) {
+      shootoutStart.value = event;
+      shootoutResult.value = null;
+      hasSwiped.value = false;
+      phase.value = GamePhase.shootout;
+      _activeDeadline = event.deadlineAt ??
+          DateTime.now().add(const Duration(seconds: 60));
+      _updateTimerDerived();
+    }));
+
+    _subscriptions.add(_socketService.onShootoutResult.listen((event) {
+      shootoutResult.value = event;
+      if (event.teamScores.isNotEmpty) {
+        _updateScores(event.teamScores);
+      } else {
+        if (event.teamAScoreVs != null && snapshot.value.teams.isNotEmpty) {
+          teamScores[snapshot.value.teams[0].id] = event.teamAScoreVs!;
+          teamScores['teamA'] = event.teamAScoreVs!;
+        }
+        if (event.teamBScoreVs != null && snapshot.value.teams.length > 1) {
+          teamScores[snapshot.value.teams[1].id] = event.teamBScoreVs!;
+          teamScores['teamB'] = event.teamBScoreVs!;
+        }
+      }
+    }));
+
+    _subscriptions.add(_socketService.onRoundCompleteEvent.listen((event) {
+      roundComplete.value = event;
+      isSubmittingAck.value = false;
+      phase.value = GamePhase.roundComplete;
+      _activeDeadline = event.deadlineAt;
+      _updateTimerDerived();
+      if (snapshot.value.teams.isNotEmpty) {
+        teamScores[snapshot.value.teams[0].id] = event.teamA.scoreVs;
+      }
+      if (snapshot.value.teams.length > 1) {
+        teamScores[snapshot.value.teams[1].id] = event.teamB.scoreVs;
+      }
+    }));
+
     _subscriptions.add(_socketService.onRoundComplete.listen((data) {
-      phase.value = GamePhase.complete;
+      if (roundComplete.value == null) {
+        final event = GameRoundCompleteEvent.fromJson(data);
+        roundComplete.value = event;
+        phase.value = GamePhase.roundComplete;
+      }
     }));
   }
 
@@ -313,6 +412,30 @@ class GamePlayController extends GetxController {
     );
   }
 
+  void onSwipeShoot({required bool made}) {
+    if (!isShooter) return;
+    if (hasSwiped.value) return;
+    final start = shootoutStart.value;
+    if (start == null) return;
+
+    hasSwiped.value = true;
+    _socketService.submitShootoutSwipe(
+      roundId: start.roundId,
+      made: made,
+      matchId: snapshot.value.matchId,
+    );
+  }
+
+  void onPlayNextRoundTap() {
+    if (isSubmittingAck.value) return;
+    isSubmittingAck.value = true;
+    final rc = roundComplete.value;
+    _socketService.ackRoundComplete(
+      matchId: snapshot.value.matchId,
+      roundId: rc?.roundId,
+    );
+  }
+
   void onPowersTap(BuildContext context) {
     GamePowerWingsSheet.show(context: context);
   }
@@ -323,6 +446,12 @@ class GamePlayController extends GetxController {
       final t = teams[teamIndex];
       if (teamScores.containsKey(t.id)) {
         return teamScores[t.id]!;
+      }
+      if (teamIndex == 0 && teamScores.containsKey('teamA')) {
+        return teamScores['teamA']!;
+      }
+      if (teamIndex == 1 && teamScores.containsKey('teamB')) {
+        return teamScores['teamB']!;
       }
       return t.scoreBaskets;
     }

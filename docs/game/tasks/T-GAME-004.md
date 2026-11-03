@@ -1,6 +1,6 @@
 # T-GAME-004 — Shootout, XP, and round complete
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-004.md`
 **Phase:** 1
 **Depends on:** T-GAME-003 and T-BE-GAME-004
@@ -48,4 +48,9 @@ After a quarter’s questions, a player who earned a ball swipes to shoot. The s
 
 ## Notes
 
--
+- Added `GameShootoutStartEvent`, `GameShootoutResultEvent`, `GameRoundTeamSummary`, and `GameRoundCompleteEvent` models in `game_match.dart`.
+- Extended `GameSocketService` with observables, streams, and handlers for `shootout:start`, `shootout:result`, and `round:complete`.
+- Implemented `SingleShotCourtView` with 60s countdown timer, shooter vs opponent waiting screen, upward pan gesture detection calculating `made` boolean, single-shot flight animation, live Vs pills score update, and make/miss result banners ("Basket Bonus +2XP" vs "Oops! So Close! +0 XP").
+- Implemented `RoundCompleteView` featuring star cluster, purple ribbon with "Round {n} Completed", cards for both Team A and Team B (properly rendering Team B even though Figma art showed Team A twice), kindness coin & XP chips, and "Play Next Round" CTA button.
+- Wired offline/mock game flow in `GameSocketService` and `GamePlayController` to seamlessly test the entire Q1 question -> shootout -> round complete loop without backend server running.
+- Validated with `flutter analyze` (0 issues) and `flutter test` (all passed).

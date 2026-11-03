@@ -559,3 +559,236 @@ class GameStealOpenEvent {
         'eligibleTeamId': eligibleTeamId,
       };
 }
+
+class GameShootoutStartEvent {
+  final String roundId;
+  final String shooterParticipantId;
+  final String shooterName;
+  final DateTime? deadlineAt;
+  final int multiplier;
+  final String? matchId;
+
+  const GameShootoutStartEvent({
+    required this.roundId,
+    required this.shooterParticipantId,
+    required this.shooterName,
+    this.deadlineAt,
+    this.multiplier = 1,
+    this.matchId,
+  });
+
+  factory GameShootoutStartEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    return GameShootoutStartEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      shooterParticipantId: json['shooterParticipantId']?.toString() ??
+          json['shooter_participant_id']?.toString() ??
+          json['participantId']?.toString() ??
+          '',
+      shooterName: json['shooterName']?.toString() ??
+          json['shooter_name']?.toString() ??
+          json['nickname']?.toString() ??
+          'Shooter',
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+      multiplier: (json['multiplier'] ?? 1) as int,
+      matchId: json['matchId']?.toString() ?? json['match_id']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'shooterParticipantId': shooterParticipantId,
+        'shooterName': shooterName,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+        'multiplier': multiplier,
+        'matchId': matchId,
+      };
+}
+
+class GameShootoutResultEvent {
+  final String participantId;
+  final bool made;
+  final int xpEarned;
+  final int scoreVsDelta;
+  final int? teamAScoreVs;
+  final int? teamBScoreVs;
+  final Map<String, dynamic> teamScores;
+
+  const GameShootoutResultEvent({
+    required this.participantId,
+    required this.made,
+    this.xpEarned = 0,
+    this.scoreVsDelta = 0,
+    this.teamAScoreVs,
+    this.teamBScoreVs,
+    this.teamScores = const {},
+  });
+
+  factory GameShootoutResultEvent.fromJson(Map<String, dynamic> json) {
+    final made = (json['made'] ?? false) as bool;
+    final xp = (json['xpEarned'] ??
+        json['xp_earned'] ??
+        json['xp'] ??
+        (made ? 2 : 0)) as int;
+    final vsDelta = (json['scoreVsDelta'] ??
+        json['score_vs_delta'] ??
+        (made ? 3 : 0)) as int;
+    final teamA = json['teamAScoreVs'] ?? json['team_a_score_vs'];
+    final teamB = json['teamBScoreVs'] ?? json['team_b_score_vs'];
+    final rawScores = json['teamScores'] ?? json['team_scores'] ?? json['scores'];
+
+    return GameShootoutResultEvent(
+      participantId: json['participantId']?.toString() ??
+          json['participant_id']?.toString() ??
+          '',
+      made: made,
+      xpEarned: xp,
+      scoreVsDelta: vsDelta,
+      teamAScoreVs: teamA is int
+          ? teamA
+          : (teamA != null ? int.tryParse('$teamA') : null),
+      teamBScoreVs: teamB is int
+          ? teamB
+          : (teamB != null ? int.tryParse('$teamB') : null),
+      teamScores: rawScores is Map
+          ? Map<String, dynamic>.from(rawScores)
+          : const {},
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'participantId': participantId,
+        'made': made,
+        'xpEarned': xpEarned,
+        'scoreVsDelta': scoreVsDelta,
+        'teamAScoreVs': teamAScoreVs,
+        'teamBScoreVs': teamBScoreVs,
+        'teamScores': teamScores,
+      };
+}
+
+class GameRoundTeamSummary {
+  final String name;
+  final int scoreVs;
+  final int coins;
+  final int xp;
+
+  const GameRoundTeamSummary({
+    required this.name,
+    this.scoreVs = 0,
+    this.coins = 0,
+    this.xp = 0,
+  });
+
+  factory GameRoundTeamSummary.fromJson(Map<String, dynamic> json) {
+    return GameRoundTeamSummary(
+      name: json['name']?.toString() ?? json['label']?.toString() ?? 'Team',
+      scoreVs: (json['scoreVs'] ??
+          json['score_vs'] ??
+          json['baskets'] ??
+          json['scoreBaskets'] ??
+          0) as int,
+      coins: (json['coins'] ??
+          json['kindness'] ??
+          json['scoreKindness'] ??
+          0) as int,
+      xp: (json['xp'] ?? json['scoreXp'] ?? json['xpEarned'] ?? 0) as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'scoreVs': scoreVs,
+        'coins': coins,
+        'xp': xp,
+      };
+}
+
+class GameRoundCompleteEvent {
+  final int roundNumber;
+  final String? roundId;
+  final String? roundType;
+  final GameRoundTeamSummary teamA;
+  final GameRoundTeamSummary teamB;
+  final DateTime? deadlineAt;
+  final Map<String, dynamic> rawData;
+
+  const GameRoundCompleteEvent({
+    this.roundNumber = 1,
+    this.roundId,
+    this.roundType,
+    required this.teamA,
+    required this.teamB,
+    this.deadlineAt,
+    this.rawData = const {},
+  });
+
+  factory GameRoundCompleteEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    GameRoundTeamSummary parseTeam(dynamic t, String fallbackName) {
+      if (t is Map) {
+        return GameRoundTeamSummary.fromJson(Map<String, dynamic>.from(t));
+      }
+      return GameRoundTeamSummary(name: fallbackName);
+    }
+
+    var teamA = parseTeam(json['teamA'] ?? json['team_a'], 'Team A');
+    var teamB = parseTeam(json['teamB'] ?? json['team_b'], 'Team B');
+
+    final teamScores = json['teamScores'] ?? json['team_scores'];
+    if (teamScores is Map) {
+      final keys = teamScores.keys.toList();
+      if (keys.isNotEmpty && (json['teamA'] == null && json['team_a'] == null)) {
+        final valA = teamScores[keys[0]];
+        if (valA is Map) {
+          teamA = GameRoundTeamSummary(
+            name: valA['name']?.toString() ?? valA['label']?.toString() ?? 'Team A',
+            scoreVs: (valA['scoreVs'] ?? valA['baskets'] ?? 0) as int,
+            coins: (valA['coins'] ?? valA['kindness'] ?? 0) as int,
+            xp: (valA['xp'] ?? 0) as int,
+          );
+        }
+      }
+      if (keys.length > 1 && (json['teamB'] == null && json['team_b'] == null)) {
+        final valB = teamScores[keys[1]];
+        if (valB is Map) {
+          teamB = GameRoundTeamSummary(
+            name: valB['name']?.toString() ?? valB['label']?.toString() ?? 'Team B',
+            scoreVs: (valB['scoreVs'] ?? valB['baskets'] ?? 0) as int,
+            coins: (valB['coins'] ?? valB['kindness'] ?? 0) as int,
+            xp: (valB['xp'] ?? 0) as int,
+          );
+        }
+      }
+    }
+
+    return GameRoundCompleteEvent(
+      roundNumber: (json['roundNumber'] ?? json['round_number'] ?? 1) as int,
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString(),
+      roundType: json['roundType']?.toString() ?? json['round_type']?.toString(),
+      teamA: teamA,
+      teamB: teamB,
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+      rawData: json,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundNumber': roundNumber,
+        'roundId': roundId,
+        'roundType': roundType,
+        'teamA': teamA.toJson(),
+        'teamB': teamB.toJson(),
+        'deadlineAt': deadlineAt?.toIso8601String(),
+      };
+}

@@ -24,6 +24,9 @@ class GameSocketService extends GetxService {
   final latestAnswerResult = Rxn<GameAnswerResultEvent>();
   final latestStealOpen = Rxn<GameStealOpenEvent>();
   final latestRoundComplete = Rxn<Map<String, dynamic>>();
+  final latestShootoutStart = Rxn<GameShootoutStartEvent>();
+  final latestShootoutResult = Rxn<GameShootoutResultEvent>();
+  final latestRoundCompleteEvent = Rxn<GameRoundCompleteEvent>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -58,8 +61,18 @@ class GameSocketService extends GetxService {
   final _roundCompleteController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get onRoundComplete => _roundCompleteController.stream;
 
+  final _shootoutStartController = StreamController<GameShootoutStartEvent>.broadcast();
+  Stream<GameShootoutStartEvent> get onShootoutStart => _shootoutStartController.stream;
+
+  final _shootoutResultController = StreamController<GameShootoutResultEvent>.broadcast();
+  Stream<GameShootoutResultEvent> get onShootoutResult => _shootoutResultController.stream;
+
+  final _roundCompleteEventController = StreamController<GameRoundCompleteEvent>.broadcast();
+  Stream<GameRoundCompleteEvent> get onRoundCompleteEvent => _roundCompleteEventController.stream;
+
   Timer? _mockTimer;
   Timer? _mockBotTimer;
+  Timer? _mockShootoutTimer;
 
   io.Socket? get socket => _socket;
 
@@ -254,12 +267,35 @@ class GameSocketService extends GetxService {
         }
       });
 
+      _socket?.on('shootout:start', (data) {
+        debugPrint('[GameSocketService] shootout:start: $data');
+        if (data is Map) {
+          final event =
+              GameShootoutStartEvent.fromJson(Map<String, dynamic>.from(data));
+          latestShootoutStart.value = event;
+          _shootoutStartController.add(event);
+        }
+      });
+
+      _socket?.on('shootout:result', (data) {
+        debugPrint('[GameSocketService] shootout:result: $data');
+        if (data is Map) {
+          final event =
+              GameShootoutResultEvent.fromJson(Map<String, dynamic>.from(data));
+          latestShootoutResult.value = event;
+          _shootoutResultController.add(event);
+        }
+      });
+
       _socket?.on('round:complete', (data) {
         debugPrint('[GameSocketService] round:complete: $data');
         if (data is Map) {
           final map = Map<String, dynamic>.from(data);
           latestRoundComplete.value = map;
           _roundCompleteController.add(map);
+          final event = GameRoundCompleteEvent.fromJson(map);
+          latestRoundCompleteEvent.value = event;
+          _roundCompleteEventController.add(event);
         }
       });
 
@@ -332,6 +368,42 @@ class GameSocketService extends GetxService {
       // In mock mode, immediately launch question
       _mockTimer?.cancel();
       _startMockQuestion();
+    }
+  }
+
+  void submitShootoutSwipe({
+    required String roundId,
+    required bool made,
+    String? matchId,
+  }) {
+    debugPrint('[GameSocketService] submitShootoutSwipe -> roundId: $roundId, made: $made');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('shootout:swipe', {
+        if (matchId != null && matchId.isNotEmpty) 'matchId': matchId,
+        'roundId': roundId,
+        'made': made,
+      });
+    } else {
+      // Mock mode: evaluate mock shootout swipe
+      _handleMockShootoutSwipe(roundId: roundId, made: made);
+    }
+  }
+
+  void ackRoundComplete({
+    required String matchId,
+    String? roundId,
+  }) {
+    debugPrint('[GameSocketService] ackRoundComplete -> matchId: $matchId, roundId: $roundId');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('round:next_ack', {
+        'matchId': matchId,
+        if (roundId != null && roundId.isNotEmpty) 'roundId': roundId,
+      });
+      _socket?.emit('round:advance', {
+        'matchId': matchId,
+      });
+    } else {
+      _handleMockRoundAdvance(matchId: matchId);
     }
   }
 
@@ -496,6 +568,14 @@ class GameSocketService extends GetxService {
           );
           latestAnswerResult.value = res;
           _answerResultController.add(res);
+
+          _mockTimer = Timer(const Duration(seconds: 2), () {
+            _startMockShootout(
+              roundId: 'mock-shootout-q1',
+              shooterParticipantId: 'part-bot-1',
+              shooterName: 'Practice Bot',
+            );
+          });
         });
       }
     });
@@ -531,8 +611,17 @@ class GameSocketService extends GetxService {
     latestAnswerResult.value = res;
     _answerResultController.add(res);
 
-    // If wrong answer, open steal window for bot / other team!
-    if (!isCorrect) {
+    if (isCorrect) {
+      // Alex earned a ball! Start shootout
+      _mockTimer = Timer(const Duration(seconds: 2), () {
+        _startMockShootout(
+          roundId: 'mock-shootout-q1',
+          shooterParticipantId: 'part-you-1',
+          shooterName: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.nickname ?? 'Alex',
+        );
+      });
+    } else {
+      // If wrong answer, open steal window for bot / other team!
       _mockTimer = Timer(const Duration(milliseconds: 1200), () {
         final steal = GameStealOpenEvent(
           roundId: roundId,
@@ -576,15 +665,143 @@ class GameSocketService extends GetxService {
             );
             latestAnswerResult.value = stealResult;
             _answerResultController.add(stealResult);
+
+            _mockTimer = Timer(const Duration(seconds: 2), () {
+              _startMockShootout(
+                roundId: 'mock-shootout-q1',
+                shooterParticipantId: 'part-bot-1',
+                shooterName: 'Practice Bot',
+              );
+            });
           });
         });
       });
     }
   }
 
+  void _startMockShootout({
+    required String roundId,
+    required String shooterParticipantId,
+    required String shooterName,
+  }) {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+    _mockShootoutTimer?.cancel();
+
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    final start = GameShootoutStartEvent(
+      roundId: roundId,
+      shooterParticipantId: shooterParticipantId,
+      shooterName: shooterName,
+      deadlineAt: deadline,
+    );
+    latestShootoutStart.value = start;
+    _shootoutStartController.add(start);
+
+    final isBot = shooterParticipantId == 'part-bot-1';
+    if (isBot) {
+      // Bot auto-swipes after 2.5s with made: true per D22 / T-BE-GAME-004
+      _mockBotTimer = Timer(const Duration(milliseconds: 2500), () {
+        _handleMockShootoutSwipe(
+          roundId: roundId,
+          made: true,
+          isBot: true,
+        );
+      });
+    } else {
+      // Human shooter: timeout after 60s
+      _mockShootoutTimer = Timer(const Duration(seconds: 60), () {
+        _handleMockShootoutSwipe(
+          roundId: roundId,
+          made: false,
+          isBot: false,
+        );
+      });
+    }
+  }
+
+  void _handleMockShootoutSwipe({
+    required String roundId,
+    required bool made,
+    bool isBot = false,
+  }) {
+    _mockShootoutTimer?.cancel();
+    _mockBotTimer?.cancel();
+
+    final xp = made ? 2 : 0;
+    final vsDelta = made ? 3 : 0;
+    final teamAScore = isBot ? 0 : (made ? 3 : 0);
+    final teamBScore = isBot ? (made ? 3 : 0) : 0;
+
+    final result = GameShootoutResultEvent(
+      participantId: isBot ? 'part-bot-1' : 'part-you-1',
+      made: made,
+      xpEarned: xp,
+      scoreVsDelta: vsDelta,
+      teamAScoreVs: teamAScore,
+      teamBScoreVs: teamBScore,
+      teamScores: {
+        'team-single-1': {
+          'xp': isBot ? 0 : xp,
+          'kindness': 0,
+          'baskets': isBot ? 0 : (made ? 1 : 0),
+          'scoreVs': teamAScore,
+        },
+        'team-bot-2': {
+          'xp': isBot ? xp : 0,
+          'kindness': 0,
+          'baskets': isBot ? (made ? 1 : 0) : 0,
+          'scoreVs': teamBScore,
+        },
+      },
+    );
+    latestShootoutResult.value = result;
+    _shootoutResultController.add(result);
+
+    // After 2.5s banner presentation -> advance to round complete
+    _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+      final complete = GameRoundCompleteEvent(
+        roundNumber: 1,
+        roundId: roundId,
+        roundType: 'Q1_WARMUP',
+        teamA: GameRoundTeamSummary(
+          name: 'Team A',
+          scoreVs: teamAScore,
+          coins: 245,
+          xp: isBot ? 0 : xp,
+        ),
+        teamB: GameRoundTeamSummary(
+          name: 'Team B',
+          scoreVs: teamBScore,
+          coins: 245,
+          xp: isBot ? xp : 0,
+        ),
+        deadlineAt: DateTime.now().add(const Duration(seconds: 15)),
+      );
+      final completeMap = complete.toJson();
+      latestRoundComplete.value = completeMap;
+      _roundCompleteController.add(completeMap);
+      latestRoundCompleteEvent.value = complete;
+      _roundCompleteEventController.add(complete);
+    });
+  }
+
+  void _handleMockRoundAdvance({required String matchId}) {
+    _mockTimer?.cancel();
+    final intro = GameRoundIntroEvent(
+      roundType: 'Q2_DEFENSE',
+      title: 'Defense Round',
+      blurb: 'Share your kindness. There are no wrong answers.',
+      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+    );
+    latestRoundIntro.value = intro;
+    _roundIntroController.add(intro);
+  }
+
   void _cleanupSocket() {
     _mockTimer?.cancel();
     _mockBotTimer?.cancel();
+    _mockShootoutTimer?.cancel();
     try {
       _socket?.off('connect');
       _socket?.off('disconnect');
@@ -603,6 +820,8 @@ class GameSocketService extends GetxService {
       _socket?.off('round:answer_result');
       _socket?.off('round:steal_open');
       _socket?.off('round:complete');
+      _socket?.off('shootout:start');
+      _socket?.off('shootout:result');
       _socket?.disconnect();
       _socket?.dispose();
     } catch (_) {}
@@ -629,6 +848,9 @@ class GameSocketService extends GetxService {
     _answerResultController.close();
     _stealOpenController.close();
     _roundCompleteController.close();
+    _shootoutStartController.close();
+    _shootoutResultController.close();
+    _roundCompleteEventController.close();
     super.onClose();
   }
 }

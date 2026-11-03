@@ -7,6 +7,8 @@ import 'widgets/game_countdown_overlay.dart';
 import 'widgets/game_quiz_board.dart';
 import 'widgets/game_round_intro_card.dart';
 import 'widgets/game_vs_pills.dart';
+import 'single_shot_court_view.dart';
+import 'round_complete_view.dart';
 
 class GameMatchHoldView extends StatefulWidget {
   const GameMatchHoldView({
@@ -58,6 +60,14 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
             introEvent: _controller.currentIntro.value,
             onOpenQuiz: _controller.onOpenQuizTap,
           );
+        }
+
+        if (phase == GamePhase.shootout) {
+          return SingleShotCourtView(controller: _controller);
+        }
+
+        if (phase == GamePhase.roundComplete) {
+          return RoundCompleteView(controller: _controller);
         }
 
         if ((phase == GamePhase.question || phase == GamePhase.complete) &&
