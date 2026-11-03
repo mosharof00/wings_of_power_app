@@ -631,16 +631,164 @@ class GameSocketService extends GetxService {
     final youId = currentUserId ?? 'mock-student-id';
     final youNick = currentUserNickname ?? 'Alex';
     final is1v1 = (mode == 'ONE_V_ONE');
+    final is5v5 = (mode == 'FIVE_V_FIVE');
 
     _mockPowerUsed = false;
 
-    final mock = GameMatchSnapshot(
-      matchId: 'practice-${DateTime.now().millisecondsSinceEpoch}',
-      mode: mode,
-      phase: 'COUNTDOWN',
-      deadlineAt: DateTime.now().add(const Duration(seconds: 3)),
-      serverNow: DateTime.now(),
-      teams: [
+    final List<GameMatchTeam> mockTeams;
+    if (is5v5) {
+      mockTeams = [
+        GameMatchTeam(
+          id: 'team-a',
+          label: 'Team A',
+          scoreXp: 0,
+          scoreKindness: 0,
+          scoreBaskets: 0,
+          members: [
+            GameMatchParticipant(
+              id: 'part-you-1',
+              userId: youId,
+              nickname: youNick,
+              avatarUrl: 'assets/images/avatar_01.png',
+              heroId: 'harold',
+              heroName: 'Harold',
+              powerCode: 'LAB',
+              powerLabel: 'Lab Shot',
+              jerseyNumber: 1,
+              isConnected: true,
+              isBot: false,
+            ),
+            const GameMatchParticipant(
+              id: 'part-mili-2',
+              userId: 'user-mili-2',
+              nickname: 'Mili',
+              avatarUrl: 'assets/images/avatar_02.png',
+              heroId: 'faith',
+              heroName: 'Faith',
+              powerCode: 'MELODY',
+              powerLabel: 'Melody Shot',
+              jerseyNumber: 2,
+              isConnected: true,
+              isBot: false,
+            ),
+            const GameMatchParticipant(
+              id: 'part-ethen-3',
+              userId: 'user-ethen-3',
+              nickname: 'Ethen',
+              avatarUrl: 'assets/images/avatar_03.png',
+              heroId: 'samantha',
+              heroName: 'Samantha',
+              powerCode: 'NATURE',
+              powerLabel: 'Nature Hint',
+              jerseyNumber: 3,
+              isConnected: true,
+              isBot: false,
+            ),
+            const GameMatchParticipant(
+              id: 'part-frank-4',
+              userId: 'user-frank-4',
+              nickname: 'Frank',
+              avatarUrl: 'assets/images/avatar_04.png',
+              heroId: 'ralph',
+              heroName: 'Ralph',
+              powerCode: 'STORY',
+              powerLabel: 'Story Clue',
+              jerseyNumber: 4,
+              isConnected: true,
+              isBot: false,
+            ),
+            const GameMatchParticipant(
+              id: 'part-lui-5',
+              userId: 'user-lui-5',
+              nickname: 'Lui',
+              avatarUrl: 'assets/images/avatar_05.png',
+              heroId: 'michele',
+              heroName: 'Michele',
+              powerCode: 'CHECKMATE',
+              powerLabel: 'Checkmate',
+              jerseyNumber: 5,
+              isConnected: true,
+              isBot: false,
+            ),
+          ],
+        ),
+        const GameMatchTeam(
+          id: 'team-b',
+          label: 'Team B',
+          scoreXp: 0,
+          scoreKindness: 0,
+          scoreBaskets: 0,
+          members: [
+            GameMatchParticipant(
+              id: 'part-maya-6',
+              userId: 'user-maya-6',
+              nickname: 'Maya',
+              avatarUrl: 'assets/images/avatar_06.png',
+              heroId: 'faith',
+              heroName: 'Faith',
+              powerCode: 'COLOR',
+              powerLabel: 'Color Freeze',
+              jerseyNumber: 6,
+              isConnected: true,
+              isBot: false,
+            ),
+            GameMatchParticipant(
+              id: 'part-jordan-7',
+              userId: 'user-jordan-7',
+              nickname: 'Jordan',
+              avatarUrl: 'assets/images/avatar_07.png',
+              heroId: 'chi',
+              heroName: 'Chi',
+              powerCode: 'PRISM',
+              powerLabel: 'Prism Percent',
+              jerseyNumber: 7,
+              isConnected: true,
+              isBot: false,
+            ),
+            GameMatchParticipant(
+              id: 'part-sam-8',
+              userId: 'user-sam-8',
+              nickname: 'Sam',
+              avatarUrl: 'assets/images/avatar_08.png',
+              heroId: 'harold',
+              heroName: 'Harold',
+              powerCode: 'HARMONY',
+              powerLabel: 'Harmony Help',
+              jerseyNumber: 8,
+              isConnected: true,
+              isBot: false,
+            ),
+            GameMatchParticipant(
+              id: 'part-chloe-9',
+              userId: 'user-chloe-9',
+              nickname: 'Chloe',
+              avatarUrl: 'assets/images/avatar_01.png',
+              heroId: 'samantha',
+              heroName: 'Samantha',
+              powerCode: 'MELODY',
+              powerLabel: 'Melody Shot',
+              jerseyNumber: 9,
+              isConnected: true,
+              isBot: false,
+            ),
+            GameMatchParticipant(
+              id: 'part-lucas-10',
+              userId: 'user-lucas-10',
+              nickname: 'Lucas',
+              avatarUrl: 'assets/images/avatar_02.png',
+              heroId: 'ralph',
+              heroName: 'Ralph',
+              powerCode: 'NATURE',
+              powerLabel: 'Nature Hint',
+              jerseyNumber: 10,
+              isConnected: true,
+              isBot: false,
+            ),
+          ],
+        ),
+      ];
+    } else {
+      mockTeams = [
         GameMatchTeam(
           id: 'team-single-1',
           label: 'Team A',
@@ -689,17 +837,37 @@ class GameSocketService extends GetxService {
             ),
           ],
         ),
-      ],
-      you: const GameMatchYou(
+      ];
+    }
+
+    final mock = GameMatchSnapshot(
+      matchId: 'practice-${DateTime.now().millisecondsSinceEpoch}',
+      mode: mode,
+      phase: 'COUNTDOWN',
+      deadlineAt: DateTime.now().add(const Duration(seconds: 3)),
+      serverNow: DateTime.now(),
+      teams: mockTeams,
+      you: GameMatchYou(
         participantId: 'part-you-1',
         canBuzz: true,
         powerUsed: false,
         heroId: 'harold',
         powerCode: 'LAB',
         powerLabel: 'Lab Shot',
-        usablePowers: ['LAB'],
+        usablePowers: is5v5
+            ? const [
+                'LAB',
+                'MELODY',
+                'NATURE',
+                'STORY',
+                'CHECKMATE',
+                'COLOR',
+                'PRISM',
+                'HARMONY',
+              ]
+            : const ['LAB'],
         jerseyNumber: 1,
-        canPass: false,
+        canPass: is5v5,
       ),
     );
     latestMatch.value = mock;

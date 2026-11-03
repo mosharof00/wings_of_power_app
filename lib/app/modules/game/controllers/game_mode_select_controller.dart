@@ -11,6 +11,7 @@ import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
 import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
 import '../views/game_match_hold_view.dart';
 import '../views/waiting_room_1v1_view.dart';
+import '../views/waiting_room_5v5_view.dart';
 import '../views/widgets/game_change_avatar_dialog.dart';
 import '../views/widgets/game_choose_hero_dialog.dart';
 import '../views/widgets/game_fixture_prompt_dialog.dart';
@@ -108,6 +109,55 @@ class GameModeSelectController extends GetxController {
       selectSinglePlayer();
     } else {
       start1v1Matchmaking();
+    }
+  }
+
+  void onMultiPlayerCardTap() {
+    if (isSinglePlayer.value) {
+      selectMultiPlayer();
+    }
+    start5v5Matchmaking();
+  }
+
+  Future<void> start5v5Matchmaking() async {
+    if (isStartingPractice.value) return;
+    isStartingPractice.value = true;
+
+    try {
+      final eligibility = await _repository.getEligibility();
+      if (!eligibility.eligible) {
+        Get.snackbar(
+          'Not Eligible',
+          'Student is not eligible for game show',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final queueResp = await _repository.joinQueue(mode: 'FIVE_V_FIVE');
+
+      await Get.to(
+        () => WaitingRoom5v5View(
+          currentUserId: userId.value,
+          currentUserNickname: nickname.value,
+          currentUserAvatar: avatarUrl.value,
+          selectedHero: selectedHero.value,
+          initialTicketId: queueResp.ticketId,
+        ),
+        routeName: '/game/waiting-room-5v5',
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Queue Error',
+        e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    } finally {
+      isStartingPractice.value = false;
     }
   }
 

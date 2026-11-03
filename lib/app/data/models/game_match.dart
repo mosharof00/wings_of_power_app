@@ -376,12 +376,16 @@ class GameQueueUpdate {
   final int filled;
   final int required;
   final List<dynamic> players;
+  final bool? partial;
+  final int? others;
 
   const GameQueueUpdate({
     required this.mode,
     this.filled = 0,
     this.required = 0,
     this.players = const [],
+    this.partial,
+    this.others,
   });
 
   factory GameQueueUpdate.fromJson(Map<String, dynamic> json) {
@@ -390,6 +394,8 @@ class GameQueueUpdate {
       filled: (json['filled'] ?? 0) as int,
       required: (json['required'] ?? 0) as int,
       players: (json['players'] as List?) ?? [],
+      partial: json['partial'] as bool?,
+      others: (json['others'] as num?)?.toInt(),
     );
   }
 
@@ -398,6 +404,8 @@ class GameQueueUpdate {
         'filled': filled,
         'required': required,
         'players': players,
+        if (partial != null) 'partial': partial,
+        if (others != null) 'others': others,
       };
 }
 

@@ -88,9 +88,11 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                         // Multi Player Card
                         Expanded(
                           child: _ModeCard(
-                            title: 'Multi Player',
+                            title: (!isSingle && isBusy)
+                                ? 'Joining Queue...'
+                                : 'Multi Player',
                             isSelected: !isSingle,
-                            onTap: controller.selectMultiPlayer,
+                            onTap: controller.onMultiPlayerCardTap,
                             characterWidget: _buildMultiPlayerArt(),
                           ),
                         ),

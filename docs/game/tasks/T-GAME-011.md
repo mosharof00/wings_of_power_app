@@ -1,6 +1,6 @@
 # T-GAME-011 — 5v5 lobby and odd counts
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-011.md`
 **Phase:** 3 — 5v5
 **Depends on:** T-GAME-010 and T-BE-GAME-011
@@ -50,4 +50,12 @@ The other seats are real seeded students connected by `yarn game:queue-fixtures`
 
 ## Notes
 
--
+- Implemented `WaitingRoom5v5Controller` and `WaitingRoom5v5View` for 10-seat lobby divided into Team A (5) and Team B (5) matching Figma designs (`waiting_room_filling.png`, `waiting_room_only_n_found.png`, `waiting_room_full_ready.png` / `waiting_room_1_found.png`).
+- Multi Player card in mode select now checks eligibility, sends `POST /api/game/queue` / `queue:join` with `{ mode: "FIVE_V_FIVE" }`, and routes to `WaitingRoom5v5View`.
+- In filling state: displays "Finding your classmates..." and "[n out of 10] is here" with "?" / "Waiti..." empty seats. Local user highlighted with orange border and "You".
+- In partial state (< 10 players): displays "Only {n} classmates were found" and "Wait for others to join". "Back to Lobby" and "Explore Stories" are the only buttons (no "Start Game"). Empty seats are never padded with bots.
+- In full state (10 out of 10): displays "All Classmates are found", "[10 out of 10] is here", and enables "Start Game" and "Cancel" buttons.
+- "Start Game" emits `match:start`; on countdown event, transitions to `GameMatchHoldView` with 5v5 team snapshot and pass enabled.
+- Back to lobby / cancel properly cancels queue and leaves match.
+- Added offline / mock simulation support in `WaitingRoom5v5Controller` and `GameSocketService.simulateMockMatch` for `FIVE_V_FIVE`.
+- Validated with `flutter analyze` (0 issues), `flutter test` (all passed), and `flutter build apk --debug` (success).
