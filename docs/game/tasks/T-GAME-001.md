@@ -1,6 +1,6 @@
 # T-GAME-001 — Unlock, mode select, how to play
 
-**Status:** Not started
+**Status:** done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-001.md`
 **Phase:** 1 — playable 1v1 against a bot or fixture
 **Depends on:** server pair T-BE-GAME-001
@@ -57,4 +57,10 @@ From Home, an ineligible student sees the lock modal. An eligible student sees t
 
 ## Notes
 
--
+- Implemented `GameEligibilityModel` and `HowToPlayModel`.
+- Added endpoints `ApiEndpoint.gameEligibility` and `ApiEndpoint.gameHowToPlay`.
+- Implemented `IGameRepository` and `GameRepository` with mock fallback for eligibility and how-to-play.
+- Wired `HomeController.onPlayGame()` to fetch eligibility: ineligibility displays dynamic `GameUnlockDialog` with Continue Reading (navigates to stories) and close action; eligibility checks `HiveService` flag `game_congrats_shown`, showing `GameCongratulationsDialog` once with Play Now and How to Play, or directly navigating to `Routes.GAME_MODE_SELECT`.
+- Added route `/game/mode-select` and implemented `GameModeSelectView` with student avatar, coins, XP, Wings of Power Basketball Edition branding, Single Player and Multi Player cards with visual state selection swapping on tap, Choose Hero stub, and How to Play trigger.
+- Implemented `GameHowToPlaySheet` bottom sheet displaying 5 steps from API/mock with dismiss.
+- Validated via `flutter analyze` and `flutter test`.

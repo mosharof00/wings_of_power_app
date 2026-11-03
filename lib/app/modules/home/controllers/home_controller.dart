@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:wings_of_power_app/app/core/network/api_client.dart';
+import 'package:wings_of_power_app/app/core/services/local_store_service.dart';
 import 'package:wings_of_power_app/app/data/models/home_models.dart';
+import 'package:wings_of_power_app/app/data/repositories/game_repository.dart';
 import 'package:wings_of_power_app/app/data/repositories/home_repository.dart';
+import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
+import 'package:wings_of_power_app/app/modules/game/views/widgets/game_congratulations_dialog.dart';
+import 'package:wings_of_power_app/app/modules/game/views/widgets/game_how_to_play_sheet.dart';
+import 'package:wings_of_power_app/app/modules/game/views/widgets/game_unlock_dialog.dart';
 import 'package:wings_of_power_app/app/modules/main_page/controllers/main_page_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
 class HomeController extends GetxController {
-  HomeController([IHomeRepository? repository])
-      : _repository = repository ?? Get.find<IHomeRepository>();
+  HomeController([
+    IHomeRepository? repository,
+    IGameRepository? gameRepository,
+  ])  : _repository = repository ?? Get.find<IHomeRepository>(),
+        _gameRepository = gameRepository;
 
   final IHomeRepository _repository;
+  final IGameRepository? _gameRepository;
 
   final homeData = Rxn<HomeDataModel>();
   final isLoading = true.obs;
@@ -67,8 +78,68 @@ class HomeController extends GetxController {
   String get subtitle => homeData.value?.subtitle ?? 'Ready to learn today?';
   String? get avatarUrl => homeData.value?.avatarUrl;
 
+  IGameRepository get _effectiveGameRepo {
+    final repo = _gameRepository;
+    if (repo != null) return repo;
+    if (Get.isRegistered<IGameRepository>()) return Get.find<IGameRepository>();
+    if (Get.isRegistered<ApiClient>()) {
+      return GameRepository(Get.find<ApiClient>());
+    }
+    return GameRepository(ApiClient());
+  }
+
   /// Filled by T-GAME-001 (owns eligibility, Game show modal, mode select).
-  void onPlayGame() {}
+  Future<void> onPlayGame() async {
+    try {
+      final gameRepo = _effectiveGameRepo;
+      final eligibility = await gameRepo.getEligibility();
+
+      if (!eligibility.eligible) {
+        Get.dialog(
+          GameUnlockDialog(
+            eligibility: eligibility,
+            onContinueReading: () {
+              Get.back();
+              _openStoryLibrary();
+            },
+          ),
+          barrierDismissible: true,
+        );
+      } else {
+        final congratsShown =
+            HiveService.read<bool>('game_congrats_shown') ?? false;
+        if (!congratsShown) {
+          HiveService.write('game_congrats_shown', true);
+          Get.dialog(
+            GameCongratulationsDialog(
+              onPlayNow: () {
+                Get.back();
+                Get.toNamed(Routes.GAME_MODE_SELECT);
+              },
+              onHowToPlay: () async {
+                final howToPlay = await gameRepo.getHowToPlay();
+                await GameHowToPlaySheet.show(howToPlay: howToPlay);
+              },
+            ),
+            barrierDismissible: true,
+          );
+        } else {
+          Get.toNamed(Routes.GAME_MODE_SELECT);
+        }
+      }
+    } catch (_) {
+      Get.dialog(
+        GameUnlockDialog(
+          eligibility: GameRepository.getMockEligibility(eligible: false),
+          onContinueReading: () {
+            Get.back();
+            _openStoryLibrary();
+          },
+        ),
+        barrierDismissible: true,
+      );
+    }
+  }
 
   /// Navigates to story library (tab index 1 in MainPage).
   void onStartReading() => _openStoryLibrary();

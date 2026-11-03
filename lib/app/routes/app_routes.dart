@@ -38,6 +38,7 @@ abstract class Routes {
   static const SETTINGS = _Paths.SETTINGS;
   static const EDIT_PROFILE = _Paths.EDIT_PROFILE;
   static const CHANGE_PASSWORD = _Paths.CHANGE_PASSWORD;
+  static const GAME_MODE_SELECT = _Paths.GAME_MODE_SELECT;
 }
 
 abstract class _Paths {
@@ -76,4 +77,5 @@ abstract class _Paths {
   static const POSITIVE_POINTS = '/positive-points';
   static const LEADERBOARD = '/leaderboard';
   static const READING_PROGRESS = '/reading-progress';
+  static const GAME_MODE_SELECT = '/game/mode-select';
 }

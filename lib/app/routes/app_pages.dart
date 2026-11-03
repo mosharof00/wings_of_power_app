@@ -8,6 +8,8 @@ import '../modules/achievements/views/badges_view.dart';
 import '../modules/achievements/views/leaderboard_view.dart';
 import '../modules/achievements/views/positive_points_view.dart';
 import '../modules/achievements/views/reading_progress_view.dart';
+import '../modules/game/bindings/game_binding.dart';
+import '../modules/game/views/game_mode_select_view.dart';
 import '../modules/heroes/bindings/heroes_binding.dart';
 import '../modules/heroes/views/character_choose_view.dart';
 import '../modules/heroes/views/hero_roster_view.dart';
@@ -224,6 +226,11 @@ class AppPages {
       name: _Paths.READING_PROGRESS,
       page: () => const ReadingProgressView(),
       binding: AchievementsBinding(),
+    ),
+    GetPage(
+      name: _Paths.GAME_MODE_SELECT,
+      page: () => const GameModeSelectView(),
+      binding: GameBinding(),
     ),
   ];
 }

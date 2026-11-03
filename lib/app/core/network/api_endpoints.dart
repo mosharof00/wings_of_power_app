@@ -82,4 +82,8 @@ class ApiEndpoint {
   /// Student Profile & Settings
   static const String studentProfile = '$baseUrl/student/profile'; // get, patch
   static const String studentSettings = '$baseUrl/student/settings'; // get, patch
+
+  /// Game
+  static const String gameEligibility = '$baseUrl/game/eligibility'; // get
+  static const String gameHowToPlay = '$baseUrl/game/how-to-play'; // get
 }
