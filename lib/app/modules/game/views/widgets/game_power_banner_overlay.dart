@@ -8,10 +8,12 @@ class GamePowerBannerOverlay extends StatelessWidget {
     super.key,
     required this.powerEffect,
     this.onDismiss,
+    this.onAskForHelp,
   });
 
   final GamePowerEffectEvent powerEffect;
   final VoidCallback? onDismiss;
+  final VoidCallback? onAskForHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +30,15 @@ class GamePowerBannerOverlay extends StatelessWidget {
           assetPath: 'assets/characters/hero_harold.png',
         );
 
+    final isHarmony = powerEffect.powerCode.toUpperCase() == 'HARMONY';
     final isTimePower = powerEffect.powerCode.toUpperCase() == 'MELODY' ||
         powerEffect.powerCode.toUpperCase() == 'COLOR' ||
         powerEffect.extraMs != null;
+
+    final bannerTitle = isHarmony ? 'Congratulations!' : heroInfo.bannerTitle;
+    final bannerSubtitle = isHarmony
+        ? 'Your teammate is here to help!'
+        : heroInfo.bannerSubtitle;
 
     return GestureDetector(
       onTap: onDismiss,
@@ -53,8 +61,9 @@ class GamePowerBannerOverlay extends StatelessWidget {
             // Content Column
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 28.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                 children: [
                   // Glow + Character Image
                   Stack(
@@ -114,7 +123,7 @@ class GamePowerBannerOverlay extends StatelessWidget {
                       ],
                     ),
                     child: Text(
-                      heroInfo.bannerTitle,
+                      bannerTitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 22.sp,
@@ -128,7 +137,7 @@ class GamePowerBannerOverlay extends StatelessWidget {
 
                   // Subtitle
                   Text(
-                    heroInfo.bannerSubtitle,
+                    bannerSubtitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16.sp,
@@ -144,6 +153,40 @@ class GamePowerBannerOverlay extends StatelessWidget {
                       ],
                     ),
                   ),
+
+                  if (isHarmony) ...[
+                    SizedBox(height: 20.h),
+                    SizedBox(
+                      height: 48.h,
+                      child: ElevatedButton(
+                        onPressed: onAskForHelp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE86726),
+                          foregroundColor: Colors.white,
+                          elevation: 4,
+                          shadowColor: const Color(0x66E86726),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24.r),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 28.w),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Ask for help',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            const Icon(Icons.fast_forward_rounded, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
 
                   // 10s accent if extra time power
                   if (isTimePower) ...[
@@ -167,6 +210,7 @@ class GamePowerBannerOverlay extends StatelessWidget {
                 ],
               ),
             ),
+          ),
           ],
         ),
       ),

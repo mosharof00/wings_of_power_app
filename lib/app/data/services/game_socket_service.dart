@@ -5,6 +5,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:wings_of_power_app/app/core/config/app_config.dart';
 import 'package:wings_of_power_app/app/core/services/secure_storage_service.dart';
 import '../models/game_match.dart';
+import '../../modules/game/models/game_help_events.dart';
 
 class GameSocketService extends GetxService {
   io.Socket? _socket;
@@ -35,6 +36,16 @@ class GameSocketService extends GetxService {
   final latestQueueError = Rxn<Map<String, dynamic>>();
   final latestPeerLeft = Rxn<GamePeerLeftEvent>();
   final latestSnapshotData = Rxn<Map<String, dynamic>>();
+  final latestCanPass = RxnBool();
+  final latestBuzzWinnerLine = RxnString();
+  final latestHelpRequest = Rxn<GameHelpRequestEvent>();
+  final latestHelpSuggest = Rxn<GameHelpSuggestEvent>();
+
+  final _helpRequestController = StreamController<GameHelpRequestEvent>.broadcast();
+  Stream<GameHelpRequestEvent> get onHelpRequest => _helpRequestController.stream;
+
+  final _helpSuggestController = StreamController<GameHelpSuggestEvent>.broadcast();
+  Stream<GameHelpSuggestEvent> get onHelpSuggest => _helpSuggestController.stream;
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -328,6 +339,14 @@ class GameSocketService extends GetxService {
               GameBuzzWinnerEvent.fromJson(Map<String, dynamic>.from(data));
           latestBuzzWinner.value = event;
           _buzzWinnerController.add(event);
+
+          if (data.containsKey('canPass') || data.containsKey('can_pass')) {
+            final cp = data['canPass'] ?? data['can_pass'];
+            latestCanPass.value = (cp is bool) ? cp : cp.toString() == 'true';
+          }
+          if (data.containsKey('line')) {
+            latestBuzzWinnerLine.value = data['line']?.toString();
+          }
         }
       });
 
@@ -424,6 +443,26 @@ class GameSocketService extends GetxService {
               GamePowerEffectEvent.fromJson(Map<String, dynamic>.from(data));
           latestPowerEffect.value = event;
           _powerEffectController.add(event);
+        }
+      });
+
+      _socket?.on('power:help_request', (data) {
+        debugPrint('[GameSocketService] power:help_request: $data');
+        if (data is Map) {
+          final event =
+              GameHelpRequestEvent.fromJson(Map<String, dynamic>.from(data));
+          latestHelpRequest.value = event;
+          _helpRequestController.add(event);
+        }
+      });
+
+      _socket?.on('power:help_suggest', (data) {
+        debugPrint('[GameSocketService] power:help_suggest: $data');
+        if (data is Map) {
+          final event =
+              GameHelpSuggestEvent.fromJson(Map<String, dynamic>.from(data));
+          latestHelpSuggest.value = event;
+          _helpSuggestController.add(event);
         }
       });
 
@@ -550,6 +589,38 @@ class GameSocketService extends GetxService {
     debugPrint('[GameSocketService] pass -> roundId: $roundId');
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:pass', {'roundId': roundId});
+    } else {
+      _handleMockPass(roundId);
+    }
+  }
+
+  void requestHelp(String roundId) {
+    debugPrint('[GameSocketService] requestHelp -> roundId: $roundId');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('power:help_request', {'roundId': roundId});
+    } else {
+      _handleMockHelpRequest(roundId);
+    }
+  }
+
+  void suggestHelp({
+    required String roundId,
+    String? forUserId,
+    required int optionIndex,
+  }) {
+    debugPrint('[GameSocketService] suggestHelp -> roundId: $roundId, optionIndex: $optionIndex');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('power:help_suggest', {
+        'roundId': roundId,
+        if (forUserId != null && forUserId.isNotEmpty) 'forUserId': forUserId,
+        'optionIndex': optionIndex,
+      });
+    } else {
+      _handleMockHelpSuggest(
+        roundId: roundId,
+        forUserId: forUserId,
+        optionIndex: optionIndex,
+      );
     }
   }
 
@@ -1022,6 +1093,89 @@ class GameSocketService extends GetxService {
 
     debugPrint('[GameSocketService] _handleMockVote -> roundId: $roundId, option: $selectedIndex');
 
+    final q = latestQuestion.value;
+    final is5v5 = (latestMatch.value?.mode == 'FIVE_V_FIVE');
+
+    if (is5v5) {
+      final voteUpdate1 = GameVoteUpdateEvent(
+        roundId: roundId,
+        submittedCount: 1,
+        teamSize: 5,
+      );
+      latestVoteUpdate.value = voteUpdate1;
+      _voteUpdateController.add(voteUpdate1);
+
+      Timer(const Duration(milliseconds: 300), () {
+        final u2 = GameVoteUpdateEvent(roundId: roundId, submittedCount: 2, teamSize: 5);
+        latestVoteUpdate.value = u2;
+        _voteUpdateController.add(u2);
+      });
+      Timer(const Duration(milliseconds: 600), () {
+        final u3 = GameVoteUpdateEvent(roundId: roundId, submittedCount: 3, teamSize: 5);
+        latestVoteUpdate.value = u3;
+        _voteUpdateController.add(u3);
+      });
+      Timer(const Duration(milliseconds: 900), () {
+        final u4 = GameVoteUpdateEvent(roundId: roundId, submittedCount: 4, teamSize: 5);
+        latestVoteUpdate.value = u4;
+        _voteUpdateController.add(u4);
+      });
+      Timer(const Duration(milliseconds: 1200), () {
+        final u5 = GameVoteUpdateEvent(roundId: roundId, submittedCount: 5, teamSize: 5);
+        latestVoteUpdate.value = u5;
+        _voteUpdateController.add(u5);
+
+        final isCorrect = (selectedIndex == 0);
+        const letters = ['A', 'B', 'C', 'D'];
+        final chosenLetter = (selectedIndex >= 0 && selectedIndex < letters.length)
+            ? letters[selectedIndex]
+            : selectedIndex.toString();
+        const correctLetter = 'A';
+        final correctText = (q != null && q.options.isNotEmpty) ? q.options[0] : '';
+
+        final tallies = <String, int>{
+          selectedIndex.toString(): 4,
+          ((selectedIndex + 1) % 4).toString(): 1,
+        };
+
+        final voteRes = GameVoteResultEvent(
+          roundId: roundId,
+          winningOptionIndex: selectedIndex,
+          chosenLetter: chosenLetter,
+          correct: isCorrect,
+          correctLetter: correctLetter,
+          correctAnswerText: correctText,
+          teamLabel: 'Team A',
+          designatedShooterId: isCorrect ? 'part-you-1' : null,
+          tallies: tallies,
+        );
+        latestVoteResult.value = voteRes;
+        _voteResultController.add(voteRes);
+
+        if (isCorrect) {
+          _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+            if (latestShootoutStart.value?.roundId != 'mock-shootout-q4-$_mockQ4QuestionIndex') {
+              _startMockShootout(
+                roundId: 'mock-shootout-q4-$_mockQ4QuestionIndex',
+                shooterParticipantId: 'part-you-1',
+                shooterName: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.nickname ?? 'Alex',
+                roundType: 'Q4_FINALS',
+              );
+            }
+          });
+        } else {
+          _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+            if (_mockQ4QuestionIndex < 3) {
+              _startMockQ4Question(questionIndex: _mockQ4QuestionIndex + 1);
+            } else {
+              _handleMockQ4Complete(roundId);
+            }
+          });
+        }
+      });
+      return;
+    }
+
     // On a 1-person team, resolves immediately once vote is submitted without waiting for ghost teammates
     final voteUpdate = GameVoteUpdateEvent(
       roundId: roundId,
@@ -1031,7 +1185,6 @@ class GameSocketService extends GetxService {
     latestVoteUpdate.value = voteUpdate;
     _voteUpdateController.add(voteUpdate);
 
-    final q = latestQuestion.value;
     final isCorrect = (selectedIndex == 0);
     const letters = ['A', 'B', 'C', 'D'];
     final chosenLetter = (selectedIndex >= 0 && selectedIndex < letters.length)
@@ -1765,8 +1918,25 @@ class GameSocketService extends GetxService {
       return;
     }
     if (powerCode.toUpperCase() == 'HARMONY') {
-      // 1v1 / solo match: NO_TEAMMATE
-      debugPrint('[GameSocketService] Mock Harmony in solo/1v1: NO_TEAMMATE');
+      final is5v5 = (latestMatch.value?.mode == 'FIVE_V_FIVE');
+      if (!is5v5) {
+        debugPrint('[GameSocketService] Mock Harmony in solo/1v1: NO_TEAMMATE');
+        return;
+      }
+      _mockPowerUsed = true;
+      final effectEvent = GamePowerEffectEvent.fromJson({
+        'roundId': roundId,
+        'userId': 'mock-student-id',
+        'participantId': 'part-you-1',
+        'powerCode': 'HARMONY',
+        'effect': {
+          'type': 'harmony',
+          'title': 'Congratulations!',
+          'subtitle': 'Your teammate is here to help!',
+        },
+      });
+      latestPowerEffect.value = effectEvent;
+      _powerEffectController.add(effectEvent);
       return;
     }
     _mockPowerUsed = true;
@@ -1829,6 +1999,129 @@ class GameSocketService extends GetxService {
     _powerEffectController.add(effectEvent);
   }
 
+  void _handleMockPass(String roundId) {
+    _mockBotTimer?.cancel();
+    final is5v5 = (latestMatch.value?.mode == 'FIVE_V_FIVE');
+    if (!is5v5) {
+      debugPrint('[GameSocketService] Mock pass rejected: not 5v5');
+      return;
+    }
+
+    debugPrint('[GameSocketService] _handleMockPass -> roundId: $roundId');
+    latestCanPass.value = false;
+
+    final youTeam = latestMatch.value?.teams.firstOrNull;
+    final teammate = youTeam?.members.firstWhereOrNull((m) => m.id != 'part-you-1');
+    final teammateId = teammate?.id ?? 'part-mili-2';
+    final teammateUserId = teammate?.userId ?? 'user-mili-2';
+    final teammateNick = teammate?.nickname ?? 'Mili';
+
+    final buzzWinnerEvent = GameBuzzWinnerEvent(
+      roundId: roundId,
+      participantId: teammateId,
+      userId: teammateUserId,
+      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+    );
+    latestBuzzWinner.value = buzzWinnerEvent;
+    latestBuzzWinnerLine.value = 'Passed to $teammateNick';
+    _buzzWinnerController.add(buzzWinnerEvent);
+
+    final wait = GameWaitingEvent(
+      roundId: roundId,
+      reason: 'TEAMMATE',
+      playerName: teammateNick,
+      teamLabel: 'Team A',
+    );
+    latestWaiting.value = wait;
+    _waitingController.add(wait);
+
+    _mockTimer = Timer(const Duration(seconds: 2), () {
+      final res = GameAnswerResultEvent(
+        roundId: roundId,
+        participantId: teammateId,
+        userId: teammateUserId,
+        correct: true,
+        optionIndex: 1,
+        scores: {
+          'team-a': {'xp': 10, 'kindness': 0, 'baskets': 1},
+          'team-b': {'xp': 0, 'kindness': 0, 'baskets': 0},
+        },
+      );
+      latestAnswerResult.value = res;
+      _answerResultController.add(res);
+
+      _mockTimer = Timer(const Duration(seconds: 2), () {
+        _startMockShootout(
+          roundId: 'mock-shootout-pass',
+          shooterParticipantId: teammateId,
+          shooterName: teammateNick,
+          roundType: _mockRoundType,
+        );
+      });
+    });
+  }
+
+  void simulateMockTeammatePassToUser({required String roundId}) {
+    latestCanPass.value = false;
+    latestBuzzWinnerLine.value = 'Your teammate passed to you';
+
+    final userWinner = GameBuzzWinnerEvent(
+      roundId: roundId,
+      participantId: 'part-you-1',
+      userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ?? 'mock-student-id',
+      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+    );
+    latestBuzzWinner.value = userWinner;
+    _buzzWinnerController.add(userWinner);
+  }
+
+  void _handleMockHelpRequest(String roundId) {
+    final is5v5 = (latestMatch.value?.mode == 'FIVE_V_FIVE');
+    if (!is5v5) {
+      debugPrint('[GameSocketService] Mock HelpRequest rejected in 1v1/solo: NO_TEAMMATE');
+      return;
+    }
+
+    final q = latestQuestion.value;
+    final helpReq = GameHelpRequestEvent(
+      roundId: roundId,
+      fromUserId: 'mock-student-id',
+      fromNickname: 'Alex',
+      prompt: q?.prompt ?? '',
+      options: q?.options ?? const [],
+    );
+    latestHelpRequest.value = helpReq;
+    _helpRequestController.add(helpReq);
+
+    _mockTimer = Timer(const Duration(milliseconds: 1500), () {
+      final suggest = GameHelpSuggestEvent(
+        roundId: roundId,
+        forUserId: 'mock-student-id',
+        fromUserId: 'user-mili-2',
+        fromNickname: 'Mili',
+        optionIndex: 0,
+      );
+      latestHelpSuggest.value = suggest;
+      _helpSuggestController.add(suggest);
+    });
+  }
+
+  void _handleMockHelpSuggest({
+    required String roundId,
+    String? forUserId,
+    required int optionIndex,
+  }) {
+    final suggest = GameHelpSuggestEvent(
+      roundId: roundId,
+      forUserId: forUserId,
+      fromUserId: 'mock-student-id',
+      fromNickname: 'Alex',
+      optionIndex: optionIndex,
+    );
+    latestHelpSuggest.value = suggest;
+    _helpSuggestController.add(suggest);
+  }
+
   void _cleanupSocket() {
     _mockTimer?.cancel();
     _mockBotTimer?.cancel();
@@ -1855,6 +2148,8 @@ class GameSocketService extends GetxService {
       _socket?.off('shootout:start');
       _socket?.off('shootout:result');
       _socket?.off('power:effect');
+      _socket?.off('power:help_request');
+      _socket?.off('power:help_suggest');
       _socket?.off('round:vote_open');
       _socket?.off('round:vote_update');
       _socket?.off('round:vote_result');
@@ -1909,6 +2204,8 @@ class GameSocketService extends GetxService {
     _voteOpenController.close();
     _voteUpdateController.close();
     _voteResultController.close();
+    _helpRequestController.close();
+    _helpSuggestController.close();
     super.onClose();
   }
 }

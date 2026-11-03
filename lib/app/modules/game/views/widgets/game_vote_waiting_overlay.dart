@@ -6,13 +6,24 @@ class GameVoteWaitingOverlay extends StatelessWidget {
     super.key,
     this.submittedCount,
     this.teamSize,
+    this.isOtherTeam = false,
+    this.teamLabel,
   });
 
   final int? submittedCount;
   final int? teamSize;
+  final bool isOtherTeam;
+  final String? teamLabel;
 
   @override
   Widget build(BuildContext context) {
+    final title = isOtherTeam
+        ? '${teamLabel ?? "Other Team"} is Voting'
+        : 'Waiting for your classmates';
+    final subtitle = isOtherTeam
+        ? 'Please wait for the result!'
+        : 'One of your classmates is still thinking';
+
     return Container(
       color: Colors.black.withValues(alpha: 0.55),
       child: Center(
@@ -45,7 +56,7 @@ class GameVoteWaitingOverlay extends StatelessWidget {
                 ),
                 SizedBox(height: 20.h),
                 Text(
-                  'Waiting for your classmates',
+                  title,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 18.sp,
@@ -55,7 +66,7 @@ class GameVoteWaitingOverlay extends StatelessWidget {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'One of your classmates is still thinking',
+                  subtitle,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13.sp,

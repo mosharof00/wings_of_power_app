@@ -8,6 +8,7 @@ import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 import '../controllers/game_mode_select_controller.dart';
 import '../models/game_match_finished.dart';
+import '../models/game_help_events.dart';
 import '../views/widgets/game_leave_confirm_modal.dart';
 import '../views/widgets/game_power_wings_sheet.dart';
 
@@ -81,6 +82,11 @@ class GamePlayController extends GetxController {
   final isBuzzing = false.obs;
   final isSubmittingAnswer = false.obs;
   final hasPassed = false.obs;
+  final serverCanPass = RxnBool();
+  final buzzWinnerLine = RxnString();
+  final suggestedOptionIndex = RxnInt();
+  final suggestedByName = RxnString();
+  final activeHelpRequest = Rxn<GameHelpRequestEvent>();
   final teamScores = <String, int>{}.obs;
 
   // Q2 Defense Round
@@ -145,20 +151,30 @@ class GamePlayController extends GetxController {
 
   bool get canPass {
     if (hasPassed.value) return false;
-    final you = snapshot.value.you;
-    if (you != null && you.canPass) return true;
-    // By rule: disabled for 1v1 and bot matches
-    final teams = snapshot.value.teams;
-    if (teams.length <= 1 &&
-        (teams.firstOrNull?.members.length ?? 0) <= 1) {
+    if (questionSubPhase.value != QuestionSubPhase.buzzedYou) return false;
+
+    final rType = currentQuestion.value?.roundType ??
+        currentIntro.value?.roundType ??
+        snapshot.value.roundType;
+    if (rType == 'Q2_DEFENSE' || rType == 'Q4_FINALS' || rType == 'ROUND_4') {
       return false;
     }
+
+    final mode = snapshot.value.mode;
+    if (mode == 'SINGLE' || mode == 'ONE_V_ONE') return false;
+
+    final teams = snapshot.value.teams;
     final youTeam = teams.firstWhereOrNull((t) =>
         t.members.any((m) => m.userId == currentUserId || m.id == youParticipantId));
-    if (youTeam != null && youTeam.members.where((m) => !m.isBot).length > 1) {
-      return you?.canPass ?? true;
+    final connectedTeammates = youTeam?.members.where((m) => !m.isBot).toList() ?? [];
+    if (connectedTeammates.length <= 1) return false;
+
+    if (serverCanPass.value != null) {
+      return serverCanPass.value! && !hasPassed.value;
     }
-    return false;
+    final you = snapshot.value.you;
+    if (you != null && you.canPass) return true;
+    return true;
   }
 
   bool get isShooter {
@@ -340,9 +356,43 @@ class GamePlayController extends GetxController {
         // Harmony in 1v1 on NO_TEAMMATE shows no ask-for-help flow
         return;
       }
+
+      hasUsedPower.value = true;
+      final effectEvent = GamePowerEffectEvent.fromJson({
+        'roundId': q.roundId,
+        'userId': currentUserId ?? 'mock-student-id',
+        'participantId': youParticipantId,
+        'powerCode': 'HARMONY',
+        'effect': {
+          'type': 'harmony',
+          'title': 'Congratulations!',
+          'subtitle': 'Your teammate is here to help!',
+        },
+      });
+      showingPowerBanner.value = effectEvent;
+      _socketService.usePower(q.roundId, powerCode);
+      return;
     }
 
     _socketService.usePower(q.roundId, powerCode);
+  }
+
+  void onAskForHelpTap() {
+    final q = currentQuestion.value;
+    if (q == null) return;
+    showingPowerBanner.value = null;
+    _socketService.requestHelp(q.roundId);
+  }
+
+  void onSendHelpSuggest(int optionIndex) {
+    final req = activeHelpRequest.value;
+    if (req == null) return;
+    activeHelpRequest.value = null;
+    _socketService.suggestHelp(
+      roundId: req.roundId,
+      forUserId: req.fromUserId,
+      optionIndex: optionIndex,
+    );
   }
 
   bool get canSubmitFreeText {
@@ -516,6 +566,14 @@ class GamePlayController extends GetxController {
       voteOpen.value = null;
       votingTeamLabel.value = null;
 
+      // Reset Pass & Harmony Help state
+      suggestedOptionIndex.value = null;
+      suggestedByName.value = null;
+      activeHelpRequest.value = null;
+      buzzWinnerLine.value = null;
+      hasPassed.value = false;
+      serverCanPass.value = null;
+
       final defaultSec = (event.roundType == 'Q2_DEFENSE') ? 60 : 10;
       _activeDeadline = event.deadlineAt ??
           DateTime.now().add(Duration(seconds: defaultSec));
@@ -557,10 +615,41 @@ class GamePlayController extends GetxController {
           (event.participantId.isNotEmpty &&
               event.participantId == youParticipantId);
 
+      if (_socketService.latestCanPass.value != null) {
+        serverCanPass.value = _socketService.latestCanPass.value;
+      }
+      if (_socketService.latestBuzzWinnerLine.value != null) {
+        buzzWinnerLine.value = _socketService.latestBuzzWinnerLine.value;
+      } else if (isYou && (hasPassed.value || serverCanPass.value == false) && snapshot.value.mode == 'FIVE_V_FIVE') {
+        buzzWinnerLine.value = 'Your teammate passed to you';
+      }
+
       if (isYou) {
         questionSubPhase.value = QuestionSubPhase.buzzedYou;
+        isSubmittingAnswer.value = false;
       } else {
         questionSubPhase.value = QuestionSubPhase.buzzedOther;
+      }
+    }));
+
+    _subscriptions.add(_socketService.onHelpRequest.listen((event) {
+      final youTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+          t.members.any((m) => m.userId == currentUserId || m.id == youParticipantId));
+      final requesterTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+          t.members.any((m) => m.userId == event.fromUserId));
+      final isSameTeam = youTeam != null && requesterTeam != null && youTeam.id == requesterTeam.id;
+      final isSelf = event.fromUserId != null &&
+          (event.fromUserId == currentUserId || event.fromUserId == youParticipantId);
+
+      if ((isSameTeam || youTeam == null) && !isSelf) {
+        activeHelpRequest.value = event;
+      }
+    }));
+
+    _subscriptions.add(_socketService.onHelpSuggest.listen((event) {
+      if (questionSubPhase.value == QuestionSubPhase.buzzedYou) {
+        suggestedOptionIndex.value = event.optionIndex;
+        suggestedByName.value = event.fromNickname ?? 'Teammate';
       }
     }));
 
@@ -800,12 +889,14 @@ class GamePlayController extends GetxController {
       hasUsedPower.value = true;
       activePowerEffect.value = event;
 
-      // Show power banner overlay for ~2.2 seconds
+      // Show power banner overlay (auto-dismiss for non-Harmony powers; Harmony stays until Ask for help or dismissed)
       showingPowerBanner.value = event;
       _bannerTimer?.cancel();
-      _bannerTimer = Timer(const Duration(milliseconds: 2200), () {
-        showingPowerBanner.value = null;
-      });
+      if (event.powerCode.toUpperCase() != 'HARMONY') {
+        _bannerTimer = Timer(const Duration(milliseconds: 2200), () {
+          showingPowerBanner.value = null;
+        });
+      }
 
       // Apply effects matching plan
       if (event.removedOptions != null && event.removedOptions!.isNotEmpty) {
@@ -965,7 +1056,41 @@ class GamePlayController extends GetxController {
     final q = currentQuestion.value;
     if (q == null) return;
     hasPassed.value = true;
+    serverCanPass.value = false;
+    isSubmittingAnswer.value = true;
     _socketService.pass(q.roundId);
+  }
+
+  void simulateMockPass() {
+    onPassTap();
+  }
+
+  void simulateMockTeammatePass() {
+    final q = currentQuestion.value;
+    if (q == null) return;
+    _socketService.simulateMockTeammatePassToUser(roundId: q.roundId);
+  }
+
+  void simulateMockTeammateHelpRequest() {
+    final q = currentQuestion.value;
+    final helpReq = GameHelpRequestEvent(
+      roundId: q?.roundId ?? 'mock-round-q3-1',
+      fromUserId: 'user-samantha-8',
+      fromNickname: 'Samantha',
+      prompt: q?.prompt ?? 'Why might learning to play the violin be a rewarding hobby?',
+      options: q?.options ?? const [
+        'Develops musical skills and patience',
+        'Guarantees becoming famous',
+        'It means you never need to practice',
+        'It makes everyone like the same music',
+      ],
+    );
+    activeHelpRequest.value = helpReq;
+  }
+
+  void simulateMockTeammateSuggest({int optionIndex = 0}) {
+    suggestedOptionIndex.value = optionIndex;
+    suggestedByName.value = 'Mili';
   }
 
   void onOpenQuizTap() {

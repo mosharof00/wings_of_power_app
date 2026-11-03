@@ -63,33 +63,37 @@ class GameVoteResultModal extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16.r),
                     border: Border.all(color: const Color(0xFFDDD6FE)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$teamLabel chose ',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF4C1D95),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 2.h),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7C3AED),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          chosenLetter,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$teamLabel chose ',
                           style: TextStyle(
                             fontSize: 16.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF4C1D95),
                           ),
                         ),
-                      ),
-                    ],
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 2.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7C3AED),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Text(
+                            chosenLetter,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 SizedBox(height: 20.h),

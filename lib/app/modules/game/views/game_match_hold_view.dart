@@ -14,6 +14,7 @@ import 'widgets/game_vs_pills.dart';
 import 'widgets/game_waiting_overlay.dart';
 import 'widgets/game_vote_result_modal.dart';
 import 'widgets/game_vote_waiting_overlay.dart';
+import 'widgets/game_teammate_suggest_modal.dart';
 import 'single_shot_court_view.dart';
 import 'championship_court_view.dart';
 import 'round_complete_view.dart';
@@ -292,6 +293,8 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                       isYouBuzzed: isYouBuzzed,
                       waitingInfo: waiting,
                       selectedOptionIndex: selectedIdx,
+                      suggestedOptionIndex: _controller.suggestedOptionIndex.value,
+                      buzzWinnerLine: _controller.buzzWinnerLine.value,
                       answerResult: result,
                       canPass: canPass,
                       onBuzzTap: _controller.onBuzzTap,
@@ -321,11 +324,21 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
           GamePowerBannerOverlay(
             powerEffect: bannerEffect,
             onDismiss: () => _controller.showingPowerBanner.value = null,
+            onAskForHelp: _controller.onAskForHelpTap,
           ),
-        if (subPhase == QuestionSubPhase.voteWaitingTeammates)
+        if (subPhase == QuestionSubPhase.voteWaitingTeammates ||
+            subPhase == QuestionSubPhase.voteWaitingOtherTeam)
           GameVoteWaitingOverlay(
             submittedCount: _controller.voteUpdate.value?.submittedCount,
             teamSize: _controller.voteUpdate.value?.teamSize,
+            isOtherTeam: subPhase == QuestionSubPhase.voteWaitingOtherTeam,
+            teamLabel: _controller.votingTeamLabel.value,
+          ),
+        if (_controller.activeHelpRequest.value != null)
+          GameTeammateSuggestModal(
+            helpRequest: _controller.activeHelpRequest.value!,
+            onSuggest: _controller.onSendHelpSuggest,
+            onDismiss: () => _controller.activeHelpRequest.value = null,
           ),
         if (_controller.showVoteResultSheet.value &&
             _controller.voteResult.value != null)

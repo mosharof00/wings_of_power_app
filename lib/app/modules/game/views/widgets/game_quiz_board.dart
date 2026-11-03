@@ -18,6 +18,8 @@ class GameQuizBoard extends StatelessWidget {
     required this.onOptionTap,
     required this.onPassTap,
     this.avatarUrl,
+    this.suggestedOptionIndex,
+    this.buzzWinnerLine,
     this.isQ3 = false,
     this.isQ4 = false,
     this.isVoteSubmitted = false,
@@ -44,6 +46,8 @@ class GameQuizBoard extends StatelessWidget {
   final ValueChanged<int> onOptionTap;
   final VoidCallback onPassTap;
   final String? avatarUrl;
+  final int? suggestedOptionIndex;
+  final String? buzzWinnerLine;
 
   final bool isQ3;
   final bool isQ4;
@@ -168,7 +172,7 @@ class GameQuizBoard extends StatelessWidget {
       }
     } else if (isYouBuzzed) {
       titleText = 'Team A';
-      subtitleText = 'You buzzed first!';
+      subtitleText = buzzWinnerLine ?? 'You buzzed first!';
     } else if (waitingInfo != null) {
       if (waitingInfo!.reason == 'TEAMMATE') {
         titleText = 'Your Teammate is Playing';
@@ -184,29 +188,33 @@ class GameQuizBoard extends StatelessWidget {
       subtitleText = 'Please wait for the result!';
     }
 
+    final showAvatar = isYouBuzzed && !isQ4;
+
     return Row(
       children: [
-        // Avatar circle
-        Container(
-          width: 38.w,
-          height: 38.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFFFB300), width: 1.5),
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              avatarUrl ?? 'assets/images/avatar_01.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(
-                Icons.person,
-                size: 24,
-                color: Color(0xFF9CA3AF),
+        if (showAvatar) ...[
+          // Avatar circle
+          Container(
+            width: 38.w,
+            height: 38.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFFB300), width: 1.5),
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                avatarUrl ?? 'assets/images/avatar_01.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.person,
+                  size: 24,
+                  color: Color(0xFF9CA3AF),
+                ),
               ),
             ),
           ),
-        ),
-        SizedBox(width: 10.w),
+          SizedBox(width: 10.w),
+        ],
 
         // Text details
         Expanded(
@@ -389,6 +397,7 @@ class GameQuizBoard extends StatelessWidget {
         final label = index < labels.length ? labels[index] : '$index';
 
         final isChosen = selectedOptionIndex == index;
+        final isSuggested = suggestedOptionIndex == index;
         final isResult = answerResult != null;
         final isCorrect = answerResult?.correct == true;
 
@@ -411,6 +420,10 @@ class GameQuizBoard extends StatelessWidget {
           borderColor = const Color(0xFFE86726);
           badgeBg = const Color(0xFFE86726);
           badgeTextColor = Colors.white;
+        } else if (isSuggested) {
+          borderColor = const Color(0xFFE86726);
+          badgeBg = const Color(0xFFFFE7D6);
+          badgeTextColor = const Color(0xFFE86726);
         }
 
         final isTappable = isQ4
@@ -423,15 +436,25 @@ class GameQuizBoard extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isSuggested && !isChosen ? const Color(0xFFFFFBEB) : Colors.white,
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: borderColor, width: isChosen ? 2 : 1.5),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0A000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
+              border: Border.all(
+                color: borderColor,
+                width: isChosen || isSuggested ? 2.2 : 1.5,
+              ),
+              boxShadow: [
+                if (isSuggested && !isChosen)
+                  BoxShadow(
+                    color: const Color(0xFFE86726).withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  )
+                else
+                  const BoxShadow(
+                    color: Color(0x0A000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
               ],
             ),
             child: Column(
@@ -470,6 +493,27 @@ class GameQuizBoard extends StatelessWidget {
                     color: const Color(0xFF1E1B4B),
                   ),
                 ),
+
+                // Teammate suggestion badge
+                if (isSuggested && !isChosen) ...[
+                  SizedBox(height: 3.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFE7D6),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(color: const Color(0xFFE86726), width: 0.8),
+                    ),
+                    child: Text(
+                      'Teammate pick',
+                      style: TextStyle(
+                        fontSize: 8.5.sp,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFE86726),
+                      ),
+                    ),
+                  ),
+                ],
 
                 // Prism weights percentage badge
                 if (prismWeights != null && index < prismWeights!.length) ...[
@@ -572,23 +616,28 @@ class GameQuizBoard extends StatelessWidget {
                   disabledBackgroundColor: const Color(0xFFFFDFC8),
                   disabledForegroundColor: Colors.white70,
                   elevation: 0,
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24.r),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Pass Now',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Pass Now',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 6.w),
-                    const Icon(Icons.fast_forward_rounded, size: 18),
-                  ],
+                      SizedBox(width: 6.w),
+                      const Icon(Icons.fast_forward_rounded, size: 18),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -606,23 +655,28 @@ class GameQuizBoard extends StatelessWidget {
                   disabledBackgroundColor: const Color(0xFFFFDFC8),
                   disabledForegroundColor: Colors.white70,
                   elevation: 0,
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24.r),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Next',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Next',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 6.w),
-                    const Icon(Icons.lock_rounded, size: 18),
-                  ],
+                      SizedBox(width: 6.w),
+                      const Icon(Icons.arrow_forward_rounded, size: 18),
+                    ],
+                  ),
                 ),
               ),
             ),

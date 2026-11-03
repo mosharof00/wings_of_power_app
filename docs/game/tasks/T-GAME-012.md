@@ -1,6 +1,6 @@
 # T-GAME-012 — Pass, teammate wait, majority, Harmony
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-012.md`
 **Phase:** 3
 **Depends on:** T-GAME-011 and T-BE-GAME-012
@@ -47,4 +47,21 @@ Use `yarn game:queue-fixtures` so ten students are queued and the match starts. 
 
 ## Notes
 
--
+- Implemented Pass Now flow:
+  - Enabled only when server emits `canPass: true` (first buzz winner in 5v5 team mode); disabled in 1v1 and after passing.
+  - Tapping Pass Now emits `round:pass`. Passer's answer board locks.
+  - Teammate receives the question as active answerer with header line "Your teammate passed to you", with `canPass: false`.
+- Implemented waiting states:
+  - `TEAMMATE`: Displays "Your Teammate is Playing" with subtitle "Please wait for the result!", omitting avatar circle, options locked.
+  - `OPPONENT`: Displays opponent waiting line with player name and team label.
+- Implemented Q4 voting and waiting:
+  - All teammates on the buzzing team see the question options and 00:20 voting countdown.
+  - Opponents see `GameVoteWaitingOverlay` with "{Team} is Voting" and vote counts only (no letters revealed).
+  - Result sheet displays "Team {Label} chose [{Letter}]".
+- Implemented Harmony power banner & teammate suggestion:
+  - Displays "Congratulations!", "Your teammate is here to help!", and "Ask for help" button.
+  - Emits `power:help_request`. Teammate gets `GameTeammateSuggestModal` to suggest an option index without answer key exposure.
+  - Teammate suggestion emits `power:help_suggest`. Buzzing player sees orange border/glow highlight and "Teammate pick" badge on that option, and still taps answer.
+  - In 1v1 mode, Harmony rejects with `NO_TEAMMATE` without opening help dialog.
+- Added full mock simulation in `GameSocketService` and `GamePlayController` for offline play and development testing.
+- Verified with comprehensive test suite (`flutter analyze` 0 issues, `flutter test` passed).
