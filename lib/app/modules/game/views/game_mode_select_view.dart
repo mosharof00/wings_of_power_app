@@ -54,7 +54,7 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                         // Single Player Card
                         Expanded(
                           child: _ModeCard(
-                            title: isBusy ? 'Starting Practice...' : 'Single Player',
+                            title: isBusy ? 'Joining Queue...' : 'Single Player',
                             isSelected: isSingle,
                             onTap: controller.onSinglePlayerCardTap,
                             onLongPress: controller.onSinglePlayerLongPress,

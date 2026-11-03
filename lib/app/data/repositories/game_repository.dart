@@ -114,8 +114,10 @@ class GameRepository implements IGameRepository {
   }) async {
     if (AppConfig.useMocks) {
       return GameQueueResponse(
-        matchId: 'mock-practice-match-${DateTime.now().millisecondsSinceEpoch}',
-        ticketId: 'mock-ticket-practice',
+        matchId: mode == 'SINGLE'
+            ? 'mock-practice-match-${DateTime.now().millisecondsSinceEpoch}'
+            : null,
+        ticketId: 'mock-ticket-${mode.toLowerCase()}',
         mode: mode,
       );
     }

@@ -10,6 +10,7 @@ import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
 import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
 import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
 import '../views/game_match_hold_view.dart';
+import '../views/waiting_room_1v1_view.dart';
 import '../views/widgets/game_change_avatar_dialog.dart';
 import '../views/widgets/game_choose_hero_dialog.dart';
 import '../views/widgets/game_fixture_prompt_dialog.dart';
@@ -106,7 +107,49 @@ class GameModeSelectController extends GetxController {
     if (!isSinglePlayer.value) {
       selectSinglePlayer();
     } else {
-      startPractice();
+      start1v1Matchmaking();
+    }
+  }
+
+  Future<void> start1v1Matchmaking() async {
+    if (isStartingPractice.value) return;
+    isStartingPractice.value = true;
+
+    try {
+      final eligibility = await _repository.getEligibility();
+      if (!eligibility.eligible) {
+        Get.snackbar(
+          'Not Eligible',
+          'Student is not eligible for game show',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      final queueResp = await _repository.joinQueue(mode: 'ONE_V_ONE');
+
+      await Get.to(
+        () => WaitingRoom1v1View(
+          currentUserId: userId.value,
+          currentUserNickname: nickname.value,
+          currentUserAvatar: avatarUrl.value,
+          selectedHero: selectedHero.value,
+          initialTicketId: queueResp.ticketId,
+        ),
+        routeName: '/game/waiting-room',
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Queue Error',
+        e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    } finally {
+      isStartingPractice.value = false;
     }
   }
 

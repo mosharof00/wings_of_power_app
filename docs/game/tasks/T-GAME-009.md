@@ -1,6 +1,6 @@
 # T-GAME-009 — Real 1v1 waiting room
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-009.md`
 **Phase:** 2 — real matchmaking
 **Depends on:** T-GAME-008 and T-BE-GAME-009
@@ -50,4 +50,11 @@ Single Player joins the public 1v1 queue and shows the two-seat waiting room. Tw
 
 ## Notes
 
--
+- Implemented `WaitingRoom1v1Controller` and `WaitingRoom1v1View` with 2-seat matching states from designs (`waiting_room_nobody_found.png`, `waiting_room_full_ready.png`, `waiting_room_matched_starting.png`).
+- Single Player card now routes through eligibility check and sends `POST /api/game/queue` / `queue:join` with `{ mode: "ONE_V_ONE" }`.
+- Debug long-press on Single Player card is retained for solo practice `mode: "SINGLE"` and `fixtureCode`.
+- Seat 1 shows "{nickname} (You)" with player avatar; Seat 2 shows "?" / "Waiti..." while searching, and switches to peer avatar and nickname once joined (no bot displayed).
+- "Back to Lobby" and "Cancel" cancel queue / leave match and return to mode select; "Explore Stories" routes to `Routes.STORY_LIBRARY`.
+- "Start Game" sends `match:start` socket event; smooth transition to `GameMatchHoldView` occurs on countdown event.
+- Added full offline / mock mode support in `WaitingRoom1v1Controller` and `GameSocketService.simulateMockMatch` for `ONE_V_ONE` with 0 bots.
+- Validated with `flutter analyze` (0 issues) and `flutter test` (all passed).

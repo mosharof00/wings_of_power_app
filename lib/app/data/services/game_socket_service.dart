@@ -32,6 +32,7 @@ class GameSocketService extends GetxService {
   final latestVoteOpen = Rxn<GameVoteOpenEvent>();
   final latestVoteUpdate = Rxn<GameVoteUpdateEvent>();
   final latestVoteResult = Rxn<GameVoteResultEvent>();
+  final latestQueueError = Rxn<Map<String, dynamic>>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -90,6 +91,9 @@ class GameSocketService extends GetxService {
   final _voteResultController = StreamController<GameVoteResultEvent>.broadcast();
   Stream<GameVoteResultEvent> get onVoteResult => _voteResultController.stream;
 
+  final _queueErrorController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get onQueueError => _queueErrorController.stream;
+
   Timer? _mockTimer;
   Timer? _mockBotTimer;
   Timer? _mockShootoutTimer;
@@ -106,6 +110,24 @@ class GameSocketService extends GetxService {
   int _mockTeamBXp = 0;
 
   io.Socket? get socket => _socket;
+
+  String get _mockOpponentParticipantId =>
+      (latestMatch.value?.teams.length ?? 0) >= 2 &&
+              (latestMatch.value?.teams[1].members.isNotEmpty ?? false)
+          ? (latestMatch.value!.teams[1].members.first.id ?? 'part-bot-1')
+          : 'part-bot-1';
+
+  String get _mockOpponentUserId =>
+      (latestMatch.value?.teams.length ?? 0) >= 2 &&
+              (latestMatch.value?.teams[1].members.isNotEmpty ?? false)
+          ? (latestMatch.value!.teams[1].members.first.userId ?? 'bot-user')
+          : 'bot-user';
+
+  String get _mockOpponentNickname =>
+      (latestMatch.value?.teams.length ?? 0) >= 2 &&
+              (latestMatch.value?.teams[1].members.isNotEmpty ?? false)
+          ? (latestMatch.value!.teams[1].members.first.nickname ?? 'Practice Bot')
+          : 'Practice Bot';
 
   static String resolveSocketUrl([String? overrideUrl]) {
     if (overrideUrl != null && overrideUrl.isNotEmpty) {
@@ -212,8 +234,15 @@ class GameSocketService extends GetxService {
 
       _socket?.on('queue:error', (data) {
         debugPrint('[GameSocketService] queue:error: $data');
-        if (data is Map && data['message'] != null) {
-          lastError.value = data['message'].toString();
+        if (data is Map) {
+          final map = Map<String, dynamic>.from(data);
+          latestQueueError.value = map;
+          _queueErrorController.add(map);
+          if (map['message'] != null) {
+            lastError.value = map['message'].toString();
+          } else {
+            lastError.value = data.toString();
+          }
         } else {
           lastError.value = data?.toString();
         }
@@ -414,6 +443,13 @@ class GameSocketService extends GetxService {
     _socket?.emit('queue:cancel', {});
   }
 
+  void startMatch(String matchId) {
+    debugPrint('[GameSocketService] startMatch -> matchId: $matchId');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('match:start', {'matchId': matchId});
+    }
+  }
+
   void requestSnapshot([String? matchId]) {
     _socket?.emit('match:snapshot', {
       'matchId': ?matchId,
@@ -555,9 +591,12 @@ class GameSocketService extends GetxService {
     String? fixtureCode,
     String? currentUserId,
     String? currentUserNickname,
+    String? opponentNickname,
+    String? opponentAvatarUrl,
   }) {
     final youId = currentUserId ?? 'mock-student-id';
     final youNick = currentUserNickname ?? 'Alex';
+    final is1v1 = (mode == 'ONE_V_ONE');
 
     _mockPowerUsed = false;
 
@@ -590,25 +629,29 @@ class GameSocketService extends GetxService {
             ),
           ],
         ),
-        const GameMatchTeam(
-          id: 'team-bot-2',
+        GameMatchTeam(
+          id: is1v1 ? 'team-opp-2' : 'team-bot-2',
           label: 'Team B',
           scoreXp: 0,
           scoreKindness: 0,
           scoreBaskets: 0,
           members: [
             GameMatchParticipant(
-              id: 'part-bot-1',
-              userId: null,
-              nickname: 'Practice Bot',
-              avatarUrl: null,
+              id: is1v1 ? 'part-opponent-2' : 'part-bot-1',
+              userId: is1v1 ? 'user-opponent-peer' : null,
+              nickname: is1v1
+                  ? (opponentNickname ?? 'Mili')
+                  : 'Practice Bot',
+              avatarUrl: is1v1
+                  ? (opponentAvatarUrl ?? 'assets/images/avatar_02.png')
+                  : null,
               heroId: 'faith',
               heroName: 'Faith',
               powerCode: 'MELODY',
               powerLabel: 'Melody Shot',
               jerseyNumber: 2,
               isConnected: true,
-              isBot: true,
+              isBot: !is1v1,
             ),
           ],
         ),
@@ -688,36 +731,37 @@ class GameSocketService extends GetxService {
     // Bot buzz logic per D22: If nobody buzzes by 7s, bot buzzes!
     _mockBotTimer = Timer(const Duration(seconds: 7), () {
       if (latestBuzzWinner.value?.roundId != q.roundId) {
-        // Bot wins buzz!
-        final botWinner = GameBuzzWinnerEvent(
+        // Opponent wins buzz
+        final oppWinner = GameBuzzWinnerEvent(
           roundId: q.roundId,
-          participantId: 'part-bot-1',
-          userId: 'bot-user',
+          participantId: _mockOpponentParticipantId,
+          userId: _mockOpponentUserId,
           deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
         );
-        latestBuzzWinner.value = botWinner;
-        _buzzWinnerController.add(botWinner);
+        latestBuzzWinner.value = oppWinner;
+        _buzzWinnerController.add(oppWinner);
 
         final wait = GameWaitingEvent(
           roundId: q.roundId,
           reason: 'OPPONENT',
-          playerName: 'Practice Bot',
+          playerName: _mockOpponentNickname,
           teamLabel: 'Team B',
         );
         latestWaiting.value = wait;
         _waitingController.add(wait);
 
-        // 2s later: bot answers correctly (option 1)
+        // 2s later: opponent answers correctly (option 1)
         _mockBotTimer = Timer(const Duration(seconds: 2), () {
           final res = GameAnswerResultEvent(
             roundId: q.roundId,
-            participantId: 'part-bot-1',
-            userId: 'bot-user',
+            participantId: _mockOpponentParticipantId,
+            userId: _mockOpponentUserId,
             correct: true,
             optionIndex: 1,
             scores: {
               'team-single-1': {'xp': 0, 'kindness': 0, 'baskets': 0},
               'team-bot-2': {'xp': 10, 'kindness': 0, 'baskets': 1},
+              'team-opp-2': {'xp': 10, 'kindness': 0, 'baskets': 1},
             },
           );
           latestAnswerResult.value = res;
@@ -726,8 +770,8 @@ class GameSocketService extends GetxService {
           _mockTimer = Timer(const Duration(seconds: 2), () {
             _startMockShootout(
               roundId: 'mock-shootout-q1',
-              shooterParticipantId: 'part-bot-1',
-              shooterName: 'Practice Bot',
+              shooterParticipantId: _mockOpponentParticipantId,
+              shooterName: _mockOpponentNickname,
             );
           });
         });
@@ -1297,13 +1341,14 @@ class GameSocketService extends GetxService {
     _shootoutStartController.add(start);
 
     final isBot = shooterParticipantId == 'part-bot-1';
-    if (isBot) {
-      // Bot auto-swipes after 2.5s with made: true per D22 / T-BE-GAME-004
+    final isOpponent = shooterParticipantId == _mockOpponentParticipantId;
+    if (isBot || isOpponent) {
+      // Bot / Opponent auto-swipes after 2.5s with made: true per D22 / T-BE-GAME-004
       _mockBotTimer = Timer(const Duration(milliseconds: 2500), () {
         _handleMockShootoutSwipe(
           roundId: roundId,
           made: true,
-          isBot: true,
+          isBot: isBot,
         );
       });
     } else {
@@ -1328,7 +1373,7 @@ class GameSocketService extends GetxService {
 
     final xp = made ? 2 : 0;
     final vsDelta = made ? 3 : 0;
-    if (isBot) {
+    if (isBot || latestShootoutStart.value?.shooterParticipantId == _mockOpponentParticipantId) {
       _mockTeamBXp += xp;
       _mockTeamBScoreVs += vsDelta;
     } else {
@@ -1336,8 +1381,11 @@ class GameSocketService extends GetxService {
       _mockTeamAScoreVs += vsDelta;
     }
 
+    final isOpp = latestShootoutStart.value?.shooterParticipantId == _mockOpponentParticipantId;
     final result = GameShootoutResultEvent(
-      participantId: isBot ? 'part-bot-1' : 'part-you-1',
+      participantId: isBot
+          ? 'part-bot-1'
+          : (isOpp ? _mockOpponentParticipantId : 'part-you-1'),
       made: made,
       xpEarned: xp,
       scoreVsDelta: vsDelta,
