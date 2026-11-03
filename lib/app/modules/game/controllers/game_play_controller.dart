@@ -4,6 +4,10 @@ import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/game_match.dart';
 import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
 import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
+import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
+import 'package:wings_of_power_app/app/routes/app_pages.dart';
+import '../controllers/game_mode_select_controller.dart';
+import '../models/game_match_finished.dart';
 import '../views/widgets/game_leave_confirm_modal.dart';
 import '../views/widgets/game_power_wings_sheet.dart';
 
@@ -112,6 +116,9 @@ class GamePlayController extends GetxController {
   final showVoteResultSheet = false.obs;
   final isVoteResultRevealed = false.obs;
   final votingTeamLabel = RxnString();
+
+  // Match Finished & Championship Results
+  final matchFinished = Rxn<GameMatchFinishedEvent>();
 
   // Subscriptions
   final List<StreamSubscription> _subscriptions = [];
@@ -338,6 +345,8 @@ class GamePlayController extends GetxController {
         !isSubmittingAnswer.value &&
         freeTextAnswer.value.trim().isNotEmpty;
   }
+
+  int getTeamCoins(int teamIndex) => getTeamKindness(teamIndex);
 
   int getTeamKindness(int teamIndex) {
     final teams = snapshot.value.teams;
@@ -661,6 +670,24 @@ class GamePlayController extends GetxController {
     _subscriptions.add(_socketService.onPowerEffect.listen((event) {
       _handlePowerEffect(event);
     }));
+
+    _setupSocketMatchFinishedListener();
+  }
+
+  void _setupSocketMatchFinishedListener() {
+    _socketService.socket?.on('match:finished', _onSocketMatchFinished);
+  }
+
+  void _onSocketMatchFinished(dynamic data) {
+    debugPrint('[GamePlayController] on match:finished -> $data');
+    if (data is Map) {
+      final event = GameMatchFinishedEvent.fromJson(
+        Map<String, dynamic>.from(data),
+        snapshot.value.teams,
+      );
+      matchFinished.value = event;
+      phase.value = GamePhase.complete;
+    }
   }
 
   void _handlePowerEffect(GamePowerEffectEvent event) {
@@ -881,10 +908,133 @@ class GamePlayController extends GetxController {
     if (isSubmittingAck.value) return;
     isSubmittingAck.value = true;
     final rc = roundComplete.value;
-    _socketService.ackRoundComplete(
+    final isFinalRound = isQ4Finals || (rc?.roundNumber != null && rc!.roundNumber >= 4);
+
+    if (isFinalRound) {
+      if (_socketService.socket != null && _socketService.isConnected.value) {
+        _socketService.ackRoundComplete(
+          matchId: snapshot.value.matchId,
+          roundId: rc?.roundId,
+        );
+      } else {
+        finishMockMatch();
+        isSubmittingAck.value = false;
+        return;
+      }
+    } else {
+      _socketService.ackRoundComplete(
+        matchId: snapshot.value.matchId,
+        roundId: rc?.roundId,
+      );
+    }
+  }
+
+  void finishMockMatch({
+    String? winnerTeamId,
+    String? winnerTeamLabel,
+    bool? isTie,
+  }) {
+    final teamAScore = getTeamScore(0);
+    final teamBScore = getTeamScore(1);
+    final teamACoins = getTeamCoins(0);
+    final teamBCoins = getTeamCoins(1);
+
+    final resolvedIsTie = isTie ??
+        (winnerTeamId == null
+            ? (teamAScore == teamBScore && teamACoins == teamBCoins)
+            : false);
+
+    String? resolvedWinnerId;
+    String? resolvedWinnerLabel;
+
+    if (!resolvedIsTie) {
+      if (winnerTeamId != null && winnerTeamId.isNotEmpty) {
+        resolvedWinnerId = winnerTeamId;
+        resolvedWinnerLabel = winnerTeamLabel ??
+            (winnerTeamId == (snapshot.value.teams.isNotEmpty ? snapshot.value.teams[0].id : 'team-single-1')
+                ? getTeamLabel(0)
+                : getTeamLabel(1));
+      } else {
+        if (teamAScore > teamBScore || (teamAScore == teamBScore && teamACoins > teamBCoins)) {
+          resolvedWinnerId = snapshot.value.teams.isNotEmpty
+              ? snapshot.value.teams[0].id
+              : 'team-single-1';
+          resolvedWinnerLabel = getTeamLabel(0);
+        } else if (teamBScore > teamAScore || (teamAScore == teamBScore && teamBCoins > teamACoins)) {
+          resolvedWinnerId = snapshot.value.teams.length > 1
+              ? snapshot.value.teams[1].id
+              : 'team-bot-2';
+          resolvedWinnerLabel = getTeamLabel(1);
+        } else {
+          resolvedWinnerId = null;
+          resolvedWinnerLabel = null;
+        }
+      }
+    }
+
+    final finished = GameMatchFinishedEvent(
       matchId: snapshot.value.matchId,
-      roundId: rc?.roundId,
+      winnerTeamId: resolvedIsTie ? null : resolvedWinnerId,
+      winnerTeamLabel: resolvedIsTie ? null : resolvedWinnerLabel,
+      isTie: resolvedIsTie || resolvedWinnerId == null,
+      teamA: GameMatchFinishedTeam(
+        id: snapshot.value.teams.isNotEmpty ? snapshot.value.teams[0].id : 'team-single-1',
+        label: getTeamLabel(0),
+        scoreVs: teamAScore,
+        coins: teamACoins,
+        xp: teamAScore > 0 ? 2 : 0,
+        members: snapshot.value.teams.isNotEmpty ? snapshot.value.teams[0].members : [],
+      ),
+      teamB: GameMatchFinishedTeam(
+        id: snapshot.value.teams.length > 1 ? snapshot.value.teams[1].id : 'team-bot-2',
+        label: getTeamLabel(1),
+        scoreVs: teamBScore,
+        coins: teamBCoins,
+        xp: teamBScore > 0 ? 2 : 0,
+        members: snapshot.value.teams.length > 1 ? snapshot.value.teams[1].members : [],
+      ),
     );
+
+    matchFinished.value = finished;
+    phase.value = GamePhase.complete;
+  }
+
+  void simulateMatchFinished({
+    String? winnerTeamId,
+    String? winnerTeamLabel,
+    bool? isTie,
+  }) {
+    finishMockMatch(
+      winnerTeamId: winnerTeamId,
+      winnerTeamLabel: winnerTeamLabel,
+      isTie: isTie,
+    );
+  }
+
+  void onBackToLobby() {
+    final matchId = snapshot.value.matchId;
+    if (matchId.isNotEmpty) {
+      try {
+        _socketService.leaveMatch(matchId);
+      } catch (_) {}
+      try {
+        _repository?.leaveMatch(matchId);
+      } catch (_) {}
+    }
+    _socketService.disconnect();
+
+    if (Get.isRegistered<GameModeSelectController>()) {
+      Get.find<GameModeSelectController>().reloadStudentStats();
+    }
+    if (Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().fetchHome();
+    }
+
+    Get.offAllNamed(Routes.GAME_MODE_SELECT);
+  }
+
+  void onLeaderboardTap() {
+    Get.toNamed(Routes.LEADERBOARD);
   }
 
   void onPowersTap(BuildContext context) {
@@ -959,6 +1109,9 @@ class GamePlayController extends GetxController {
 
   @override
   void onClose() {
+    try {
+      _socketService.socket?.off('match:finished');
+    } catch (_) {}
     _clockTicker?.cancel();
     _bannerTimer?.cancel();
     freeTextController.dispose();

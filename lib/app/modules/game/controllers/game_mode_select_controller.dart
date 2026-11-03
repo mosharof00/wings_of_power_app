@@ -51,6 +51,10 @@ class GameModeSelectController extends GetxController {
     _loadHeroes();
   }
 
+  Future<void> reloadStudentStats() async {
+    await _loadStudentStats();
+  }
+
   Future<void> _loadStudentStats() async {
     final uid = await SecureStorageService.instance.getUserID();
     if (uid != null) {
@@ -59,6 +63,9 @@ class GameModeSelectController extends GetxController {
 
     if (Get.isRegistered<HomeController>()) {
       final homeController = Get.find<HomeController>();
+      try {
+        await homeController.fetchHome();
+      } catch (_) {}
       final homePoints = homeController.points;
       if (homePoints > 0) {
         coins.value = homePoints;

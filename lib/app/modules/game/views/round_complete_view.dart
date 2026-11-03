@@ -139,7 +139,9 @@ class RoundCompleteView extends StatelessWidget {
                               ],
                             )
                           : Text(
-                              'Play Next Round',
+                              (roundNum >= 4 || controller.isQ4Finals)
+                                  ? 'View Final Results'
+                                  : 'Play Next Round',
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.w900,

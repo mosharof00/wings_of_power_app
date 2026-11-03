@@ -2,6 +2,7 @@ import '../models/game_eligibility.dart';
 import '../models/game_match.dart';
 import '../models/hero_models.dart';
 import '../models/how_to_play.dart';
+import '../models/leaderboard_entry.dart';
 import '../models/user_models/student_profile_model.dart';
 
 abstract class IGameRepository {
@@ -23,4 +24,6 @@ abstract class IGameRepository {
   Future<GameMatchSnapshot> getMatchSnapshot(String matchId);
 
   Future<void> leaveMatch(String matchId);
+
+  Future<List<LeaderboardEntry>> getLeaderboard({String scope = 'school'});
 }

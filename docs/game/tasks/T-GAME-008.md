@@ -1,6 +1,6 @@
 # T-GAME-008 — Results and the leaderboard hook
 
-**Status:** Not started
+**Status:** done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-008.md`
 **Phase:** 1
 **Depends on:** T-GAME-007 and T-BE-GAME-008
@@ -51,4 +51,13 @@ A finished practice match shows the winner card from the server, then Back to Lo
 
 ## Notes
 
--
+- Implemented `GameMatchFinishedEvent` and `GameMatchFinishedTeam` parsing `match:finished` socket event with `{ matchId, winnerTeamId, winnerTeamLabel, isTie, teamA, teamB }` and fallback `{ scores, kindness }`.
+- Implemented `ChampionshipRoundCompleteView` matching `championship_round_complete.png`:
+  - Shows "Winner - Team {label}" header on winner card; omits Winner ribbon on both cards when `winnerTeamId` is null or match is tied (D23).
+  - Shows both team cards with rosters (student avatars, nicknames, not hero names per Decision 5), kindness coins pill, and basketball XP pill.
+  - "Leaderboard" button routes to `Routes.LEADERBOARD` (T-APP-015 student leaderboard).
+  - "Back to Lobby" button disconnects and clears match socket state, returns to `Routes.GAME_MODE_SELECT`, and reloads student profile & kindness coins for the mode-select header chip.
+- Added `Routes.GAME_RESULTS` and `GameResultsView` in `app_routes.dart` and `app_pages.dart`.
+- Added `LeaderboardEntry` model and `getLeaderboard` in `IGameRepository` and `GameRepository`.
+- Added offline/mock mode support in `GamePlayController` (`simulateMatchFinished` and `finishMockMatch`).
+- Project validation: `flutter analyze` passed with 0 issues, `flutter test` passed all tests.

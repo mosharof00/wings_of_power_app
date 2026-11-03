@@ -7,6 +7,7 @@ import '../models/game_eligibility.dart';
 import '../models/game_match.dart';
 import '../models/hero_models.dart';
 import '../models/how_to_play.dart';
+import '../models/leaderboard_entry.dart';
 import '../models/user_models/student_profile_model.dart';
 import 'igame_repository.dart';
 
@@ -249,6 +250,51 @@ class GameRepository implements IGameRepository {
         heroId: 'hero-faith',
         jerseyNumber: 1,
       ),
+    );
+  }
+
+  @override
+  Future<List<LeaderboardEntry>> getLeaderboard({String scope = 'school'}) async {
+    if (AppConfig.useMocks) {
+      return [
+        const LeaderboardEntry(
+          id: '1',
+          rank: 1,
+          nickname: 'Alex',
+          kindnessPoints: 295,
+          avatarUrl: 'assets/images/avatar_01.png',
+          isCurrentStudent: true,
+        ),
+        const LeaderboardEntry(
+          id: '2',
+          rank: 2,
+          nickname: 'Casey',
+          kindnessPoints: 245,
+          avatarUrl: 'assets/images/avatar_02.png',
+        ),
+        const LeaderboardEntry(
+          id: '3',
+          rank: 3,
+          nickname: 'Taylor',
+          kindnessPoints: 190,
+          avatarUrl: 'assets/images/avatar_03.png',
+        ),
+      ];
+    }
+    return _client.handleRequest(
+      () => _client.dio.get(
+        ApiEndpoint.studentLeaderboard(scope),
+      ),
+      (dynamic data) {
+        final list = (data is Map && data['data'] is List)
+            ? data['data'] as List
+            : (data is List ? data : []);
+        return list
+            .map((item) =>
+                LeaderboardEntry.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList();
+      },
+      'Get Game Leaderboard',
     );
   }
 }

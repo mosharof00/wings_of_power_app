@@ -16,6 +16,7 @@ import 'widgets/game_vote_waiting_overlay.dart';
 import 'single_shot_court_view.dart';
 import 'championship_court_view.dart';
 import 'round_complete_view.dart';
+import 'championship_round_complete_view.dart';
 
 class GameMatchHoldView extends StatefulWidget {
   const GameMatchHoldView({
@@ -76,12 +77,18 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
           return SingleShotCourtView(controller: _controller);
         }
 
+        if (phase == GamePhase.complete) {
+          return ChampionshipRoundCompleteView(controller: _controller);
+        }
+
         if (phase == GamePhase.roundComplete) {
+          if (_controller.matchFinished.value != null) {
+            return ChampionshipRoundCompleteView(controller: _controller);
+          }
           return RoundCompleteView(controller: _controller);
         }
 
-        if ((phase == GamePhase.question || phase == GamePhase.complete) &&
-            hasQuestion) {
+        if (phase == GamePhase.question && hasQuestion) {
           if (_controller.isQ2Defense) {
             return _buildQ2DefenseScreen(context);
           }
