@@ -6,6 +6,7 @@ import '../controllers/game_play_controller.dart';
 import 'widgets/game_countdown_overlay.dart';
 import 'widgets/game_free_text_board.dart';
 import 'widgets/game_kindness_celebration_dialog.dart';
+import 'widgets/game_peer_left_banner.dart';
 import 'widgets/game_quiz_board.dart';
 import 'widgets/game_power_banner_overlay.dart';
 import 'widgets/game_round_intro_card.dart';
@@ -59,54 +60,86 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Obx(() {
-        final phase = _controller.phase.value;
-        final hasQuestion = _controller.currentQuestion.value != null;
+      body: Stack(
+        children: [
+          Obx(() {
+            final phase = _controller.phase.value;
+            final hasQuestion = _controller.currentQuestion.value != null;
 
-        if (phase == GamePhase.roundIntro) {
-          return GameRoundIntroCard(
-            introEvent: _controller.currentIntro.value,
-            onOpenQuiz: _controller.onOpenQuizTap,
-          );
-        }
+            if (phase == GamePhase.roundIntro) {
+              return GameRoundIntroCard(
+                introEvent: _controller.currentIntro.value,
+                onOpenQuiz: _controller.onOpenQuizTap,
+              );
+            }
 
-        if (phase == GamePhase.shootout) {
-          if (_controller.isQ4Finals) {
-            return ChampionshipCourtView(controller: _controller);
-          }
-          return SingleShotCourtView(controller: _controller);
-        }
+            if (phase == GamePhase.shootout) {
+              if (_controller.isQ4Finals) {
+                return ChampionshipCourtView(controller: _controller);
+              }
+              return SingleShotCourtView(controller: _controller);
+            }
 
-        if (phase == GamePhase.complete) {
-          return ChampionshipRoundCompleteView(controller: _controller);
-        }
+            if (phase == GamePhase.complete) {
+              return ChampionshipRoundCompleteView(controller: _controller);
+            }
 
-        if (phase == GamePhase.roundComplete) {
-          if (_controller.matchFinished.value != null) {
-            return ChampionshipRoundCompleteView(controller: _controller);
-          }
-          return RoundCompleteView(controller: _controller);
-        }
+            if (phase == GamePhase.roundComplete) {
+              if (_controller.matchFinished.value != null) {
+                return ChampionshipRoundCompleteView(controller: _controller);
+              }
+              return RoundCompleteView(controller: _controller);
+            }
 
-        if (phase == GamePhase.question && hasQuestion) {
-          if (_controller.isQ2Defense) {
-            return _buildQ2DefenseScreen(context);
-          }
-          return _buildQuestionScreen(context);
-        }
+            if (phase == GamePhase.question && hasQuestion) {
+              if (_controller.isQ2Defense) {
+                return _buildQ2DefenseScreen(context);
+              }
+              return _buildQuestionScreen(context);
+            }
 
-        // Hold or Countdown over Hold
-        return Stack(
-          children: [
-            _buildHoldScreen(context),
-            if (phase == GamePhase.countdown)
-              GameCountdownOverlay(
-                countdownValue: _controller.countdownValue.value,
-              ),
-          ],
-        );
-      }),
+            // Hold or Countdown over Hold
+            return Stack(
+              children: [
+                _buildHoldScreen(context),
+                if (phase == GamePhase.countdown)
+                  GameCountdownOverlay(
+                    countdownValue: _controller.countdownValue.value,
+                  ),
+              ],
+            );
+          }),
+
+          // Peer left toast / banner overlay
+          _buildPeerLeftBannerOverlay(context),
+        ],
+      ),
     );
+  }
+
+  Widget _buildPeerLeftBannerOverlay(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    return Obx(() {
+      final banner = _controller.peerLeftBanner.value;
+      return AnimatedPositioned(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        top: banner != null ? (topPadding + 8.h) : -(140.h),
+        left: 16.w,
+        right: 16.w,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: banner != null ? 1.0 : 0.0,
+          child: banner != null
+              ? GamePeerLeftBanner(
+                  name: banner.nickname ?? 'Player',
+                  avatarUrl: banner.avatarUrl,
+                  onDismiss: () => _controller.peerLeftBanner.value = null,
+                )
+              : const SizedBox.shrink(),
+        ),
+      );
+    });
   }
 
   Widget _buildQuestionScreen(BuildContext context) {
@@ -509,16 +542,23 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                     onTap: () => _controller.onLeaveTap(context),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      width: 40.w,
-                      height: 40.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                      width: 42.w,
+                      height: 42.w,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE86726),
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Icon(
-                        Icons.arrow_back_rounded,
+                        Icons.close_rounded,
                         color: Colors.white,
-                        size: 22.sp,
+                        size: 24.sp,
                       ),
                     ),
                   ),

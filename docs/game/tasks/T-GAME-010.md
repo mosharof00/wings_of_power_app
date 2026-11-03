@@ -1,6 +1,6 @@
 # T-GAME-010 — Leave, drop, and rejoin
 
-**Status:** Not started
+**Status:** done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-010.md`
 **Phase:** 2
 **Depends on:** T-GAME-009 and T-BE-GAME-010
@@ -46,4 +46,8 @@ The leave sheet matches the design. A short network blip restores the same quest
 
 ## Notes
 
--
+- Close button (X) on game board / hold view triggers `GameLeaveConfirmModal` with "Stay" (dismisses) and "Leave" (emits `match:leave`, posts `POST /api/game/matches/:id/leave`, disconnects socket, navigates to `Routes.GAME_MODE_SELECT`).
+- `match:peer_left` socket event triggers `GamePeerLeftBanner` overlay ("Player Left! {name} left this game. You can continue this game to earn points and shoots.") without interrupting or resetting match clock.
+- Socket drop and reconnect grace handled; rejoining phone restores question from snapshot, clears selection, and restores clock from `deadlineAt`. If deadline expired while disconnected, options stay disabled and waiting state is displayed.
+- Forfeit victory displays winner screen via `match:finished`.
+- Offline and mock simulation helpers added to `GamePlayController` (`simulatePeerLeft`, `simulateForfeit`, `simulateMockDrop`, `simulateMockReconnect`).

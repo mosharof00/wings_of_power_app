@@ -120,6 +120,11 @@ class GamePlayController extends GetxController {
   // Match Finished & Championship Results
   final matchFinished = Rxn<GameMatchFinishedEvent>();
 
+  // Peer Left Banner & Reconnect Grace
+  final peerLeftBanner = Rxn<GamePeerLeftEvent>();
+  Timer? _peerLeftTimer;
+  Timer? _mockGraceTimer;
+
   // Subscriptions
   final List<StreamSubscription> _subscriptions = [];
 
@@ -434,6 +439,14 @@ class GamePlayController extends GetxController {
     }
   }
 
+  void showPeerLeftToast(GamePeerLeftEvent event) {
+    peerLeftBanner.value = event;
+    _peerLeftTimer?.cancel();
+    _peerLeftTimer = Timer(const Duration(seconds: 6), () {
+      peerLeftBanner.value = null;
+    });
+  }
+
   void _listenSocketEvents() {
     _subscriptions.add(_socketService.onMatchFound.listen((s) {
       snapshot.value = s;
@@ -441,8 +454,15 @@ class GamePlayController extends GetxController {
     }));
 
     _subscriptions.add(_socketService.onSnapshot.listen((s) {
-      snapshot.value = s;
-      _initScoresFromSnapshot();
+      _handleSnapshotRestore(s);
+    }));
+
+    _subscriptions.add(_socketService.onSnapshotData.listen((data) {
+      _handleSnapshotRestore(snapshot.value, data);
+    }));
+
+    _subscriptions.add(_socketService.onPeerLeft.listen((event) {
+      showPeerLeftToast(event);
     }));
 
     _subscriptions.add(_socketService.onCountdown.listen((event) {
@@ -678,6 +698,87 @@ class GamePlayController extends GetxController {
     _socketService.socket?.on('match:finished', _onSocketMatchFinished);
   }
 
+  void _handleSnapshotRestore(GameMatchSnapshot snap, [Map<String, dynamic>? rawData]) {
+    debugPrint('[GamePlayController] _handleSnapshotRestore -> phase: ${snap.phase}');
+    snapshot.value = snap;
+    _initScoresFromSnapshot();
+
+    final phaseStr = snap.phase.toUpperCase();
+    if (phaseStr == 'FINISHED') {
+      if (matchFinished.value == null) {
+        finishMockMatch();
+      }
+      phase.value = GamePhase.complete;
+      return;
+    }
+
+    if (phaseStr == 'CANCELLED') {
+      _socketService.disconnect();
+      Get.offAllNamed(Routes.GAME_MODE_SELECT);
+      return;
+    }
+
+    if (phaseStr == 'COUNTDOWN') {
+      phase.value = GamePhase.countdown;
+      _activeDeadline = snap.deadlineAt ?? DateTime.now().add(const Duration(seconds: 3));
+      _updateTimerDerived();
+      return;
+    }
+
+    if (phaseStr == 'PLAYING') {
+      GameQuestionEvent? q;
+      if (rawData != null && rawData['question'] != null) {
+        try {
+          q = GameQuestionEvent.fromJson(Map<String, dynamic>.from(rawData['question'] as Map));
+        } catch (_) {}
+      }
+
+      final effectiveQuestion = q ?? currentQuestion.value;
+      if (effectiveQuestion != null) {
+        currentQuestion.value = effectiveQuestion;
+        phase.value = GamePhase.question;
+
+        final effectiveDeadline = snap.deadlineAt ?? effectiveQuestion.deadlineAt;
+        _activeDeadline = effectiveDeadline;
+        _updateTimerDerived();
+
+        final isDeadlinePassed = effectiveDeadline != null &&
+            DateTime.now().isAfter(effectiveDeadline);
+
+        if (isDeadlinePassed) {
+          // If question deadline passed while disconnected, options stay disabled until server advances.
+          // The rejoining phone shows the waiting or result state and answer controls stay disabled.
+          selectedOptionIndex.value = null;
+          isSubmittingAnswer.value = true;
+          questionSubPhase.value = QuestionSubPhase.buzzedOther;
+          waiting.value = GameWaitingEvent(
+            roundId: effectiveQuestion.roundId,
+            reason: 'OPPONENT',
+          );
+        } else {
+          // Restore the board, selection cleared, clock from deadlineAt
+          selectedOptionIndex.value = null;
+          isSubmittingAnswer.value = false;
+          isBuzzing.value = false;
+
+          if (isQ4Finals) {
+            selectedVoteOptionIndex.value = null;
+            isVoteSubmitted.value = false;
+            questionSubPhase.value = QuestionSubPhase.votingActive;
+          } else if (isQ2Defense) {
+            isFreeTextSubmitted.value = false;
+            isWaitingOthers.value = false;
+          } else {
+            final youCanBuzz = snap.you?.canBuzz ?? true;
+            if (youCanBuzz) {
+              questionSubPhase.value = QuestionSubPhase.buzzerActive;
+            }
+          }
+        }
+      }
+    }
+  }
+
   void _onSocketMatchFinished(dynamic data) {
     debugPrint('[GamePlayController] on match:finished -> $data');
     if (data is Map) {
@@ -885,7 +986,13 @@ class GamePlayController extends GetxController {
           } catch (_) {}
         }
         _socketService.disconnect();
-        Get.back();
+        if (Get.isRegistered<GameModeSelectController>()) {
+          Get.find<GameModeSelectController>().reloadStudentStats();
+        }
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().fetchHome();
+        }
+        Get.offAllNamed(Routes.GAME_MODE_SELECT);
       },
     );
   }
@@ -1011,6 +1118,58 @@ class GamePlayController extends GetxController {
     );
   }
 
+  void simulatePeerLeft({
+    String? userId,
+    String? nickname,
+    String? avatarUrl,
+  }) {
+    final opponent = snapshot.value.teams.length > 1 &&
+            snapshot.value.teams[1].members.isNotEmpty
+        ? snapshot.value.teams[1].members.first
+        : null;
+
+    final peerEvent = GamePeerLeftEvent(
+      userId: userId ?? opponent?.userId ?? 'bot-user',
+      nickname: nickname ?? opponent?.nickname ?? 'Practice Bot',
+      avatarUrl: avatarUrl ?? opponent?.avatarUrl,
+    );
+    showPeerLeftToast(peerEvent);
+  }
+
+  void simulateForfeit({
+    String? winningTeamId,
+    String? winningTeamLabel,
+  }) {
+    final youTeamId = snapshot.value.teams.isNotEmpty
+        ? snapshot.value.teams[0].id
+        : 'team-single-1';
+    final youTeamLabel = getTeamLabel(0);
+
+    finishMockMatch(
+      winnerTeamId: winningTeamId ?? youTeamId,
+      winnerTeamLabel: winningTeamLabel ?? youTeamLabel,
+      isTie: false,
+    );
+  }
+
+  void simulateMockDrop({Duration gracePeriod = const Duration(seconds: 15)}) {
+    _socketService.isConnected.value = false;
+    _mockGraceTimer?.cancel();
+    _mockGraceTimer = Timer(gracePeriod, () {
+      simulatePeerLeft();
+    });
+  }
+
+  void simulateMockReconnect([GameMatchSnapshot? customSnapshot, Map<String, dynamic>? rawData]) {
+    _mockGraceTimer?.cancel();
+    _socketService.isConnected.value = true;
+    if (customSnapshot != null) {
+      _handleSnapshotRestore(customSnapshot, rawData);
+    } else {
+      _handleSnapshotRestore(snapshot.value, rawData);
+    }
+  }
+
   void onBackToLobby() {
     final matchId = snapshot.value.matchId;
     if (matchId.isNotEmpty) {
@@ -1114,6 +1273,8 @@ class GamePlayController extends GetxController {
     } catch (_) {}
     _clockTicker?.cancel();
     _bannerTimer?.cancel();
+    _peerLeftTimer?.cancel();
+    _mockGraceTimer?.cancel();
     freeTextController.dispose();
     for (final sub in _subscriptions) {
       sub.cancel();

@@ -33,12 +33,20 @@ class GameSocketService extends GetxService {
   final latestVoteUpdate = Rxn<GameVoteUpdateEvent>();
   final latestVoteResult = Rxn<GameVoteResultEvent>();
   final latestQueueError = Rxn<Map<String, dynamic>>();
+  final latestPeerLeft = Rxn<GamePeerLeftEvent>();
+  final latestSnapshotData = Rxn<Map<String, dynamic>>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
 
   final _snapshotController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onSnapshot => _snapshotController.stream;
+
+  final _snapshotDataController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get onSnapshotData => _snapshotDataController.stream;
+
+  final _peerLeftController = StreamController<GamePeerLeftEvent>.broadcast();
+  Stream<GamePeerLeftEvent> get onPeerLeft => _peerLeftController.stream;
 
   final _queueUpdateController = StreamController<GameQueueUpdate>.broadcast();
   Stream<GameQueueUpdate> get onQueueUpdate => _queueUpdateController.stream;
@@ -181,6 +189,18 @@ class GameSocketService extends GetxService {
         isConnected.value = true;
         isConnecting.value = false;
         lastError.value = null;
+        final mId = latestMatch.value?.matchId;
+        if (mId != null && mId.isNotEmpty) {
+          requestSnapshot(mId);
+        }
+      });
+
+      _socket?.on('reconnect', (_) {
+        debugPrint('[GameSocketService] Socket reconnected to $url');
+        final mId = latestMatch.value?.matchId;
+        if (mId != null && mId.isNotEmpty) {
+          requestSnapshot(mId);
+        }
       });
 
       _socket?.onDisconnect((reason) {
@@ -214,11 +234,25 @@ class GameSocketService extends GetxService {
       _socket?.on('match:snapshot', (data) {
         debugPrint('[GameSocketService] match:snapshot: $data');
         if (data is Map) {
+          final map = Map<String, dynamic>.from(data);
+          latestSnapshotData.value = map;
+          _snapshotDataController.add(map);
+
           final snapshot =
-              GameMatchSnapshot.fromJson(Map<String, dynamic>.from(data));
+              GameMatchSnapshot.fromJson(map);
           latestSnapshot.value = snapshot;
           latestMatch.value = snapshot;
           _snapshotController.add(snapshot);
+        }
+      });
+
+      _socket?.on('match:peer_left', (data) {
+        debugPrint('[GameSocketService] match:peer_left: $data');
+        if (data is Map) {
+          final event =
+              GamePeerLeftEvent.fromJson(Map<String, dynamic>.from(data));
+          latestPeerLeft.value = event;
+          _peerLeftController.add(event);
         }
       });
 
@@ -1656,6 +1690,7 @@ class GameSocketService extends GetxService {
       _socket?.off('round:vote_open');
       _socket?.off('round:vote_update');
       _socket?.off('round:vote_result');
+      _socket?.off('match:peer_left');
       _socket?.disconnect();
       _socket?.dispose();
     } catch (_) {}
@@ -1668,11 +1703,27 @@ class GameSocketService extends GetxService {
     _cleanupSocket();
   }
 
+  void simulateMockPeerLeft({
+    String? userId,
+    String? nickname,
+    String? avatarUrl,
+  }) {
+    final event = GamePeerLeftEvent(
+      userId: userId ?? _mockOpponentUserId,
+      nickname: nickname ?? _mockOpponentNickname,
+      avatarUrl: avatarUrl,
+    );
+    latestPeerLeft.value = event;
+    _peerLeftController.add(event);
+  }
+
   @override
   void onClose() {
     disconnect();
     _matchFoundController.close();
     _snapshotController.close();
+    _snapshotDataController.close();
+    _peerLeftController.close();
     _queueUpdateController.close();
     _countdownController.close();
     _roundIntroController.close();
@@ -1692,4 +1743,30 @@ class GameSocketService extends GetxService {
     _voteResultController.close();
     super.onClose();
   }
+}
+
+class GamePeerLeftEvent {
+  const GamePeerLeftEvent({
+    this.userId,
+    this.nickname,
+    this.avatarUrl,
+  });
+
+  final String? userId;
+  final String? nickname;
+  final String? avatarUrl;
+
+  factory GamePeerLeftEvent.fromJson(Map<String, dynamic> json) {
+    return GamePeerLeftEvent(
+      userId: json['userId']?.toString() ?? json['user_id']?.toString(),
+      nickname: json['nickname']?.toString() ?? json['name']?.toString(),
+      avatarUrl: json['avatarUrl']?.toString() ?? json['avatar_url']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'userId': userId,
+        'nickname': nickname,
+        'avatarUrl': avatarUrl,
+      };
 }
