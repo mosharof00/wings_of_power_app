@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:wings_of_power_app/app/core/extensions/text_style_extension.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/student_bottom_nav.dart';
 
 import '../../achievements/views/badges_view.dart';
 import '../../home/views/home_view.dart';
+import '../../profile/views/profile_view.dart';
 import '../../stories/views/story_library_view.dart';
 import '../controllers/main_page_controller.dart';
 
@@ -29,7 +29,7 @@ class MainPageView extends GetView<MainPageController> {
               HomeView(),
               StoryLibraryView(),
               BadgesView(isEmbeddedInNav: true),
-              _ShellTab('Profile'),
+              ProfileView(),
             ],
           );
         }),
@@ -48,18 +48,5 @@ class MainPageView extends GetView<MainPageController> {
     if (navIndex <= 1) return navIndex;
     if (navIndex == 3) return 2;
     return 3;
-  }
-}
-
-class _ShellTab extends StatelessWidget {
-  const _ShellTab(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(title, style: context.headlineLarge),
-    );
   }
 }

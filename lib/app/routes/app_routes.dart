@@ -35,6 +35,9 @@ abstract class Routes {
   static const POSITIVE_POINTS = _Paths.POSITIVE_POINTS;
   static const LEADERBOARD = _Paths.LEADERBOARD;
   static const READING_PROGRESS = _Paths.READING_PROGRESS;
+  static const SETTINGS = _Paths.SETTINGS;
+  static const EDIT_PROFILE = _Paths.EDIT_PROFILE;
+  static const CHANGE_PASSWORD = _Paths.CHANGE_PASSWORD;
 }
 
 abstract class _Paths {
@@ -51,6 +54,9 @@ abstract class _Paths {
   static const HERO_ROSTER = '/hero-roster';
   static const MAIN_PAGE = '/main-page';
   static const PROFILE = '/profile';
+  static const SETTINGS = '/settings';
+  static const EDIT_PROFILE = '/edit-profile';
+  static const CHANGE_PASSWORD = '/change-password';
   static const SPLASH = '/splash';
   static const SAFE_SPACE = '/safe-space';
   static const SAFE_SPACE_FORM = '/safe-space/form';

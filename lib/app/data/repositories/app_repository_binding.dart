@@ -4,6 +4,7 @@ import 'auth_repository.dart';
 import 'achievement_repository.dart';
 import 'hero_repository.dart';
 import 'home_repository.dart';
+import 'profile_repository.dart';
 import 'quiz_repository.dart';
 import 'safe_space_repository.dart';
 import 'story_repository.dart';
@@ -25,6 +26,10 @@ class AppRepositoryBinding extends Bindings {
     );
     Get.lazyPut<IHomeRepository>(
       () => HomeRepository(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<IProfileRepository>(
+      () => ProfileRepository(Get.find<ApiClient>()),
       fenix: true,
     );
     Get.lazyPut<IStoryRepository>(

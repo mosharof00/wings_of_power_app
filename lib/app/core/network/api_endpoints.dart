@@ -14,6 +14,7 @@ class ApiEndpoint {
   static const String studentLogin = '$authBase/student/login'; // post
   static const String me = '$authBase/me'; // get
   static const String logout = '$authBase/logout'; // post
+  static const String passwordChange = '$authBase/password'; // patch
 
   /// Endpoints whose 401 must not trigger the session-expired flow: bad
   /// credentials on login/register, or an already-expired token on logout.
@@ -77,4 +78,8 @@ class ApiEndpoint {
       '$baseUrl/student/leaderboard?scope=$scope'; // get
   static const String studentReadingProgress =
       '$baseUrl/student/reading-progress'; // get
+
+  /// Student Profile & Settings
+  static const String studentProfile = '$baseUrl/student/profile'; // get, patch
+  static const String studentSettings = '$baseUrl/student/settings'; // get, patch
 }

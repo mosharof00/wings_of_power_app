@@ -1,6 +1,6 @@
 # T-APP-017 — Profile and settings
 
-**Status:** todo
+**Status:** done
 
 **Depends on:** T-APP-004, T-APP-009, T-APP-015, T-APP-016
 
@@ -129,4 +129,11 @@ How the app works: no API.
 
 ## Notes
 
--
+- Implemented ProfileView with avatar, student name Sarah, age 4 years old, class info, 3 stat cards (Points 245, Badges 3, Progress 30%), gear button, and 7 menu rows.
+- Implemented SettingsView with Reading (Read to Me), Sound (Sound Effect), Notifications (Stories, Badges & Achievements, Game Show, Safe Space Activity) toggles persisting through settings mock, and navigation rows to Change Password, Log Out sheet, I Need Help, and How the App Works sheet.
+- Implemented EditProfileView with preset avatar selection grid (avatar_01 to avatar_08), nickname input, read-only class field, and Save Changes action.
+- Implemented ChangePasswordView with current, new, and confirm password fields, visibility toggle, error handling, and submission.
+- Implemented ProfileLogoutSheet with avatar_logout illustration, Stay button, and Log out action clearing session and navigating to Welcome.
+- Implemented HowAppWorksSheet bottom sheet with information cards and Got It button.
+- Wired SETTINGS, EDIT_PROFILE, and CHANGE_PASSWORD routes in app_pages.dart.
+- flutter analyze clean (0 issues) and flutter test passing.

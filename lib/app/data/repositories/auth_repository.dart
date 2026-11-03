@@ -1,6 +1,7 @@
 import 'package:wings_of_power_app/app/core/config/app_config.dart';
 import 'package:wings_of_power_app/app/core/network/api_client.dart';
 import 'package:wings_of_power_app/app/core/network/api_endpoints.dart';
+import 'package:wings_of_power_app/app/core/network/api_exception.dart';
 import 'package:wings_of_power_app/app/data/mocks/join_code.dart';
 import 'package:wings_of_power_app/app/data/mocks/login.dart';
 import 'package:wings_of_power_app/app/data/mocks/register.dart';
@@ -29,6 +30,11 @@ abstract class IAuthRepository {
   Future<UserModel> getMe();
 
   Future<void> logout();
+
+  Future<void> changePassword({
+    required String current,
+    required String next,
+  });
 }
 
 class AuthRepository implements IAuthRepository {
@@ -127,6 +133,30 @@ class AuthRepository implements IAuthRepository {
       () => _client.dio.post(ApiEndpoint.logout),
       (_) {},
       'Logout',
+    );
+  }
+
+  @override
+  Future<void> changePassword({
+    required String current,
+    required String next,
+  }) async {
+    if (AppConfig.useMocks) {
+      if (current.isEmpty || next.isEmpty) {
+        throw ApiException('Password cannot be empty', statusCode: 400);
+      }
+      return;
+    }
+    return _client.handleRequest(
+      () => _client.dio.patch(
+        ApiEndpoint.passwordChange,
+        data: {
+          'current': current,
+          'next': next,
+        },
+      ),
+      (_) {},
+      'Change password',
     );
   }
 }
