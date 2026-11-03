@@ -23,6 +23,10 @@ enum QuestionSubPhase {
   buzzedOther,
   answerResult,
   stealActive,
+  votingActive,
+  voteWaitingTeammates,
+  voteWaitingOtherTeam,
+  voteResult,
 }
 
 class GamePlayController extends GetxController {
@@ -98,6 +102,16 @@ class GamePlayController extends GetxController {
   final roundComplete = Rxn<GameRoundCompleteEvent>();
   final hasSwiped = false.obs;
   final isSubmittingAck = false.obs;
+
+  // Q4 Wings Final & Voting
+  final voteOpen = Rxn<GameVoteOpenEvent>();
+  final voteUpdate = Rxn<GameVoteUpdateEvent>();
+  final voteResult = Rxn<GameVoteResultEvent>();
+  final selectedVoteOptionIndex = RxnInt();
+  final isVoteSubmitted = false.obs;
+  final showVoteResultSheet = false.obs;
+  final isVoteResultRevealed = false.obs;
+  final votingTeamLabel = RxnString();
 
   // Subscriptions
   final List<StreamSubscription> _subscriptions = [];
@@ -186,6 +200,74 @@ class GamePlayController extends GetxController {
         currentIntro.value?.roundType ??
         snapshot.value.roundType;
     return rType == 'Q3_HOBBY' || rType == 'ROUND_3';
+  }
+
+  bool get isQ4Finals {
+    final rType = currentQuestion.value?.roundType ??
+        currentIntro.value?.roundType ??
+        snapshot.value.roundType;
+    return rType == 'Q4_FINALS' || rType == 'ROUND_4' || rType == 'Q4';
+  }
+
+  bool get isVotingActive =>
+      questionSubPhase.value == QuestionSubPhase.votingActive;
+
+  bool get canSubmitVote =>
+      isVotingActive &&
+      !isVoteSubmitted.value &&
+      selectedVoteOptionIndex.value != null;
+
+  void onVoteOptionTap(int index) {
+    if (questionSubPhase.value != QuestionSubPhase.votingActive) return;
+    if (isVoteSubmitted.value) return;
+    selectedVoteOptionIndex.value = index;
+    selectedOptionIndex.value = index;
+  }
+
+  void onVoteNowTap() {
+    if (!canSubmitVote) return;
+    final q = currentQuestion.value;
+    if (q == null) return;
+    final idx = selectedVoteOptionIndex.value;
+    if (idx == null) return;
+
+    isVoteSubmitted.value = true;
+    _socketService.vote(
+      matchId: snapshot.value.matchId,
+      roundId: q.roundId,
+      questionId: q.questionId,
+      selectedIndex: idx,
+    );
+
+    // On a 1-person team, resolves immediately once vote is submitted without waiting for ghost teammates.
+    final youTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+        t.members.any((m) => m.userId == currentUserId || m.id == youParticipantId));
+    final connectedMembers = youTeam?.members.where((m) => !m.isBot).toList() ?? [];
+    if (connectedMembers.length > 1 && voteResult.value == null) {
+      questionSubPhase.value = QuestionSubPhase.voteWaitingTeammates;
+    }
+  }
+
+  void onSeeTheResultTap() {
+    isVoteResultRevealed.value = true;
+    final vr = voteResult.value;
+    if (vr != null && vr.correct) {
+      // Correct vote earns the ball and triggers shootout
+      Timer(const Duration(milliseconds: 1600), () {
+        showVoteResultSheet.value = false;
+        final q = currentQuestion.value;
+        _socketService.startMockShootout(
+          roundId: q?.roundId ?? 'mock-shootout-q4',
+          shooterParticipantId: youParticipantId,
+          shooterName: currentUserNickname ?? 'Alex',
+          roundType: 'Q4_FINALS',
+        );
+      });
+    } else {
+      Timer(const Duration(milliseconds: 2000), () {
+        showVoteResultSheet.value = false;
+      });
+    }
   }
 
   List<HeroPowerInfo> get usablePowerChips {
@@ -395,6 +477,16 @@ class GamePlayController extends GetxController {
       showingPowerBanner.value = null;
       _bannerTimer?.cancel();
 
+      // Reset Q4 Voting state
+      selectedVoteOptionIndex.value = null;
+      isVoteSubmitted.value = false;
+      showVoteResultSheet.value = false;
+      isVoteResultRevealed.value = false;
+      voteResult.value = null;
+      voteUpdate.value = null;
+      voteOpen.value = null;
+      votingTeamLabel.value = null;
+
       final defaultSec = (event.roundType == 'Q2_DEFENSE') ? 60 : 10;
       _activeDeadline = event.deadlineAt ??
           DateTime.now().add(Duration(seconds: defaultSec));
@@ -403,6 +495,31 @@ class GamePlayController extends GetxController {
 
     _subscriptions.add(_socketService.onBuzzWinner.listen((event) {
       buzzWinner.value = event;
+
+      if (isQ4Finals) {
+        final youTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+            t.members.any((m) => m.userId == currentUserId || m.id == youParticipantId));
+        final buzzingTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+            t.members.any((m) => m.userId == event.userId || m.id == event.participantId));
+
+        final isYou = (event.userId.isNotEmpty && event.userId == currentUserId) ||
+            (event.participantId.isNotEmpty &&
+                event.participantId == youParticipantId);
+
+        final isYourTeam = (buzzingTeam != null && youTeam != null && buzzingTeam.id == youTeam.id) || isYou;
+        votingTeamLabel.value = buzzingTeam?.label ?? (isYourTeam ? (youTeam?.label ?? 'Team A') : 'Team B');
+
+        _activeDeadline = event.deadlineAt ?? DateTime.now().add(const Duration(seconds: 20));
+        _updateTimerDerived();
+
+        if (isYourTeam) {
+          questionSubPhase.value = QuestionSubPhase.votingActive;
+        } else {
+          questionSubPhase.value = QuestionSubPhase.voteWaitingOtherTeam;
+        }
+        return;
+      }
+
       _activeDeadline = event.deadlineAt ??
           DateTime.now().add(const Duration(seconds: 10));
       _updateTimerDerived();
@@ -422,11 +539,46 @@ class GamePlayController extends GetxController {
       waiting.value = event;
       if (isQ2Defense) {
         isWaitingOthers.value = true;
+      } else if (isQ4Finals) {
+        if (questionSubPhase.value != QuestionSubPhase.votingActive &&
+            questionSubPhase.value != QuestionSubPhase.voteWaitingTeammates) {
+          questionSubPhase.value = QuestionSubPhase.voteWaitingOtherTeam;
+        }
       } else {
         if (questionSubPhase.value != QuestionSubPhase.buzzedYou) {
           questionSubPhase.value = QuestionSubPhase.buzzedOther;
         }
       }
+    }));
+
+    _subscriptions.add(_socketService.onVoteOpen.listen((event) {
+      voteOpen.value = event;
+      _activeDeadline = event.deadlineAt ?? DateTime.now().add(const Duration(seconds: 20));
+      _updateTimerDerived();
+
+      final youTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+          t.members.any((m) => m.userId == currentUserId || m.id == youParticipantId));
+      final isYourTeam = (event.teamId != null && youTeam?.id == event.teamId) ||
+          (event.teamLabel != null && youTeam?.label.toLowerCase() == event.teamLabel!.toLowerCase());
+
+      votingTeamLabel.value = event.teamLabel ?? youTeam?.label ?? 'Team A';
+
+      if (isYourTeam) {
+        questionSubPhase.value = QuestionSubPhase.votingActive;
+      } else {
+        questionSubPhase.value = QuestionSubPhase.voteWaitingOtherTeam;
+      }
+    }));
+
+    _subscriptions.add(_socketService.onVoteUpdate.listen((event) {
+      voteUpdate.value = event;
+    }));
+
+    _subscriptions.add(_socketService.onVoteResult.listen((event) {
+      voteResult.value = event;
+      showVoteResultSheet.value = true;
+      isVoteResultRevealed.value = false;
+      questionSubPhase.value = QuestionSubPhase.voteResult;
     }));
 
     _subscriptions.add(_socketService.onAnswerResult.listen((event) {
@@ -665,6 +817,10 @@ class GamePlayController extends GetxController {
   }
 
   void onOptionTap(int index) {
+    if (isQ4Finals) {
+      onVoteOptionTap(index);
+      return;
+    }
     if (questionSubPhase.value != QuestionSubPhase.buzzedYou) return;
     if (isSubmittingAnswer.value) return;
 
@@ -771,6 +927,18 @@ class GamePlayController extends GetxController {
     final teams = snapshot.value.teams;
     if (teamIndex >= teams.length) return false;
     final team = teams[teamIndex];
+
+    if (isQ4Finals) {
+      if (votingTeamLabel.value != null && votingTeamLabel.value!.isNotEmpty) {
+        return team.label.toLowerCase() == votingTeamLabel.value!.toLowerCase();
+      }
+      if (questionSubPhase.value == QuestionSubPhase.votingActive) {
+        return team.members.any((m) => m.userId == currentUserId || m.id == youParticipantId);
+      }
+      if (questionSubPhase.value == QuestionSubPhase.voteWaitingOtherTeam) {
+        return !team.members.any((m) => m.userId == currentUserId || m.id == youParticipantId);
+      }
+    }
 
     if (questionSubPhase.value == QuestionSubPhase.buzzedYou) {
       // You are active -> check if you belong to this team

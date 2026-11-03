@@ -160,7 +160,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
             // 1. Basketball Court & Stadium Floor Background
             Positioned.fill(
               child: CustomPaint(
-                painter: _CourtBackgroundPainter(),
+                painter: CourtBackgroundPainter(),
               ),
             ),
 
@@ -170,7 +170,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
               left: 0,
               right: 0,
               child: const Center(
-                child: _BasketballHoopWidget(),
+                child: BasketballHoopWidget(),
               ),
             ),
 
@@ -185,8 +185,8 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
                 right: 20.w,
                 child: Center(
                   child: isShooter
-                      ? _SwipePromptBanner()
-                      : _OpponentWaitingBanner(shooterName: shooterName),
+                      ? SwipePromptBanner()
+                      : OpponentWaitingBanner(shooterName: shooterName),
                 ),
               ),
 
@@ -475,7 +475,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
             top: currentY - (45.w * scale),
             child: Transform.scale(
               scale: scale,
-              child: const _BasketballWidget(size: 90),
+              child: const BasketballWidget(size: 90),
             ),
           );
         },
@@ -503,7 +503,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
             ),
           ),
           SizedBox(height: 4.h),
-          const _BasketballWidget(size: 90),
+          const BasketballWidget(size: 90),
         ],
       ),
     );
@@ -511,7 +511,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
 }
 
 /// Dynamic Court Background Painter with hardwood planks & purple key
-class _CourtBackgroundPainter extends CustomPainter {
+class CourtBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Upper dark arena background
@@ -624,8 +624,8 @@ class _CourtBackgroundPainter extends CustomPainter {
 }
 
 /// Stylized Basketball Hoop Widget matching design
-class _BasketballHoopWidget extends StatelessWidget {
-  const _BasketballHoopWidget();
+class BasketballHoopWidget extends StatelessWidget {
+  const BasketballHoopWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -696,7 +696,7 @@ class _BasketballHoopWidget extends StatelessWidget {
               // Woven Net
               CustomPaint(
                 size: Size(54.w, 38.h),
-                painter: _NetPainter(),
+                painter: NetPainter(),
               ),
             ],
           ),
@@ -707,7 +707,7 @@ class _BasketballHoopWidget extends StatelessWidget {
 }
 
 /// Custom Net Painter
-class _NetPainter extends CustomPainter {
+class NetPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final netPaint = Paint()
@@ -749,8 +749,8 @@ class _NetPainter extends CustomPainter {
 }
 
 /// High-resolution 3D-shaded Basketball Widget with authentic seams
-class _BasketballWidget extends StatelessWidget {
-  const _BasketballWidget({required this.size});
+class BasketballWidget extends StatelessWidget {
+  const BasketballWidget({super.key, required this.size});
 
   final double size;
 
@@ -783,14 +783,14 @@ class _BasketballWidget extends StatelessWidget {
         ],
       ),
       child: CustomPaint(
-        painter: _BasketballSeamsPainter(),
+        painter: BasketballSeamsPainter(),
       ),
     );
   }
 }
 
 /// Basketball Seams Painter (seams + ribs)
-class _BasketballSeamsPainter extends CustomPainter {
+class BasketballSeamsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final seamPaint = Paint()
@@ -843,12 +843,14 @@ class _BasketballSeamsPainter extends CustomPainter {
 }
 
 /// Prompt banner with pulsing text: "Swipe to Shoot!"
-class _SwipePromptBanner extends StatefulWidget {
+class SwipePromptBanner extends StatefulWidget {
+  const SwipePromptBanner({super.key});
+
   @override
-  State<_SwipePromptBanner> createState() => _SwipePromptBannerState();
+  State<SwipePromptBanner> createState() => _SwipePromptBannerState();
 }
 
-class _SwipePromptBannerState extends State<_SwipePromptBanner>
+class _SwipePromptBannerState extends State<SwipePromptBanner>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
 
@@ -927,8 +929,8 @@ class _SwipePromptBannerState extends State<_SwipePromptBanner>
 }
 
 /// Waiting banner shown on opponent's device
-class _OpponentWaitingBanner extends StatelessWidget {
-  const _OpponentWaitingBanner({required this.shooterName});
+class OpponentWaitingBanner extends StatelessWidget {
+  const OpponentWaitingBanner({super.key, required this.shooterName});
 
   final String shooterName;
 

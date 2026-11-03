@@ -29,6 +29,9 @@ class GameSocketService extends GetxService {
   final latestRoundCompleteEvent = Rxn<GameRoundCompleteEvent>();
   final latestKindnessResult = Rxn<GameKindnessResultEvent>();
   final latestPowerEffect = Rxn<GamePowerEffectEvent>();
+  final latestVoteOpen = Rxn<GameVoteOpenEvent>();
+  final latestVoteUpdate = Rxn<GameVoteUpdateEvent>();
+  final latestVoteResult = Rxn<GameVoteResultEvent>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -78,12 +81,22 @@ class GameSocketService extends GetxService {
   final _powerEffectController = StreamController<GamePowerEffectEvent>.broadcast();
   Stream<GamePowerEffectEvent> get onPowerEffect => _powerEffectController.stream;
 
+  final _voteOpenController = StreamController<GameVoteOpenEvent>.broadcast();
+  Stream<GameVoteOpenEvent> get onVoteOpen => _voteOpenController.stream;
+
+  final _voteUpdateController = StreamController<GameVoteUpdateEvent>.broadcast();
+  Stream<GameVoteUpdateEvent> get onVoteUpdate => _voteUpdateController.stream;
+
+  final _voteResultController = StreamController<GameVoteResultEvent>.broadcast();
+  Stream<GameVoteResultEvent> get onVoteResult => _voteResultController.stream;
+
   Timer? _mockTimer;
   Timer? _mockBotTimer;
   Timer? _mockShootoutTimer;
   bool _mockPowerUsed = false;
 
   int _mockCurrentRound = 1;
+  int _mockQ4QuestionIndex = 1;
   String _mockRoundType = 'Q1_WARMUP';
   int _mockTeamACoins = 245;
   int _mockTeamBCoins = 245;
@@ -351,6 +364,36 @@ class GameSocketService extends GetxService {
         }
       });
 
+      _socket?.on('round:vote_open', (data) {
+        debugPrint('[GameSocketService] round:vote_open: $data');
+        if (data is Map) {
+          final event =
+              GameVoteOpenEvent.fromJson(Map<String, dynamic>.from(data));
+          latestVoteOpen.value = event;
+          _voteOpenController.add(event);
+        }
+      });
+
+      _socket?.on('round:vote_update', (data) {
+        debugPrint('[GameSocketService] round:vote_update: $data');
+        if (data is Map) {
+          final event =
+              GameVoteUpdateEvent.fromJson(Map<String, dynamic>.from(data));
+          latestVoteUpdate.value = event;
+          _voteUpdateController.add(event);
+        }
+      });
+
+      _socket?.on('round:vote_result', (data) {
+        debugPrint('[GameSocketService] round:vote_result: $data');
+        if (data is Map) {
+          final event =
+              GameVoteResultEvent.fromJson(Map<String, dynamic>.from(data));
+          latestVoteResult.value = event;
+          _voteResultController.add(event);
+        }
+      });
+
       _socket?.connect();
     } catch (e) {
       debugPrint('[GameSocketService] Exception while connecting: $e');
@@ -408,6 +451,31 @@ class GameSocketService extends GetxService {
     }
   }
 
+  void vote({
+    required String matchId,
+    required String roundId,
+    String? questionId,
+    required int selectedIndex,
+  }) {
+    debugPrint('[GameSocketService] vote -> roundId: $roundId, option: $selectedIndex');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('round:vote', {
+        'matchId': matchId,
+        'roundId': roundId,
+        if (questionId != null && questionId.isNotEmpty) 'questionId': questionId,
+        'selectedIndex': selectedIndex,
+        'optionIndex': selectedIndex,
+      });
+    } else {
+      _handleMockVote(
+        matchId: matchId,
+        roundId: roundId,
+        questionId: questionId,
+        selectedIndex: selectedIndex,
+      );
+    }
+  }
+
   void pass(String roundId) {
     debugPrint('[GameSocketService] pass -> roundId: $roundId');
     if (_socket != null && isConnected.value) {
@@ -437,6 +505,8 @@ class GameSocketService extends GetxService {
         _startMockQ2Question();
       } else if (roundType == 'Q3_HOBBY') {
         _startMockQ3Question();
+      } else if (roundType == 'Q4_FINALS' || roundType == 'ROUND_4') {
+        _startMockQ4Question(questionIndex: 1);
       } else {
         _startMockQuestion();
       }
@@ -667,14 +737,277 @@ class GameSocketService extends GetxService {
 
   void _handleMockHumanBuzz(String roundId) {
     _mockBotTimer?.cancel();
+    final isQ4 = (_mockRoundType == 'Q4_FINALS');
     final youWinner = GameBuzzWinnerEvent(
       roundId: roundId,
       participantId: 'part-you-1',
       userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ?? 'mock-student-id',
-      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+      deadlineAt: DateTime.now().add(Duration(seconds: isQ4 ? 20 : 10)),
     );
     latestBuzzWinner.value = youWinner;
     _buzzWinnerController.add(youWinner);
+
+    if (isQ4) {
+      final voteOpen = GameVoteOpenEvent(
+        roundId: roundId,
+        teamId: 'team-single-1',
+        teamLabel: 'Team A',
+        deadlineAt: DateTime.now().add(const Duration(seconds: 20)),
+        durationSec: 20,
+      );
+      latestVoteOpen.value = voteOpen;
+      _voteOpenController.add(voteOpen);
+
+      _mockTimer?.cancel();
+      _mockTimer = Timer(const Duration(seconds: 20), () {
+        _handleMockQ4VoteTimeout(roundId);
+      });
+    }
+  }
+
+  void _handleMockVote({
+    required String matchId,
+    required String roundId,
+    String? questionId,
+    required int selectedIndex,
+  }) {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+
+    debugPrint('[GameSocketService] _handleMockVote -> roundId: $roundId, option: $selectedIndex');
+
+    // On a 1-person team, resolves immediately once vote is submitted without waiting for ghost teammates
+    final voteUpdate = GameVoteUpdateEvent(
+      roundId: roundId,
+      submittedCount: 1,
+      teamSize: 1,
+    );
+    latestVoteUpdate.value = voteUpdate;
+    _voteUpdateController.add(voteUpdate);
+
+    final q = latestQuestion.value;
+    final isCorrect = (selectedIndex == 0);
+    const letters = ['A', 'B', 'C', 'D'];
+    final chosenLetter = (selectedIndex >= 0 && selectedIndex < letters.length)
+        ? letters[selectedIndex]
+        : selectedIndex.toString();
+    const correctLetter = 'A';
+    final correctText = (q != null && q.options.isNotEmpty) ? q.options[0] : '';
+
+    final voteRes = GameVoteResultEvent(
+      roundId: roundId,
+      winningOptionIndex: selectedIndex,
+      chosenLetter: chosenLetter,
+      correct: isCorrect,
+      correctLetter: correctLetter,
+      correctAnswerText: correctText,
+      teamLabel: 'Team A',
+      designatedShooterId: isCorrect ? 'part-you-1' : null,
+      tallies: {selectedIndex.toString(): 1},
+    );
+    latestVoteResult.value = voteRes;
+    _voteResultController.add(voteRes);
+
+    if (isCorrect) {
+      // Correct vote earns shootout opportunity
+      // Sheet "See the Result!" will trigger shootout from controller or auto-trigger after 2s
+      _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+        if (latestShootoutStart.value?.roundId != 'mock-shootout-q4-$_mockQ4QuestionIndex') {
+          _startMockShootout(
+            roundId: 'mock-shootout-q4-$_mockQ4QuestionIndex',
+            shooterParticipantId: 'part-you-1',
+            shooterName: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.nickname ?? 'Alex',
+            roundType: 'Q4_FINALS',
+          );
+        }
+      });
+    } else {
+      // Wrong vote: moves to next question after 2.5s without shootout
+      _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+        if (_mockQ4QuestionIndex < 3) {
+          _startMockQ4Question(questionIndex: _mockQ4QuestionIndex + 1);
+        } else {
+          _handleMockQ4Complete(roundId);
+        }
+      });
+    }
+  }
+
+  void _handleMockQ4VoteTimeout(String roundId) {
+    debugPrint('[GameSocketService] Mock Q4 vote timeout for $roundId');
+    final voteRes = GameVoteResultEvent(
+      roundId: roundId,
+      winningOptionIndex: null,
+      chosenLetter: '-',
+      correct: false,
+      correctLetter: 'A',
+      correctAnswerText: latestQuestion.value?.options.firstOrNull ?? '',
+      teamLabel: 'Team A',
+      designatedShooterId: null,
+      tallies: const {},
+    );
+    latestVoteResult.value = voteRes;
+    _voteResultController.add(voteRes);
+
+    _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (_mockQ4QuestionIndex < 3) {
+        _startMockQ4Question(questionIndex: _mockQ4QuestionIndex + 1);
+      } else {
+        _handleMockQ4Complete(roundId);
+      }
+    });
+  }
+
+  void _handleMockQ4Complete(String roundId) {
+    final complete = GameRoundCompleteEvent(
+      roundNumber: 4,
+      roundId: roundId,
+      roundType: 'Q4_FINALS',
+      teamA: GameRoundTeamSummary(
+        name: 'Team A',
+        scoreVs: _mockTeamAScoreVs,
+        coins: _mockTeamACoins,
+        xp: _mockTeamAXp,
+      ),
+      teamB: GameRoundTeamSummary(
+        name: 'Team B',
+        scoreVs: _mockTeamBScoreVs,
+        coins: _mockTeamBCoins,
+        xp: _mockTeamBXp,
+      ),
+      deadlineAt: DateTime.now().add(const Duration(seconds: 15)),
+    );
+    latestRoundComplete.value = complete.toJson();
+    _roundCompleteController.add(complete.toJson());
+    latestRoundCompleteEvent.value = complete;
+    _roundCompleteEventController.add(complete);
+  }
+
+  void _startMockQ4Question({int questionIndex = 1}) {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+    _mockCurrentRound = 4;
+    _mockRoundType = 'Q4_FINALS';
+    _mockQ4QuestionIndex = questionIndex;
+
+    final List<Map<String, dynamic>> q4Questions = [
+      {
+        'prompt': 'What is one benefit of reading books?',
+        'options': [
+          'Build imagination and learn new things',
+          'Every story has the same ending',
+          'Never need to ask questions',
+          'Every book is easy',
+        ],
+        'correctIndex': 0,
+        'correctLetter': 'A',
+      },
+      {
+        'prompt': 'How can you support a classmate who is feeling left out?',
+        'options': [
+          'Invite them to join your group and listen',
+          'Look the other way and walk past',
+          'Tell them they should play alone',
+          'Laugh with others',
+        ],
+        'correctIndex': 0,
+        'correctLetter': 'A',
+      },
+      {
+        'prompt': 'What makes a sports team truly strong and united?',
+        'options': [
+          'Encouraging each other and showing good sportsmanship',
+          'Blaming each other for mistakes',
+          'Only passing the ball to your best friend',
+          'Ignoring the coach and teammates',
+        ],
+        'correctIndex': 0,
+        'correctLetter': 'A',
+      },
+    ];
+
+    final qData =
+        q4Questions[(questionIndex - 1).clamp(0, q4Questions.length - 1)];
+    final roundId = 'mock-round-q4-$questionIndex';
+
+    final q = GameQuestionEvent(
+      roundId: roundId,
+      prompt: qData['prompt'] as String,
+      options: List<String>.from(qData['options'] as List),
+      roundType: 'Q4_FINALS',
+      index: questionIndex,
+      total: 3,
+      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+    );
+    latestQuestion.value = q;
+    _questionController.add(q);
+
+    // Bot buzz logic per D22: If nobody buzzes by 7s, bot buzzes
+    _mockBotTimer = Timer(const Duration(seconds: 7), () {
+      if (latestBuzzWinner.value?.roundId != q.roundId) {
+        final botWinner = GameBuzzWinnerEvent(
+          roundId: q.roundId,
+          participantId: 'part-bot-1',
+          userId: 'bot-user',
+          deadlineAt: DateTime.now().add(const Duration(seconds: 20)),
+        );
+        latestBuzzWinner.value = botWinner;
+        _buzzWinnerController.add(botWinner);
+
+        final wait = GameWaitingEvent(
+          roundId: q.roundId,
+          reason: 'OPPONENT',
+          playerName: 'Practice Bot',
+          teamLabel: 'Team B',
+        );
+        latestWaiting.value = wait;
+        _waitingController.add(wait);
+
+        final voteOpen = GameVoteOpenEvent(
+          roundId: q.roundId,
+          teamId: 'team-bot-2',
+          teamLabel: 'Team B',
+          deadlineAt: DateTime.now().add(const Duration(seconds: 20)),
+          durationSec: 20,
+        );
+        latestVoteOpen.value = voteOpen;
+        _voteOpenController.add(voteOpen);
+
+        // Bot votes at +2s
+        _mockBotTimer = Timer(const Duration(seconds: 2), () {
+          final voteUpdate = GameVoteUpdateEvent(
+            roundId: q.roundId,
+            submittedCount: 1,
+            teamSize: 1,
+          );
+          latestVoteUpdate.value = voteUpdate;
+          _voteUpdateController.add(voteUpdate);
+
+          final voteRes = GameVoteResultEvent(
+            roundId: q.roundId,
+            winningOptionIndex: 0,
+            chosenLetter: 'A',
+            correct: true,
+            correctLetter: 'A',
+            correctAnswerText: (qData['options'] as List)[0],
+            teamLabel: 'Team B',
+            designatedShooterId: 'part-bot-1',
+            tallies: {'0': 1},
+          );
+          latestVoteResult.value = voteRes;
+          _voteResultController.add(voteRes);
+
+          _mockTimer = Timer(const Duration(seconds: 2), () {
+            _startMockShootout(
+              roundId: 'mock-shootout-q4-$questionIndex',
+              shooterParticipantId: 'part-bot-1',
+              shooterName: 'Practice Bot',
+              roundType: 'Q4_FINALS',
+            );
+          });
+        });
+      }
+    });
   }
 
   void _handleMockAnswer(String roundId, int? optionIndex) {
@@ -1028,8 +1361,17 @@ class GameSocketService extends GetxService {
     latestShootoutResult.value = result;
     _shootoutResultController.add(result);
 
-    // After 2.5s banner presentation -> advance to round complete
+    // After 2.5s banner presentation -> advance
     _mockTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (_mockRoundType == 'Q4_FINALS') {
+        if (_mockQ4QuestionIndex < 3) {
+          _startMockQ4Question(questionIndex: _mockQ4QuestionIndex + 1);
+        } else {
+          _handleMockQ4Complete(roundId);
+        }
+        return;
+      }
+
       final complete = GameRoundCompleteEvent(
         roundNumber: _mockCurrentRound,
         roundId: roundId,
@@ -1069,13 +1411,25 @@ class GameSocketService extends GetxService {
       );
       latestRoundIntro.value = intro;
       _roundIntroController.add(intro);
-    } else {
+    } else if (_mockCurrentRound == 2) {
       _mockCurrentRound = 3;
       _mockRoundType = 'Q3_HOBBY';
       final intro = GameRoundIntroEvent(
         roundType: 'Q3_HOBBY',
         title: 'Hobby Hoops',
         blurb: 'Use your Power Wing once to help your team',
+        deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+      );
+      latestRoundIntro.value = intro;
+      _roundIntroController.add(intro);
+    } else {
+      _mockCurrentRound = 4;
+      _mockRoundType = 'Q4_FINALS';
+      _mockQ4QuestionIndex = 1;
+      final intro = GameRoundIntroEvent(
+        roundType: 'Q4_FINALS',
+        title: 'Wings Final',
+        blurb: 'Share your thoughts. Baskets are worth 3 points',
         deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
       );
       latestRoundIntro.value = intro;
@@ -1251,6 +1605,9 @@ class GameSocketService extends GetxService {
       _socket?.off('shootout:start');
       _socket?.off('shootout:result');
       _socket?.off('power:effect');
+      _socket?.off('round:vote_open');
+      _socket?.off('round:vote_update');
+      _socket?.off('round:vote_result');
       _socket?.disconnect();
       _socket?.dispose();
     } catch (_) {}
@@ -1282,6 +1639,9 @@ class GameSocketService extends GetxService {
     _shootoutResultController.close();
     _roundCompleteEventController.close();
     _powerEffectController.close();
+    _voteOpenController.close();
+    _voteUpdateController.close();
+    _voteResultController.close();
     super.onClose();
   }
 }

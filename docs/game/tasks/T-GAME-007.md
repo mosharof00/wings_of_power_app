@@ -1,6 +1,6 @@
 # T-GAME-007 — Wings Final for a team of one
 
-**Status:** Not started
+**Status:** done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-007.md`
 **Phase:** 1
 **Depends on:** T-GAME-006 and T-BE-GAME-007
@@ -48,4 +48,12 @@ Q4 is a 20-second team vote after a buzz. In 1v1 that team is one player, so the
 
 ## Notes
 
--
+- Implemented Quarter 4 Wings Final round with intro card ("Start Championship", "Share your thoughts. Baskets are worth 3 points").
+- Buzz frame for Q4 with progress 1/3 to 3/3 and buzz button.
+- Buzz winner's team gets 20-second voting window (`round:vote_open`). Non-buzzing team sees waiting state ("Team {label} is voting... Please wait for the result!", 00:20 clock, disabled options).
+- Voting screen with options, 00:20 clock, and "Vote Now" button (`q4_voting_active.png`). Emits `round:vote` with `{ matchId, roundId, questionId, selectedIndex, optionIndex }`.
+- On a 1-person team (1v1 or solo bot), resolves immediately upon vote submission without waiting for ghost teammates. On multi-player teams with remaining voters, shows waiting sheet (`q4_vote_waiting.png`).
+- Voting results sheet (`GameVoteResultModal`, `q4_vote_waiting_1vote.png` / `q4_vote_waiting_resolved.png`): displays "Voting Results", "Team {label} chose {letter}", with "See the Result!" CTA revealing correct answer and "Correct! Well done." / "Nice try!".
+- If majority vote is correct, triggers championship shootout court (`ChampionshipCourtView`, `championship_team_lineup.png` and `championship_shootout.png` layout with per-player XP tags along court borders, 00:60 clock, "Swipe to Shoot!" prompt, and +3 Vs score upon made shot).
+- Added full offline / mock mode support in `GameSocketService` and `GamePlayController` for Q4 buzz -> voting -> immediate 1-person resolve -> results sheet -> championship shootout court.
+- Project validation passed: `flutter analyze` (0 issues) and `flutter test` (all passed).

@@ -19,6 +19,10 @@ class GameQuizBoard extends StatelessWidget {
     required this.onPassTap,
     this.avatarUrl,
     this.isQ3 = false,
+    this.isQ4 = false,
+    this.isVoteSubmitted = false,
+    this.votingTeamLabel,
+    this.onVoteNowTap,
     this.hint,
     this.removedOptionIndices = const [],
     this.prismWeights,
@@ -42,6 +46,10 @@ class GameQuizBoard extends StatelessWidget {
   final String? avatarUrl;
 
   final bool isQ3;
+  final bool isQ4;
+  final bool isVoteSubmitted;
+  final String? votingTeamLabel;
+  final VoidCallback? onVoteNowTap;
   final String? hint;
   final List<int> removedOptionIndices;
   final List<num>? prismWeights;
@@ -146,7 +154,19 @@ class GameQuizBoard extends StatelessWidget {
     String titleText = 'Team A';
     String subtitleText = 'You buzzed first!';
 
-    if (isYouBuzzed) {
+    if (isQ4) {
+      if (subPhase == QuestionSubPhase.votingActive) {
+        titleText = '${votingTeamLabel ?? "Team A"} - Vote Now!';
+        subtitleText =
+            'Your team buzzed first! Choose your answer before time runs out.';
+      } else if (subPhase == QuestionSubPhase.voteWaitingOtherTeam) {
+        titleText = '${votingTeamLabel ?? "Team B"} is Voting';
+        subtitleText = 'Please wait for the result!';
+      } else if (subPhase == QuestionSubPhase.voteWaitingTeammates) {
+        titleText = 'Waiting for your classmates';
+        subtitleText = 'One of your classmates is still thinking';
+      }
+    } else if (isYouBuzzed) {
       titleText = 'Team A';
       subtitleText = 'You buzzed first!';
     } else if (waitingInfo != null) {
@@ -393,7 +413,9 @@ class GameQuizBoard extends StatelessWidget {
           badgeTextColor = Colors.white;
         }
 
-        final isTappable = isYouBuzzed && selectedOptionIndex == null;
+        final isTappable = isQ4
+            ? (subPhase == QuestionSubPhase.votingActive && !isVoteSubmitted)
+            : (isYouBuzzed && selectedOptionIndex == null);
 
         return GestureDetector(
           onTap: isTappable ? () => onOptionTap(index) : null,
@@ -478,6 +500,39 @@ class GameQuizBoard extends StatelessWidget {
   }
 
   Widget _buildBottomSection() {
+    if (isQ4 &&
+        (subPhase == QuestionSubPhase.votingActive ||
+            subPhase == QuestionSubPhase.voteWaitingOtherTeam ||
+            subPhase == QuestionSubPhase.voteWaitingTeammates)) {
+      final isEnabled = subPhase == QuestionSubPhase.votingActive &&
+          selectedOptionIndex != null &&
+          !isVoteSubmitted;
+      return SizedBox(
+        width: double.infinity,
+        height: 50.h,
+        child: ElevatedButton(
+          onPressed: isEnabled ? onVoteNowTap : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFE86726),
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: const Color(0xFFFFDFC8),
+            disabledForegroundColor: Colors.white70,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25.r),
+            ),
+          ),
+          child: Text(
+            'Vote Now',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    }
+
     if (answerResult != null) {
       final isCorrect = answerResult!.correct;
       return Container(

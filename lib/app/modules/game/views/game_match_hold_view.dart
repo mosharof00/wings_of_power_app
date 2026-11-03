@@ -11,7 +11,10 @@ import 'widgets/game_power_banner_overlay.dart';
 import 'widgets/game_round_intro_card.dart';
 import 'widgets/game_vs_pills.dart';
 import 'widgets/game_waiting_overlay.dart';
+import 'widgets/game_vote_result_modal.dart';
+import 'widgets/game_vote_waiting_overlay.dart';
 import 'single_shot_court_view.dart';
+import 'championship_court_view.dart';
 import 'round_complete_view.dart';
 
 class GameMatchHoldView extends StatefulWidget {
@@ -67,6 +70,9 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
         }
 
         if (phase == GamePhase.shootout) {
+          if (_controller.isQ4Finals) {
+            return ChampionshipCourtView(controller: _controller);
+          }
           return SingleShotCourtView(controller: _controller);
         }
 
@@ -252,6 +258,10 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                       onOptionTap: _controller.onOptionTap,
                       onPassTap: _controller.onPassTap,
                       isQ3: isQ3,
+                      isQ4: _controller.isQ4Finals,
+                      isVoteSubmitted: _controller.isVoteSubmitted.value,
+                      votingTeamLabel: _controller.votingTeamLabel.value,
+                      onVoteNowTap: _controller.onVoteNowTap,
                       hint: hint,
                       removedOptionIndices: removedIndices,
                       prismWeights: prismWeights,
@@ -271,6 +281,18 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
           GamePowerBannerOverlay(
             powerEffect: bannerEffect,
             onDismiss: () => _controller.showingPowerBanner.value = null,
+          ),
+        if (subPhase == QuestionSubPhase.voteWaitingTeammates)
+          GameVoteWaitingOverlay(
+            submittedCount: _controller.voteUpdate.value?.submittedCount,
+            teamSize: _controller.voteUpdate.value?.teamSize,
+          ),
+        if (_controller.showVoteResultSheet.value &&
+            _controller.voteResult.value != null)
+          GameVoteResultModal(
+            voteResult: _controller.voteResult.value!,
+            isRevealed: _controller.isVoteResultRevealed.value,
+            onSeeTheResult: _controller.onSeeTheResultTap,
           ),
       ],
     );
