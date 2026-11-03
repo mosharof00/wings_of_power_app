@@ -1,6 +1,6 @@
 # T-GAME-005 — Defense round and kindness
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-005.md`
 **Phase:** 1
 **Depends on:** T-GAME-004 and T-BE-GAME-005
@@ -49,4 +49,10 @@ Q2 shows the story prompt and a text box. Kindness +50 appears only after the se
 
 ## Notes
 
--
+- Implemented `GameRoundIntroCard` dynamic quarter presentation ("Round 2", "Defense Round", "Read the Story").
+- Implemented `GameFreeTextBoard` widget rendering 60s countdown clock, Harold scenario prompt, "What would you do?", multi-line text input with hint "Write your answer here......", and "Submit" CTA enabled only when text is non-empty.
+- Added `GameWaitingOverlay` displaying "Waiting for your classmates" and "One of your classmates is still thinking" when answer is submitted while others write.
+- Added `GameKindnessCelebrationDialog` displaying "Congratulations!", "You've earned kindness points", "+50 Kindness points" gold badge, and "Play the Shoot" CTA when `kindnessDelta == 50`. If `kindnessDelta == 0`, celebration is suppressed.
+- Implemented `GameKindnessResultEvent` model and wired socket listeners in `GameSocketService` for `round:kindness_result` and `round:answer_result` with `kindnessDelta`.
+- Implemented complete offline/mock mode support: Q2 prompt -> free text -> waiting state -> +50 kindness celebration -> shootout swipe -> round 2 complete with updated kindness coins (295).
+- All Flutter analysis checks (`flutter analyze`) and tests pass with zero warnings or errors.

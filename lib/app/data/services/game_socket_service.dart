@@ -27,6 +27,7 @@ class GameSocketService extends GetxService {
   final latestShootoutStart = Rxn<GameShootoutStartEvent>();
   final latestShootoutResult = Rxn<GameShootoutResultEvent>();
   final latestRoundCompleteEvent = Rxn<GameRoundCompleteEvent>();
+  final latestKindnessResult = Rxn<GameKindnessResultEvent>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -70,9 +71,21 @@ class GameSocketService extends GetxService {
   final _roundCompleteEventController = StreamController<GameRoundCompleteEvent>.broadcast();
   Stream<GameRoundCompleteEvent> get onRoundCompleteEvent => _roundCompleteEventController.stream;
 
+  final _kindnessResultController = StreamController<GameKindnessResultEvent>.broadcast();
+  Stream<GameKindnessResultEvent> get onKindnessResult => _kindnessResultController.stream;
+
   Timer? _mockTimer;
   Timer? _mockBotTimer;
   Timer? _mockShootoutTimer;
+
+  int _mockCurrentRound = 1;
+  String _mockRoundType = 'Q1_WARMUP';
+  int _mockTeamACoins = 245;
+  int _mockTeamBCoins = 245;
+  int _mockTeamAScoreVs = 0;
+  int _mockTeamBScoreVs = 0;
+  int _mockTeamAXp = 0;
+  int _mockTeamBXp = 0;
 
   io.Socket? get socket => _socket;
 
@@ -254,6 +267,30 @@ class GameSocketService extends GetxService {
               GameAnswerResultEvent.fromJson(Map<String, dynamic>.from(data));
           latestAnswerResult.value = event;
           _answerResultController.add(event);
+
+          if (data.containsKey('kindnessDelta') ||
+              data.containsKey('kindness_delta') ||
+              event.kindnessDelta > 0) {
+            final kindnessEvent = GameKindnessResultEvent(
+              roundId: event.roundId,
+              userId: event.userId,
+              participantId: event.participantId,
+              kindnessDelta: event.kindnessDelta,
+              scores: event.scores,
+            );
+            latestKindnessResult.value = kindnessEvent;
+            _kindnessResultController.add(kindnessEvent);
+          }
+        }
+      });
+
+      _socket?.on('round:kindness_result', (data) {
+        debugPrint('[GameSocketService] round:kindness_result: $data');
+        if (data is Map) {
+          final event = GameKindnessResultEvent.fromJson(
+              Map<String, dynamic>.from(data));
+          latestKindnessResult.value = event;
+          _kindnessResultController.add(event);
         }
       });
 
@@ -340,7 +377,7 @@ class GameSocketService extends GetxService {
   }
 
   void submitAnswer(String roundId, {int? optionIndex, String? freeText}) {
-    debugPrint('[GameSocketService] submitAnswer -> roundId: $roundId, option: $optionIndex');
+    debugPrint('[GameSocketService] submitAnswer -> roundId: $roundId, option: $optionIndex, freeText: $freeText');
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:answer', {
         'roundId': roundId,
@@ -348,8 +385,11 @@ class GameSocketService extends GetxService {
         'freeText': ?freeText,
       });
     } else {
-      // Mock mode: evaluate mock answer
-      _handleMockAnswer(roundId, optionIndex);
+      if (freeText != null) {
+        _handleMockFreeTextAnswer(roundId, freeText);
+      } else {
+        _handleMockAnswer(roundId, optionIndex);
+      }
     }
   }
 
@@ -365,9 +405,12 @@ class GameSocketService extends GetxService {
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:intro_ack', {'roundType': roundType});
     } else {
-      // In mock mode, immediately launch question
       _mockTimer?.cancel();
-      _startMockQuestion();
+      if (roundType == 'Q2_DEFENSE') {
+        _startMockQ2Question();
+      } else {
+        _startMockQuestion();
+      }
     }
   }
 
@@ -679,14 +722,192 @@ class GameSocketService extends GetxService {
     }
   }
 
+  void _startMockQ2Question() {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+    _mockCurrentRound = 2;
+    _mockRoundType = 'Q2_DEFENSE';
+
+    final q = GameQuestionEvent(
+      roundId: 'mock-round-q2-1',
+      prompt:
+          'Harold loves science. At lunch, some kids laugh at him and call him a nerd. You are sitting nearby.',
+      options: const [],
+      roundType: 'Q2_DEFENSE',
+      index: 1,
+      total: 1,
+      deadlineAt: DateTime.now().add(const Duration(seconds: 60)),
+    );
+    latestQuestion.value = q;
+    _questionController.add(q);
+
+    // Timeout after 60s if no text submitted
+    _mockTimer = Timer(const Duration(seconds: 60), () {
+      _handleMockQ2Timeout(q.roundId);
+    });
+  }
+
+  void _handleMockFreeTextAnswer(String roundId, String freeText) {
+    _mockTimer?.cancel();
+    final isNonEmpty = freeText.trim().isNotEmpty;
+    final kindnessDelta = isNonEmpty ? 50 : 0;
+
+    if (isNonEmpty) {
+      _mockTeamACoins += 50;
+    }
+    // Practice bot always completes kindness sentence (+50)
+    _mockTeamBCoins += 50;
+
+    // 1. Immediately emit waiting for classmates (opponent writing)
+    final wait = GameWaitingEvent(
+      roundId: roundId,
+      reason: 'OPPONENT',
+      playerName: 'Practice Bot',
+      teamLabel: 'Team B',
+    );
+    latestWaiting.value = wait;
+    _waitingController.add(wait);
+
+    // 2. Resolve after 2.5s
+    _mockBotTimer = Timer(const Duration(milliseconds: 2500), () {
+      final kindnessResult = GameKindnessResultEvent(
+        roundId: roundId,
+        participantId: 'part-you-1',
+        userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ??
+            'mock-student-id',
+        kindnessDelta: kindnessDelta,
+        scores: {
+          'team-single-1': {
+            'xp': _mockTeamAXp,
+            'kindness': _mockTeamACoins,
+            'baskets': _mockTeamAScoreVs,
+          },
+          'team-bot-2': {
+            'xp': _mockTeamBXp,
+            'kindness': _mockTeamBCoins,
+            'baskets': _mockTeamBScoreVs,
+          },
+        },
+        totalKindness: _mockTeamACoins,
+      );
+      latestKindnessResult.value = kindnessResult;
+      _kindnessResultController.add(kindnessResult);
+
+      final answerResult = GameAnswerResultEvent(
+        roundId: roundId,
+        participantId: 'part-you-1',
+        userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ??
+            'mock-student-id',
+        correct: isNonEmpty,
+        kindnessDelta: kindnessDelta,
+        scores: {
+          'team-single-1': {
+            'xp': _mockTeamAXp,
+            'kindness': _mockTeamACoins,
+            'baskets': _mockTeamAScoreVs,
+          },
+          'team-bot-2': {
+            'xp': _mockTeamBXp,
+            'kindness': _mockTeamBCoins,
+            'baskets': _mockTeamBScoreVs,
+          },
+        },
+      );
+      latestAnswerResult.value = answerResult;
+      _answerResultController.add(answerResult);
+    });
+  }
+
+  void _handleMockQ2Timeout(String roundId) {
+    _mockTeamBCoins += 50; // Bot gets kindness
+
+    final kindnessResult = GameKindnessResultEvent(
+      roundId: roundId,
+      participantId: 'part-you-1',
+      userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ??
+          'mock-student-id',
+      kindnessDelta: 0,
+      scores: {
+        'team-single-1': {
+          'xp': _mockTeamAXp,
+          'kindness': _mockTeamACoins,
+          'baskets': _mockTeamAScoreVs,
+        },
+        'team-bot-2': {
+          'xp': _mockTeamBXp,
+          'kindness': _mockTeamBCoins,
+          'baskets': _mockTeamBScoreVs,
+        },
+      },
+      totalKindness: _mockTeamACoins,
+    );
+    latestKindnessResult.value = kindnessResult;
+    _kindnessResultController.add(kindnessResult);
+
+    final answerResult = GameAnswerResultEvent(
+      roundId: roundId,
+      participantId: 'part-you-1',
+      userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ??
+          'mock-student-id',
+      correct: false,
+      kindnessDelta: 0,
+      scores: {
+        'team-single-1': {
+          'xp': _mockTeamAXp,
+          'kindness': _mockTeamACoins,
+          'baskets': _mockTeamAScoreVs,
+        },
+        'team-bot-2': {
+          'xp': _mockTeamBXp,
+          'kindness': _mockTeamBCoins,
+          'baskets': _mockTeamBScoreVs,
+        },
+      },
+    );
+    latestAnswerResult.value = answerResult;
+    _answerResultController.add(answerResult);
+
+    // Bot shoots since bot answered
+    _mockTimer = Timer(const Duration(seconds: 2), () {
+      startMockShootout(
+        roundId: 'mock-shootout-q2',
+        shooterParticipantId: 'part-bot-1',
+        shooterName: 'Practice Bot',
+        roundType: 'Q2_DEFENSE',
+      );
+    });
+  }
+
+  void startMockShootout({
+    required String roundId,
+    required String shooterParticipantId,
+    required String shooterName,
+    String? roundType,
+  }) {
+    _startMockShootout(
+      roundId: roundId,
+      shooterParticipantId: shooterParticipantId,
+      shooterName: shooterName,
+      roundType: roundType,
+    );
+  }
+
   void _startMockShootout({
     required String roundId,
     required String shooterParticipantId,
     required String shooterName,
+    String? roundType,
   }) {
     _mockTimer?.cancel();
     _mockBotTimer?.cancel();
     _mockShootoutTimer?.cancel();
+
+    if (roundType != null) {
+      _mockRoundType = roundType;
+      if (roundType == 'Q2_DEFENSE') {
+        _mockCurrentRound = 2;
+      }
+    }
 
     final deadline = DateTime.now().add(const Duration(seconds: 60));
     final start = GameShootoutStartEvent(
@@ -730,28 +951,33 @@ class GameSocketService extends GetxService {
 
     final xp = made ? 2 : 0;
     final vsDelta = made ? 3 : 0;
-    final teamAScore = isBot ? 0 : (made ? 3 : 0);
-    final teamBScore = isBot ? (made ? 3 : 0) : 0;
+    if (isBot) {
+      _mockTeamBXp += xp;
+      _mockTeamBScoreVs += vsDelta;
+    } else {
+      _mockTeamAXp += xp;
+      _mockTeamAScoreVs += vsDelta;
+    }
 
     final result = GameShootoutResultEvent(
       participantId: isBot ? 'part-bot-1' : 'part-you-1',
       made: made,
       xpEarned: xp,
       scoreVsDelta: vsDelta,
-      teamAScoreVs: teamAScore,
-      teamBScoreVs: teamBScore,
+      teamAScoreVs: _mockTeamAScoreVs,
+      teamBScoreVs: _mockTeamBScoreVs,
       teamScores: {
         'team-single-1': {
-          'xp': isBot ? 0 : xp,
-          'kindness': 0,
-          'baskets': isBot ? 0 : (made ? 1 : 0),
-          'scoreVs': teamAScore,
+          'xp': _mockTeamAXp,
+          'kindness': _mockTeamACoins,
+          'baskets': _mockTeamAScoreVs,
+          'scoreVs': _mockTeamAScoreVs,
         },
         'team-bot-2': {
-          'xp': isBot ? xp : 0,
-          'kindness': 0,
-          'baskets': isBot ? (made ? 1 : 0) : 0,
-          'scoreVs': teamBScore,
+          'xp': _mockTeamBXp,
+          'kindness': _mockTeamBCoins,
+          'baskets': _mockTeamBScoreVs,
+          'scoreVs': _mockTeamBScoreVs,
         },
       },
     );
@@ -761,20 +987,20 @@ class GameSocketService extends GetxService {
     // After 2.5s banner presentation -> advance to round complete
     _mockTimer = Timer(const Duration(milliseconds: 2500), () {
       final complete = GameRoundCompleteEvent(
-        roundNumber: 1,
+        roundNumber: _mockCurrentRound,
         roundId: roundId,
-        roundType: 'Q1_WARMUP',
+        roundType: _mockRoundType,
         teamA: GameRoundTeamSummary(
           name: 'Team A',
-          scoreVs: teamAScore,
-          coins: 245,
-          xp: isBot ? 0 : xp,
+          scoreVs: _mockTeamAScoreVs,
+          coins: _mockTeamACoins,
+          xp: _mockTeamAXp,
         ),
         teamB: GameRoundTeamSummary(
           name: 'Team B',
-          scoreVs: teamBScore,
-          coins: 245,
-          xp: isBot ? xp : 0,
+          scoreVs: _mockTeamBScoreVs,
+          coins: _mockTeamBCoins,
+          xp: _mockTeamBXp,
         ),
         deadlineAt: DateTime.now().add(const Duration(seconds: 15)),
       );
@@ -788,6 +1014,8 @@ class GameSocketService extends GetxService {
 
   void _handleMockRoundAdvance({required String matchId}) {
     _mockTimer?.cancel();
+    _mockCurrentRound = 2;
+    _mockRoundType = 'Q2_DEFENSE';
     final intro = GameRoundIntroEvent(
       roundType: 'Q2_DEFENSE',
       title: 'Defense Round',
@@ -818,6 +1046,7 @@ class GameSocketService extends GetxService {
       _socket?.off('round:buzz_winner');
       _socket?.off('round:waiting');
       _socket?.off('round:answer_result');
+      _socket?.off('round:kindness_result');
       _socket?.off('round:steal_open');
       _socket?.off('round:complete');
       _socket?.off('shootout:start');
@@ -846,6 +1075,7 @@ class GameSocketService extends GetxService {
     _buzzWinnerController.close();
     _waitingController.close();
     _answerResultController.close();
+    _kindnessResultController.close();
     _stealOpenController.close();
     _roundCompleteController.close();
     _shootoutStartController.close();

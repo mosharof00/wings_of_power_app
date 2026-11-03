@@ -4,9 +4,12 @@ import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/game_match.dart';
 import '../controllers/game_play_controller.dart';
 import 'widgets/game_countdown_overlay.dart';
+import 'widgets/game_free_text_board.dart';
+import 'widgets/game_kindness_celebration_dialog.dart';
 import 'widgets/game_quiz_board.dart';
 import 'widgets/game_round_intro_card.dart';
 import 'widgets/game_vs_pills.dart';
+import 'widgets/game_waiting_overlay.dart';
 import 'single_shot_court_view.dart';
 import 'round_complete_view.dart';
 
@@ -72,6 +75,9 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
 
         if ((phase == GamePhase.question || phase == GamePhase.complete) &&
             hasQuestion) {
+          if (_controller.isQ2Defense) {
+            return _buildQ2DefenseScreen(context);
+          }
           return _buildQuestionScreen(context);
         }
 
@@ -155,7 +161,7 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Round 1',
+                          _controller.currentRoundSubtitle,
                           style: TextStyle(
                             fontSize: 13.sp,
                             fontWeight: FontWeight.bold,
@@ -164,7 +170,7 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                         ),
                         SizedBox(height: 2.h),
                         Text(
-                          'Warm-Up Hoops',
+                          _controller.currentRoundTitle,
                           style: TextStyle(
                             fontSize: 20.sp,
                             fontWeight: FontWeight.w900,
@@ -236,6 +242,179 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
               ),
             ),
             SizedBox(height: 12.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQ2DefenseScreen(BuildContext context) {
+    final q = _controller.currentQuestion.value!;
+    final timerStr = _controller.timerString.value;
+    final youNick = widget.currentUserNickname ??
+        _controller.currentUserNickname ??
+        'Alex';
+    final teamLabel = _controller.getTeamLabel(0);
+    final avatarUrl = _controller.snapshot.value.allParticipants
+        .firstWhereOrNull((p) =>
+            p.userId == widget.currentUserId ||
+            p.id == _controller.youParticipantId)
+        ?.avatarUrl;
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF7822B7),
+            Color(0xFF5D1D9B),
+            Color(0xFF4C157E),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                SizedBox(height: 10.h),
+
+                // Top Bar
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Row(
+                    children: [
+                      // Close 'x' button
+                      GestureDetector(
+                        onTap: () => _controller.onLeaveTap(context),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 42.w,
+                          height: 42.w,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE86726),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: Colors.white,
+                            size: 24.sp,
+                          ),
+                        ),
+                      ),
+
+                      // Center Title
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Round 2',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFFD54F),
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              'Defense Round',
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Power bolt button
+                      GestureDetector(
+                        onTap: () => _controller.onPowersTap(context),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 42.w,
+                          height: 42.w,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE86726),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.bolt_rounded,
+                            color: Colors.white,
+                            size: 26.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16.h),
+
+                // Vs Pills with kindness coins (245 Vs 210)
+                GameVsPills(
+                  teamALabel: _controller.getTeamLabel(0),
+                  teamAScore: _controller.getTeamKindness(0),
+                  teamBLabel: _controller.getTeamLabel(1),
+                  teamBScore: _controller.getTeamKindness(1),
+                  isTeamAActive: true,
+                  isTeamBActive: false,
+                ),
+                SizedBox(height: 16.h),
+
+                // Free Text Board Card
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
+                    child: GameFreeTextBoard(
+                      question: q,
+                      timerString: timerStr,
+                      nickname: youNick,
+                      teamLabel: teamLabel,
+                      avatarUrl: avatarUrl,
+                      textController: _controller.freeTextController,
+                      canSubmit: _controller.canSubmitFreeText,
+                      isSubmitted: _controller.isFreeTextSubmitted.value,
+                      isSubmitting: _controller.isSubmittingAnswer.value,
+                      onTextChanged: _controller.onFreeTextChanged,
+                      onSubmit: _controller.onSubmitFreeText,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+              ],
+            ),
+
+            // Waiting overlay
+            if (_controller.isWaitingOthers.value &&
+                !_controller.showKindnessCelebration.value)
+              const GameWaitingOverlay(),
+
+            // Kindness points celebration modal
+            if (_controller.showKindnessCelebration.value)
+              GameKindnessCelebrationDialog(
+                points: 50,
+                onPlayTheShoot: _controller.onPlayTheShootTap,
+              ),
           ],
         ),
       ),

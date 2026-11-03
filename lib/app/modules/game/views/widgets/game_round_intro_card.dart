@@ -14,9 +14,43 @@ class GameRoundIntroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = introEvent?.title ?? 'Warm-Up Hoops';
-    final blurb = introEvent?.blurb ??
-        'Answer fast and earn balls for the Shootout';
+    final roundType = introEvent?.roundType ?? 'Q1_WARMUP';
+
+    final String roundSubtitle;
+    final String defaultTitle;
+    final String defaultBlurb;
+    final String buttonLabel;
+
+    switch (roundType) {
+      case 'Q2_DEFENSE':
+        roundSubtitle = 'Round 2';
+        defaultTitle = 'Defense Round';
+        defaultBlurb = 'Share your kindness. There are no wrong answers.';
+        buttonLabel = 'Read the Story';
+        break;
+      case 'Q3_HOBBY':
+        roundSubtitle = 'Round 3';
+        defaultTitle = 'Hobby Hoops';
+        defaultBlurb = 'Use your Power Wing once to help your team';
+        buttonLabel = 'Open Your Quiz';
+        break;
+      case 'Q4_FINALS':
+        roundSubtitle = 'Round 4';
+        defaultTitle = 'Wings Final';
+        defaultBlurb = 'Share your thoughts. Baskets are worth 3 points';
+        buttonLabel = 'Start Championship';
+        break;
+      case 'Q1_WARMUP':
+      default:
+        roundSubtitle = 'Round 1';
+        defaultTitle = 'Warm-Up Hoops';
+        defaultBlurb = 'Answer fast and earn balls for the Shootout';
+        buttonLabel = 'Open Your First Quiz';
+        break;
+    }
+
+    final title = introEvent?.title ?? defaultTitle;
+    final blurb = introEvent?.blurb ?? defaultBlurb;
 
     return Container(
       width: double.infinity,
@@ -58,7 +92,7 @@ class GameRoundIntroCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Round 1',
+                      roundSubtitle,
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
@@ -101,7 +135,7 @@ class GameRoundIntroCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          'Open Your First Quiz',
+                          buttonLabel,
                           style: TextStyle(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,

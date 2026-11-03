@@ -237,7 +237,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Round 1',
+                              widget.controller.currentRoundSubtitle,
                               style: TextStyle(
                                 fontSize: 13.sp,
                                 fontWeight: FontWeight.bold,
@@ -246,7 +246,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
                             ),
                             SizedBox(height: 2.h),
                             Text(
-                              'Warm-Up Hoops',
+                              widget.controller.currentRoundTitle,
                               style: TextStyle(
                                 fontSize: 19.sp,
                                 fontWeight: FontWeight.w900,
@@ -1101,3 +1101,4 @@ class _ShootoutResultOverlay extends StatelessWidget {
     );
   }
 }
+

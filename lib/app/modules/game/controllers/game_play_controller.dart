@@ -75,6 +75,14 @@ class GamePlayController extends GetxController {
   final hasPassed = false.obs;
   final teamScores = <String, int>{}.obs;
 
+  // Q2 Defense Round
+  final freeTextAnswer = ''.obs;
+  late final TextEditingController freeTextController;
+  final isFreeTextSubmitted = false.obs;
+  final isWaitingOthers = false.obs;
+  final showKindnessCelebration = false.obs;
+  final userKindnessCoins = 245.obs;
+
   // Shootout & Round Complete
   final shootoutStart = Rxn<GameShootoutStartEvent>();
   final shootoutResult = Rxn<GameShootoutResultEvent>();
@@ -157,9 +165,65 @@ class GamePlayController extends GetxController {
     return 0;
   }
 
+  bool get isQ2Defense {
+    final rType = currentQuestion.value?.roundType ??
+        currentIntro.value?.roundType ??
+        snapshot.value.roundType;
+    return rType == 'Q2_DEFENSE' || rType == 'ROUND_2';
+  }
+
+  bool get canSubmitFreeText {
+    return !isFreeTextSubmitted.value &&
+        !isSubmittingAnswer.value &&
+        freeTextAnswer.value.trim().isNotEmpty;
+  }
+
+  int getTeamKindness(int teamIndex) {
+    final teams = snapshot.value.teams;
+    if (teamIndex < teams.length) {
+      final t = teams[teamIndex];
+      if (teamScores.containsKey('${t.id}_kindness')) {
+        return teamScores['${t.id}_kindness']!;
+      }
+      if (t.scoreKindness > 0) {
+        return t.scoreKindness;
+      }
+      if (teamIndex == 0) {
+        return userKindnessCoins.value;
+      }
+      return 210; // Default Team B kindness in design
+    }
+    return teamIndex == 0 ? userKindnessCoins.value : 210;
+  }
+
+  String get currentRoundSubtitle {
+    if (isQ2Defense) return 'Round 2';
+    final rType = currentQuestion.value?.roundType ??
+        currentIntro.value?.roundType ??
+        snapshot.value.roundType;
+    if (rType == 'Q3_HOBBY') return 'Round 3';
+    if (rType == 'Q4_FINALS') return 'Round 4';
+    return 'Round 1';
+  }
+
+  String get currentRoundTitle {
+    if (isQ2Defense) return 'Defense Round';
+    final rType = currentQuestion.value?.roundType ??
+        currentIntro.value?.roundType ??
+        snapshot.value.roundType;
+    if (rType == 'Q3_HOBBY') return 'Hobby Hoops';
+    if (rType == 'Q4_FINALS') return 'Wings Final';
+    return 'Warm-Up Hoops';
+  }
+
   @override
   void onInit() {
     super.onInit();
+    freeTextController = TextEditingController();
+    final firstTeam = snapshot.value.teams.firstOrNull;
+    if (firstTeam != null && firstTeam.scoreKindness > 0) {
+      userKindnessCoins.value = firstTeam.scoreKindness;
+    }
     _initScoresFromSnapshot();
     _listenSocketEvents();
     _startClockTicker();
@@ -227,8 +291,17 @@ class GamePlayController extends GetxController {
       selectedOptionIndex.value = null;
       isBuzzing.value = false;
       isSubmittingAnswer.value = false;
+
+      // Reset Q2 Defense state
+      freeTextAnswer.value = '';
+      freeTextController.clear();
+      isFreeTextSubmitted.value = false;
+      isWaitingOthers.value = false;
+      showKindnessCelebration.value = false;
+
+      final defaultSec = (event.roundType == 'Q2_DEFENSE') ? 60 : 10;
       _activeDeadline = event.deadlineAt ??
-          DateTime.now().add(const Duration(seconds: 10));
+          DateTime.now().add(Duration(seconds: defaultSec));
       _updateTimerDerived();
     }));
 
@@ -251,8 +324,12 @@ class GamePlayController extends GetxController {
 
     _subscriptions.add(_socketService.onWaiting.listen((event) {
       waiting.value = event;
-      if (questionSubPhase.value != QuestionSubPhase.buzzedYou) {
-        questionSubPhase.value = QuestionSubPhase.buzzedOther;
+      if (isQ2Defense) {
+        isWaitingOthers.value = true;
+      } else {
+        if (questionSubPhase.value != QuestionSubPhase.buzzedYou) {
+          questionSubPhase.value = QuestionSubPhase.buzzedOther;
+        }
       }
     }));
 
@@ -260,6 +337,20 @@ class GamePlayController extends GetxController {
       answerResult.value = event;
       questionSubPhase.value = QuestionSubPhase.answerResult;
       _updateScores(event.scores);
+      if (isQ2Defense &&
+          (event.kindnessDelta > 0 || event.scores.isNotEmpty)) {
+        _handleKindnessResult(GameKindnessResultEvent(
+          roundId: event.roundId,
+          userId: event.userId,
+          participantId: event.participantId,
+          kindnessDelta: event.kindnessDelta,
+          scores: event.scores,
+        ));
+      }
+    }));
+
+    _subscriptions.add(_socketService.onKindnessResult.listen((event) {
+      _handleKindnessResult(event);
     }));
 
     _subscriptions.add(_socketService.onStealOpen.listen((event) {
@@ -325,10 +416,77 @@ class GamePlayController extends GetxController {
       if (v is int) {
         teamScores[k] = v;
       } else if (v is Map) {
-        final baskets = v['baskets'] ?? v['xp'] ?? 0;
-        teamScores[k] = (baskets is int) ? baskets : int.tryParse('$baskets') ?? 0;
+        final baskets = v['baskets'] ??
+            v['score_baskets'] ??
+            v['scoreBaskets'] ??
+            v['xp'] ??
+            0;
+        final kindness =
+            v['kindness'] ?? v['score_kindness'] ?? v['scoreKindness'];
+        teamScores[k] =
+            (baskets is int) ? baskets : int.tryParse('$baskets') ?? 0;
+        if (kindness != null) {
+          final kindInt =
+              (kindness is int) ? kindness : int.tryParse('$kindness') ?? 0;
+          teamScores['${k}_kindness'] = kindInt;
+        }
       }
     });
+  }
+
+  void _handleKindnessResult(GameKindnessResultEvent event) {
+    if (event.scores.isNotEmpty) {
+      _updateScores(event.scores);
+    }
+
+    if (event.kindnessDelta == 50) {
+      userKindnessCoins.value += 50;
+
+      final youTeam = snapshot.value.teams.firstWhereOrNull((t) =>
+          t.members.any((m) =>
+              m.userId == currentUserId || m.id == youParticipantId));
+      if (youTeam != null) {
+        final current = teamScores['${youTeam.id}_kindness'] ??
+            (youTeam.scoreKindness > 0 ? youTeam.scoreKindness : 245);
+        teamScores['${youTeam.id}_kindness'] = current + 50;
+      }
+
+      isWaitingOthers.value = false;
+      showKindnessCelebration.value = true;
+    } else {
+      isWaitingOthers.value = false;
+      showKindnessCelebration.value = false;
+    }
+  }
+
+  void onFreeTextChanged(String text) {
+    freeTextAnswer.value = text;
+  }
+
+  void onSubmitFreeText() {
+    if (!canSubmitFreeText) return;
+    final text = freeTextController.text.trim();
+    if (text.isEmpty) return;
+
+    isSubmittingAnswer.value = true;
+    isFreeTextSubmitted.value = true;
+    isWaitingOthers.value = true;
+
+    final q = currentQuestion.value;
+    if (q != null) {
+      _socketService.submitAnswer(q.roundId, freeText: text);
+    }
+  }
+
+  void onPlayTheShootTap() {
+    showKindnessCelebration.value = false;
+    final q = currentQuestion.value;
+    _socketService.startMockShootout(
+      roundId: q?.roundId ?? 'mock-shootout-q2',
+      shooterParticipantId: youParticipantId,
+      shooterName: currentUserNickname ?? 'Alex',
+      roundType: 'Q2_DEFENSE',
+    );
   }
 
   void _startClockTicker() {
@@ -491,6 +649,7 @@ class GamePlayController extends GetxController {
   @override
   void onClose() {
     _clockTicker?.cancel();
+    freeTextController.dispose();
     for (final sub in _subscriptions) {
       sub.cancel();
     }

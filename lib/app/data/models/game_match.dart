@@ -528,6 +528,54 @@ class GameAnswerResultEvent {
       };
 }
 
+class GameKindnessResultEvent {
+  final String roundId;
+  final String? userId;
+  final String? participantId;
+  final int kindnessDelta;
+  final Map<String, dynamic> scores;
+  final int? totalKindness;
+
+  const GameKindnessResultEvent({
+    required this.roundId,
+    this.userId,
+    this.participantId,
+    this.kindnessDelta = 0,
+    this.scores = const {},
+    this.totalKindness,
+  });
+
+  factory GameKindnessResultEvent.fromJson(Map<String, dynamic> json) {
+    final rawScores =
+        json['scores'] ?? json['teamScores'] ?? json['team_scores'];
+    return GameKindnessResultEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? json['user_id']?.toString(),
+      participantId: json['participantId']?.toString() ??
+          json['participant_id']?.toString(),
+      kindnessDelta: (json['kindnessDelta'] ??
+          json['kindness_delta'] ??
+          json['amount'] ??
+          0) as int,
+      scores: rawScores is Map
+          ? Map<String, dynamic>.from(rawScores)
+          : const {},
+      totalKindness: (json['totalKindness'] ??
+          json['total_kindness'] ??
+          json['score_kindness']) as int?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'userId': userId,
+        'participantId': participantId,
+        'kindnessDelta': kindnessDelta,
+        'scores': scores,
+        'totalKindness': totalKindness,
+      };
+}
+
 class GameStealOpenEvent {
   final String roundId;
   final DateTime? deadlineAt;
