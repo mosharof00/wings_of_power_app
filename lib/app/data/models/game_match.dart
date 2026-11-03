@@ -146,6 +146,7 @@ class GameMatchYou {
   final bool powerUsed;
   final String? heroId;
   final int? jerseyNumber;
+  final bool canPass;
 
   const GameMatchYou({
     required this.participantId,
@@ -153,6 +154,7 @@ class GameMatchYou {
     this.powerUsed = false,
     this.heroId,
     this.jerseyNumber,
+    this.canPass = false,
   });
 
   factory GameMatchYou.fromJson(Map<String, dynamic> json) {
@@ -164,6 +166,7 @@ class GameMatchYou {
       powerUsed: (json['powerUsed'] ?? json['power_used'] ?? false) as bool,
       heroId: json['heroId']?.toString() ?? json['hero_id']?.toString(),
       jerseyNumber: (json['jerseyNumber'] ?? json['jersey_number']) as int?,
+      canPass: (json['canPass'] ?? json['can_pass'] ?? false) as bool,
     );
   }
 
@@ -173,6 +176,7 @@ class GameMatchYou {
         'powerUsed': powerUsed,
         'heroId': heroId,
         'jerseyNumber': jerseyNumber,
+        'canPass': canPass,
       };
 }
 
@@ -295,5 +299,263 @@ class GameQueueUpdate {
         'filled': filled,
         'required': required,
         'players': players,
+      };
+}
+
+class GameCountdownEvent {
+  final String matchId;
+  final DateTime? deadlineAt;
+  final int value;
+
+  const GameCountdownEvent({
+    required this.matchId,
+    this.deadlineAt,
+    this.value = 3,
+  });
+
+  factory GameCountdownEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    return GameCountdownEvent(
+      matchId: json['matchId']?.toString() ?? json['match_id']?.toString() ?? '',
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+      value: (json['value'] ?? 3) as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'matchId': matchId,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+        'value': value,
+      };
+}
+
+class GameRoundIntroEvent {
+  final String roundType; // 'Q1_WARMUP'
+  final String title; // 'Warm-Up Hoops'
+  final String blurb; // 'Answer fast and earn balls for the Shootout'
+  final DateTime? deadlineAt;
+
+  const GameRoundIntroEvent({
+    required this.roundType,
+    required this.title,
+    required this.blurb,
+    this.deadlineAt,
+  });
+
+  factory GameRoundIntroEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    return GameRoundIntroEvent(
+      roundType: json['roundType']?.toString() ?? json['round_type']?.toString() ?? 'Q1_WARMUP',
+      title: json['title']?.toString() ?? 'Warm-Up Hoops',
+      blurb: json['blurb']?.toString() ?? 'Answer fast and earn balls for the Shootout',
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundType': roundType,
+        'title': title,
+        'blurb': blurb,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+      };
+}
+
+class GameQuestionEvent {
+  final String roundId;
+  final String prompt;
+  final List<String> options;
+  final String roundType;
+  final int index;
+  final int total;
+  final DateTime? deadlineAt;
+
+  const GameQuestionEvent({
+    required this.roundId,
+    required this.prompt,
+    required this.options,
+    this.roundType = 'Q1_WARMUP',
+    this.index = 1,
+    this.total = 5,
+    this.deadlineAt,
+  });
+
+  factory GameQuestionEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    final rawOptions = json['options'] as List? ?? [];
+    return GameQuestionEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      prompt: json['prompt']?.toString() ?? '',
+      options: rawOptions.map((e) => e.toString()).toList(),
+      roundType: json['roundType']?.toString() ?? json['round_type']?.toString() ?? 'Q1_WARMUP',
+      index: (json['index'] ?? 1) as int,
+      total: (json['total'] ?? 5) as int,
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'prompt': prompt,
+        'options': options,
+        'roundType': roundType,
+        'index': index,
+        'total': total,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+      };
+}
+
+class GameBuzzWinnerEvent {
+  final String roundId;
+  final String participantId;
+  final String userId;
+  final DateTime? deadlineAt;
+
+  const GameBuzzWinnerEvent({
+    required this.roundId,
+    required this.participantId,
+    required this.userId,
+    this.deadlineAt,
+  });
+
+  factory GameBuzzWinnerEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    return GameBuzzWinnerEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      participantId: json['participantId']?.toString() ?? json['participant_id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? json['user_id']?.toString() ?? '',
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'participantId': participantId,
+        'userId': userId,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+      };
+}
+
+class GameWaitingEvent {
+  final String roundId;
+  final String reason; // OPPONENT or TEAMMATE
+  final String? playerName;
+  final String? teamLabel;
+
+  const GameWaitingEvent({
+    required this.roundId,
+    required this.reason,
+    this.playerName,
+    this.teamLabel,
+  });
+
+  factory GameWaitingEvent.fromJson(Map<String, dynamic> json) {
+    return GameWaitingEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      reason: json['reason']?.toString() ?? 'OPPONENT',
+      playerName: json['playerName']?.toString() ?? json['player_name']?.toString(),
+      teamLabel: json['teamLabel']?.toString() ?? json['team_label']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'reason': reason,
+        'playerName': playerName,
+        'teamLabel': teamLabel,
+      };
+}
+
+class GameAnswerResultEvent {
+  final String roundId;
+  final String? userId;
+  final String? participantId;
+  final bool correct;
+  final Map<String, dynamic> scores;
+  final int kindnessDelta;
+  final int? optionIndex;
+
+  const GameAnswerResultEvent({
+    required this.roundId,
+    this.userId,
+    this.participantId,
+    required this.correct,
+    this.scores = const {},
+    this.kindnessDelta = 0,
+    this.optionIndex,
+  });
+
+  factory GameAnswerResultEvent.fromJson(Map<String, dynamic> json) {
+    final rawScores = json['scores'];
+    return GameAnswerResultEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? json['user_id']?.toString(),
+      participantId: json['participantId']?.toString() ?? json['participant_id']?.toString(),
+      correct: (json['correct'] ?? false) as bool,
+      scores: rawScores is Map ? Map<String, dynamic>.from(rawScores) : const {},
+      kindnessDelta: (json['kindnessDelta'] ?? json['kindness_delta'] ?? 0) as int,
+      optionIndex: (json['optionIndex'] ?? json['option_index']) as int?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'userId': userId,
+        'participantId': participantId,
+        'correct': correct,
+        'scores': scores,
+        'kindnessDelta': kindnessDelta,
+        'optionIndex': optionIndex,
+      };
+}
+
+class GameStealOpenEvent {
+  final String roundId;
+  final DateTime? deadlineAt;
+  final String? eligibleTeamId;
+
+  const GameStealOpenEvent({
+    required this.roundId,
+    this.deadlineAt,
+    this.eligibleTeamId,
+  });
+
+  factory GameStealOpenEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    return GameStealOpenEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      deadlineAt: parseDate(json['deadlineAt'] ?? json['deadline_at']),
+      eligibleTeamId: json['eligibleTeamId']?.toString() ?? json['eligible_team_id']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+        'eligibleTeamId': eligibleTeamId,
       };
 }

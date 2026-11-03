@@ -1,10 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/game_match.dart';
-import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
-import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
+import '../controllers/game_play_controller.dart';
+import 'widgets/game_countdown_overlay.dart';
+import 'widgets/game_quiz_board.dart';
+import 'widgets/game_round_intro_card.dart';
+import 'widgets/game_vs_pills.dart';
 
 class GameMatchHoldView extends StatefulWidget {
   const GameMatchHoldView({
@@ -23,404 +25,458 @@ class GameMatchHoldView extends StatefulWidget {
 }
 
 class _GameMatchHoldViewState extends State<GameMatchHoldView> {
-  late GameMatchSnapshot _snapshot;
-  StreamSubscription? _matchSub;
-  StreamSubscription? _snapshotSub;
-  Timer? _countdownTimer;
-  int _secondsLeft = 0;
-
-  GameSocketService? get _socketService =>
-      Get.isRegistered<GameSocketService>()
-          ? Get.find<GameSocketService>()
-          : null;
-
-  IGameRepository? get _repository =>
-      Get.isRegistered<IGameRepository>() ? Get.find<IGameRepository>() : null;
+  late GamePlayController _controller;
 
   @override
   void initState() {
     super.initState();
-    _snapshot = widget.snapshot;
-    _computeSecondsLeft();
-    _startTimer();
-
-    final service = _socketService;
-    if (service != null) {
-      _matchSub = service.onMatchFound.listen((s) {
-        if (mounted) {
-          setState(() {
-            _snapshot = s;
-            _computeSecondsLeft();
-          });
-        }
-      });
-      _snapshotSub = service.onSnapshot.listen((s) {
-        if (mounted) {
-          setState(() {
-            _snapshot = s;
-            _computeSecondsLeft();
-          });
-        }
-      });
-    }
-  }
-
-  void _computeSecondsLeft() {
-    final deadline = _snapshot.deadlineAt;
-    if (deadline != null) {
-      final diff = deadline.difference(DateTime.now()).inSeconds;
-      _secondsLeft = diff > 0 ? diff : 0;
-    } else {
-      _secondsLeft = 3;
-    }
-  }
-
-  void _startTimer() {
-    _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {
-          if (_secondsLeft > 0) {
-            _secondsLeft--;
-          }
-        });
-      }
-    });
+    _controller = Get.put(
+      GamePlayController(
+        initialSnapshot: widget.snapshot,
+        currentUserId: widget.currentUserId,
+        currentUserNickname: widget.currentUserNickname,
+      ),
+      tag: widget.snapshot.matchId,
+    );
   }
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
-    _matchSub?.cancel();
-    _snapshotSub?.cancel();
+    Get.delete<GamePlayController>(tag: widget.snapshot.matchId);
     super.dispose();
-  }
-
-  Future<void> _handleLeave() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Leave Match?'),
-        content: const Text(
-          'Are you sure you want to leave this practice match?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Stay'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE86726),
-            ),
-            child: const Text(
-              'Leave',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        if (_snapshot.matchId.isNotEmpty) {
-          _socketService?.leaveMatch(_snapshot.matchId);
-          await _repository?.leaveMatch(_snapshot.matchId);
-        }
-      } catch (_) {}
-      _socketService?.disconnect();
-      Get.back();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      body: Obx(() {
+        final phase = _controller.phase.value;
+        final hasQuestion = _controller.currentQuestion.value != null;
+
+        if (phase == GamePhase.roundIntro) {
+          return GameRoundIntroCard(
+            introEvent: _controller.currentIntro.value,
+            onOpenQuiz: _controller.onOpenQuizTap,
+          );
+        }
+
+        if ((phase == GamePhase.question || phase == GamePhase.complete) &&
+            hasQuestion) {
+          return _buildQuestionScreen(context);
+        }
+
+        // Hold or Countdown over Hold
+        return Stack(
+          children: [
+            _buildHoldScreen(context),
+            if (phase == GamePhase.countdown)
+              GameCountdownOverlay(
+                countdownValue: _controller.countdownValue.value,
+              ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildQuestionScreen(BuildContext context) {
+    final q = _controller.currentQuestion.value!;
+    final subPhase = _controller.questionSubPhase.value;
+    final isYouBuzzed = subPhase == QuestionSubPhase.buzzedYou;
+    final waiting = _controller.waiting.value;
+    final timerStr = _controller.timerString.value;
+    final selectedIdx = _controller.selectedOptionIndex.value;
+    final result = _controller.answerResult.value;
+    final canPass = _controller.canPass;
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF7822B7),
+            Color(0xFF5D1D9B),
+            Color(0xFF4C157E),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 10.h),
+
+            // Top Bar
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(
+                children: [
+                  // Close 'x' button
+                  GestureDetector(
+                    onTap: () => _controller.onLeaveTap(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 42.w,
+                      height: 42.w,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE86726),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 24.sp,
+                      ),
+                    ),
+                  ),
+
+                  // Center Title
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Round 1',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFFFD54F),
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          'Warm-Up Hoops',
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Power bolt button
+                  GestureDetector(
+                    onTap: () => _controller.onPowersTap(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 42.w,
+                      height: 42.w,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE86726),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.bolt_rounded,
+                        color: Colors.white,
+                        size: 26.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.h),
+
+            // Vs Pills with scores
+            GameVsPills(
+              teamALabel: _controller.getTeamLabel(0),
+              teamAScore: _controller.getTeamScore(0),
+              teamBLabel: _controller.getTeamLabel(1),
+              teamBScore: _controller.getTeamScore(1),
+              isTeamAActive: _controller.isTeamActive(0),
+              isTeamBActive: _controller.isTeamActive(1),
+            ),
+            SizedBox(height: 16.h),
+
+            // Quiz Board Card
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
+                child: GameQuizBoard(
+                  question: q,
+                  subPhase: subPhase,
+                  timerString: timerStr,
+                  isYouBuzzed: isYouBuzzed,
+                  waitingInfo: waiting,
+                  selectedOptionIndex: selectedIdx,
+                  answerResult: result,
+                  canPass: canPass,
+                  onBuzzTap: _controller.onBuzzTap,
+                  onOptionTap: _controller.onOptionTap,
+                  onPassTap: _controller.onPassTap,
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHoldScreen(BuildContext context) {
     final you = _findYouParticipant();
     final opponent = _findOpponentParticipant(you);
 
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF7822B7),
-              Color(0xFF5D1D9B),
-              Color(0xFF4C157E),
-            ],
-          ),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF7822B7),
+            Color(0xFF5D1D9B),
+            Color(0xFF4C157E),
+          ],
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(height: 12.h),
-              // Top Bar
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 12.h),
+            // Top Bar
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _controller.onLeaveTap(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 40.w,
+                      height: 40.w,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                        size: 22.sp,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4C1D95),
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(
+                        color: const Color(0xFFFFD54F),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sports_basketball,
+                          color: const Color(0xFFFFD54F),
+                          size: 16.sp,
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          'PRACTICE ARENA',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(width: 40.w),
+                ],
+              ),
+            ),
+            SizedBox(height: 20.h),
+
+            // Match Ready Title
+            Text(
+              'Match Ready',
+              style: TextStyle(
+                fontSize: 28.sp,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFFFFD54F),
+                shadows: const [
+                  Shadow(
+                    color: Color(0xFF3B0764),
+                    offset: Offset(0, 3),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              'Mode: ${_controller.snapshot.value.mode}  •  Phase: ${_controller.snapshot.value.phase}',
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70,
+              ),
+            ),
+            SizedBox(height: 12.h),
+
+            // Countdown Chip
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE86726),
+                borderRadius: BorderRadius.circular(20.r),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x44E86726),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Text(
+                'Starting in ${_controller.secondsLeft.value}s',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 24.h),
+
+            // Matchup Area (You vs Opponent)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: _handleLeave,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: 40.w,
-                        height: 40.w,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                          size: 22.sp,
-                        ),
+                    Expanded(
+                      child: _ParticipantCard(
+                        isYou: true,
+                        participant: you,
+                        fallbackNickname: widget.currentUserNickname ?? 'Alex',
+                        fallbackHero: 'Faith',
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4C1D95),
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(
-                          color: const Color(0xFFFFD54F),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.sports_basketball,
-                            color: const Color(0xFFFFD54F),
-                            size: 16.sp,
+                    SizedBox(width: 12.w),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFD54F),
+                            shape: BoxShape.circle,
                           ),
-                          SizedBox(width: 6.w),
-                          Text(
-                            'PRACTICE ARENA',
+                          child: Text(
+                            'VS',
                             style: TextStyle(
-                              fontSize: 12.sp,
+                              fontSize: 13.sp,
                               fontWeight: FontWeight.w900,
-                              color: Colors.white,
+                              color: const Color(0xFF1E1B4B),
                             ),
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: _ParticipantCard(
+                        isYou: false,
+                        participant: opponent,
+                        fallbackNickname: 'Practice Bot',
+                        fallbackHero: 'Harold',
                       ),
                     ),
-                    const Spacer(),
-                    SizedBox(width: 40.w),
                   ],
                 ),
               ),
-              SizedBox(height: 20.h),
+            ),
 
-              // Match Ready Title
-              Text(
-                'Match Ready',
-                style: TextStyle(
-                  fontSize: 28.sp,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFFFFD54F),
-                  shadows: const [
-                    Shadow(
-                      color: Color(0xFF3B0764),
-                      offset: Offset(0, 3),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Text(
-                'Mode: ${_snapshot.mode}  •  Phase: ${_snapshot.phase}',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white70,
-                ),
-              ),
-              SizedBox(height: 12.h),
-
-              // Countdown Chip
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            // Match Details & Status
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(14.w),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE86726),
-                  borderRadius: BorderRadius.circular(20.r),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x44E86726),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Match ID: ${_controller.snapshot.value.matchId}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.white70,
+                      ),
                     ),
                   ],
                 ),
-                child: Text(
-                  'Starting in ${_secondsLeft}s',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
               ),
+            ),
 
-              SizedBox(height: 24.h),
+            SizedBox(height: 20.h),
 
-              // Matchup Area (You vs Opponent)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Row(
-                    children: [
-                      // YOU Card
-                      Expanded(
-                        child: _ParticipantCard(
-                          isYou: true,
-                          participant: you,
-                          fallbackNickname: widget.currentUserNickname ?? 'Alex',
-                          fallbackHero: 'Faith',
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      // VS divider
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8.w),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFD54F),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              'VS',
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF1E1B4B),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(width: 12.w),
-                      // OPPONENT Card
-                      Expanded(
-                        child: _ParticipantCard(
-                          isYou: false,
-                          participant: opponent,
-                          fallbackNickname: 'Practice Bot',
-                          fallbackHero: 'Harold',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Match Details & Status
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(14.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
+            // Leave Match Action Button
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48.h,
+                child: ElevatedButton(
+                  onPressed: () => _controller.onLeaveTap(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.25),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24.r),
+                      side: const BorderSide(color: Colors.white38),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Obx(() {
-                            final connected =
-                                _socketService?.isConnected.value ?? false;
-                            return Container(
-                              width: 10.w,
-                              height: 10.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: connected
-                                    ? const Color(0xFF4ADE80)
-                                    : const Color(0xFFF87171),
-                              ),
-                            );
-                          }),
-                          SizedBox(width: 8.w),
-                          Obx(() {
-                            final connected =
-                                _socketService?.isConnected.value ?? false;
-                            return Text(
-                              connected
-                                  ? 'Connected to live match socket'
-                                  : 'Reconnecting to match gateway...',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                      SizedBox(height: 6.h),
-                      Text(
-                        'Match ID: ${_snapshot.matchId}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 20.h),
-
-              // Leave Match Action Button
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48.h,
-                  child: ElevatedButton(
-                    onPressed: _handleLeave,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.25),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24.r),
-                        side: const BorderSide(color: Colors.white38),
-                      ),
-                    ),
-                    child: Text(
-                      'Leave Match',
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  child: Text(
+                    'Leave Match',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 20.h),
-            ],
-          ),
+            ),
+            SizedBox(height: 20.h),
+          ],
         ),
       ),
     );
@@ -428,25 +484,24 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
 
   GameMatchParticipant _findYouParticipant() {
     final youId = widget.currentUserId;
-    final youFromList =
-        _snapshot.allParticipants.firstWhereOrNull((p) => p.userId == youId);
+    final all = _controller.snapshot.value.allParticipants;
+    final youFromList = all.firstWhereOrNull((p) => p.userId == youId);
     if (youFromList != null) return youFromList;
 
-    final firstNonBot =
-        _snapshot.allParticipants.firstWhereOrNull((p) => !p.isBot);
+    final firstNonBot = all.firstWhereOrNull((p) => !p.isBot);
     if (firstNonBot != null) return firstNonBot;
 
     return GameMatchParticipant(
       userId: youId ?? 'you',
       nickname: widget.currentUserNickname ?? 'Alex',
       avatarUrl: 'assets/images/avatar_01.png',
-      jerseyNumber: _snapshot.you?.jerseyNumber ?? 1,
+      jerseyNumber: _controller.snapshot.value.you?.jerseyNumber ?? 1,
       isBot: false,
     );
   }
 
   GameMatchParticipant _findOpponentParticipant(GameMatchParticipant you) {
-    return _snapshot.botOrOpponent(you.userId);
+    return _controller.snapshot.value.botOrOpponent(you.userId);
   }
 }
 
@@ -472,9 +527,7 @@ class _ParticipantCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: isYou
-            ? Colors.white
-            : const Color(0xFFFFF6EB),
+        color: isYou ? Colors.white : const Color(0xFFFFF6EB),
         borderRadius: BorderRadius.circular(22.r),
         border: Border.all(
           color: isYou ? const Color(0xFFFFD54F) : const Color(0xFFFFDFC8),
@@ -491,7 +544,6 @@ class _ParticipantCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Tag: YOU or OPPONENT
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
             decoration: BoxDecoration(
@@ -509,16 +561,15 @@ class _ParticipantCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 12.h),
-
-          // Avatar Image
           Container(
             width: 70.w,
             height: 70.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color:
-                    isYou ? const Color(0xFFFFA726) : const Color(0xFFD1D5DB),
+                color: isYou
+                    ? const Color(0xFFFFA726)
+                    : const Color(0xFFD1D5DB),
                 width: 2.5.w,
               ),
             ),
@@ -544,8 +595,6 @@ class _ParticipantCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 10.h),
-
-          // Nickname
           Text(
             nickname,
             maxLines: 1,
@@ -557,8 +606,6 @@ class _ParticipantCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 4.h),
-
-          // Jersey Number Chip
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
             decoration: BoxDecoration(
@@ -575,8 +622,6 @@ class _ParticipantCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8.h),
-
-          // Hero Info or Status
           Text(
             participant.heroId != null
                 ? 'Hero: ${participant.heroId}'

@@ -1,6 +1,6 @@
 # T-GAME-003 — Countdown, quarter intro, Q1 question round
 
-**Status:** Not started
+**Status:** done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-003.md`
 **Phase:** 1
 **Depends on:** T-GAME-002 and T-BE-GAME-003
@@ -51,4 +51,8 @@ Both phones on a fixture match see the same countdown, the same Warm-Up intro, a
 
 ## Notes
 
--
+- Implemented `GameCountdownEvent`, `GameRoundIntroEvent`, `GameQuestionEvent`, `GameBuzzWinnerEvent`, `GameWaitingEvent`, `GameAnswerResultEvent`, `GameStealOpenEvent`, and `canPass` in `GameMatchYou`.
+- Added socket listeners, streams, and emitters in `GameSocketService` (`round:buzz`, `round:answer`, `round:pass`, `round:intro_ack`). Added full offline mock sequence fallback.
+- Added `GamePlayController` handling server-driven timers (no local auto-advance), options selection, buzz, steal, and leave confirmation.
+- Built UI widgets matching `/design/screens/game/`: `GameCountdownOverlay` (3-2-1), `GameRoundIntroCard` ("Warm-Up Hoops", "Open Your First Quiz"), `GameVsPills` (live scores & active highlight), `GameQuizBoard` (progress 1/5, prompt, buzz button, 2x2 options grid, waiting states, correct/wrong result banners, locked Next, disabled Pass Now), `GameLeaveConfirmModal`, and `GamePowerWingsSheet`.
+- Project validation: `flutter analyze`, `flutter test`, and `flutter build apk --debug` all passed cleanly.

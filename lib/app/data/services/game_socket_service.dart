@@ -16,6 +16,14 @@ class GameSocketService extends GetxService {
   final latestMatch = Rxn<GameMatchSnapshot>();
   final latestSnapshot = Rxn<GameMatchSnapshot>();
   final latestQueueUpdate = Rxn<GameQueueUpdate>();
+  final latestCountdown = Rxn<GameCountdownEvent>();
+  final latestRoundIntro = Rxn<GameRoundIntroEvent>();
+  final latestQuestion = Rxn<GameQuestionEvent>();
+  final latestBuzzWinner = Rxn<GameBuzzWinnerEvent>();
+  final latestWaiting = Rxn<GameWaitingEvent>();
+  final latestAnswerResult = Rxn<GameAnswerResultEvent>();
+  final latestStealOpen = Rxn<GameStealOpenEvent>();
+  final latestRoundComplete = Rxn<Map<String, dynamic>>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -25,6 +33,33 @@ class GameSocketService extends GetxService {
 
   final _queueUpdateController = StreamController<GameQueueUpdate>.broadcast();
   Stream<GameQueueUpdate> get onQueueUpdate => _queueUpdateController.stream;
+
+  final _countdownController = StreamController<GameCountdownEvent>.broadcast();
+  Stream<GameCountdownEvent> get onCountdown => _countdownController.stream;
+
+  final _roundIntroController = StreamController<GameRoundIntroEvent>.broadcast();
+  Stream<GameRoundIntroEvent> get onRoundIntro => _roundIntroController.stream;
+
+  final _questionController = StreamController<GameQuestionEvent>.broadcast();
+  Stream<GameQuestionEvent> get onQuestion => _questionController.stream;
+
+  final _buzzWinnerController = StreamController<GameBuzzWinnerEvent>.broadcast();
+  Stream<GameBuzzWinnerEvent> get onBuzzWinner => _buzzWinnerController.stream;
+
+  final _waitingController = StreamController<GameWaitingEvent>.broadcast();
+  Stream<GameWaitingEvent> get onWaiting => _waitingController.stream;
+
+  final _answerResultController = StreamController<GameAnswerResultEvent>.broadcast();
+  Stream<GameAnswerResultEvent> get onAnswerResult => _answerResultController.stream;
+
+  final _stealOpenController = StreamController<GameStealOpenEvent>.broadcast();
+  Stream<GameStealOpenEvent> get onStealOpen => _stealOpenController.stream;
+
+  final _roundCompleteController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get onRoundComplete => _roundCompleteController.stream;
+
+  Timer? _mockTimer;
+  Timer? _mockBotTimer;
 
   io.Socket? get socket => _socket;
 
@@ -149,6 +184,85 @@ class GameSocketService extends GetxService {
         }
       });
 
+      _socket?.on('match:countdown', (data) {
+        debugPrint('[GameSocketService] match:countdown: $data');
+        if (data is Map) {
+          final event =
+              GameCountdownEvent.fromJson(Map<String, dynamic>.from(data));
+          latestCountdown.value = event;
+          _countdownController.add(event);
+        }
+      });
+
+      _socket?.on('round:intro', (data) {
+        debugPrint('[GameSocketService] round:intro: $data');
+        if (data is Map) {
+          final event =
+              GameRoundIntroEvent.fromJson(Map<String, dynamic>.from(data));
+          latestRoundIntro.value = event;
+          _roundIntroController.add(event);
+        }
+      });
+
+      _socket?.on('round:question', (data) {
+        debugPrint('[GameSocketService] round:question: $data');
+        if (data is Map) {
+          final event =
+              GameQuestionEvent.fromJson(Map<String, dynamic>.from(data));
+          latestQuestion.value = event;
+          _questionController.add(event);
+        }
+      });
+
+      _socket?.on('round:buzz_winner', (data) {
+        debugPrint('[GameSocketService] round:buzz_winner: $data');
+        if (data is Map) {
+          final event =
+              GameBuzzWinnerEvent.fromJson(Map<String, dynamic>.from(data));
+          latestBuzzWinner.value = event;
+          _buzzWinnerController.add(event);
+        }
+      });
+
+      _socket?.on('round:waiting', (data) {
+        debugPrint('[GameSocketService] round:waiting: $data');
+        if (data is Map) {
+          final event =
+              GameWaitingEvent.fromJson(Map<String, dynamic>.from(data));
+          latestWaiting.value = event;
+          _waitingController.add(event);
+        }
+      });
+
+      _socket?.on('round:answer_result', (data) {
+        debugPrint('[GameSocketService] round:answer_result: $data');
+        if (data is Map) {
+          final event =
+              GameAnswerResultEvent.fromJson(Map<String, dynamic>.from(data));
+          latestAnswerResult.value = event;
+          _answerResultController.add(event);
+        }
+      });
+
+      _socket?.on('round:steal_open', (data) {
+        debugPrint('[GameSocketService] round:steal_open: $data');
+        if (data is Map) {
+          final event =
+              GameStealOpenEvent.fromJson(Map<String, dynamic>.from(data));
+          latestStealOpen.value = event;
+          _stealOpenController.add(event);
+        }
+      });
+
+      _socket?.on('round:complete', (data) {
+        debugPrint('[GameSocketService] round:complete: $data');
+        if (data is Map) {
+          final map = Map<String, dynamic>.from(data);
+          latestRoundComplete.value = map;
+          _roundCompleteController.add(map);
+        }
+      });
+
       _socket?.connect();
     } catch (e) {
       debugPrint('[GameSocketService] Exception while connecting: $e');
@@ -179,6 +293,48 @@ class GameSocketService extends GetxService {
     _socket?.emit('match:leave', {'matchId': matchId});
   }
 
+  void buzz(String roundId) {
+    debugPrint('[GameSocketService] buzz -> roundId: $roundId');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('round:buzz', {'roundId': roundId});
+    } else {
+      // Mock mode: handle human buzz
+      _handleMockHumanBuzz(roundId);
+    }
+  }
+
+  void submitAnswer(String roundId, {int? optionIndex, String? freeText}) {
+    debugPrint('[GameSocketService] submitAnswer -> roundId: $roundId, option: $optionIndex');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('round:answer', {
+        'roundId': roundId,
+        'optionIndex': ?optionIndex,
+        'freeText': ?freeText,
+      });
+    } else {
+      // Mock mode: evaluate mock answer
+      _handleMockAnswer(roundId, optionIndex);
+    }
+  }
+
+  void pass(String roundId) {
+    debugPrint('[GameSocketService] pass -> roundId: $roundId');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('round:pass', {'roundId': roundId});
+    }
+  }
+
+  void ackIntro(String roundType) {
+    debugPrint('[GameSocketService] ackIntro -> roundType: $roundType');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('round:intro_ack', {'roundType': roundType});
+    } else {
+      // In mock mode, immediately launch question
+      _mockTimer?.cancel();
+      _startMockQuestion();
+    }
+  }
+
   /// Simulate mock match for offline testing
   void simulateMockMatch({
     String mode = 'SINGLE',
@@ -186,6 +342,9 @@ class GameSocketService extends GetxService {
     String? currentUserId,
     String? currentUserNickname,
   }) {
+    final youId = currentUserId ?? 'mock-student-id';
+    final youNick = currentUserNickname ?? 'Alex';
+
     final mock = GameMatchSnapshot(
       matchId: 'practice-${DateTime.now().millisecondsSinceEpoch}',
       mode: mode,
@@ -195,22 +354,31 @@ class GameSocketService extends GetxService {
       teams: [
         GameMatchTeam(
           id: 'team-single-1',
-          label: 'Single Player',
+          label: 'Team A',
           scoreXp: 0,
           scoreKindness: 0,
           scoreBaskets: 0,
           members: [
             GameMatchParticipant(
               id: 'part-you-1',
-              userId: currentUserId ?? 'mock-student-id',
-              nickname: currentUserNickname ?? 'Alex',
+              userId: youId,
+              nickname: youNick,
               avatarUrl: 'assets/images/avatar_01.png',
               heroId: 'faith',
               jerseyNumber: 1,
               isConnected: true,
               isBot: false,
             ),
-            const GameMatchParticipant(
+          ],
+        ),
+        const GameMatchTeam(
+          id: 'team-bot-2',
+          label: 'Team B',
+          scoreXp: 0,
+          scoreKindness: 0,
+          scoreBaskets: 0,
+          members: [
+            GameMatchParticipant(
               id: 'part-bot-1',
               userId: null,
               nickname: 'Practice Bot',
@@ -225,17 +393,198 @@ class GameSocketService extends GetxService {
       ],
       you: const GameMatchYou(
         participantId: 'part-you-1',
-        canBuzz: false,
+        canBuzz: true,
         powerUsed: false,
         jerseyNumber: 1,
+        canPass: false,
       ),
     );
     latestMatch.value = mock;
     latestSnapshot.value = mock;
     _matchFoundController.add(mock);
+
+    // Kick off full mock flow
+    startMockGameFlow(matchId: mock.matchId, youId: youId);
+  }
+
+  void startMockGameFlow({required String matchId, required String youId}) {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+
+    // 1. Emit Countdown
+    final countdown = GameCountdownEvent(
+      matchId: matchId,
+      deadlineAt: DateTime.now().add(const Duration(seconds: 3)),
+      value: 3,
+    );
+    latestCountdown.value = countdown;
+    _countdownController.add(countdown);
+
+    // 2. After 3s countdown -> emit Round Intro
+    _mockTimer = Timer(const Duration(seconds: 3), () {
+      final intro = GameRoundIntroEvent(
+        roundType: 'Q1_WARMUP',
+        title: 'Warm-Up Hoops',
+        blurb: 'Answer fast and earn balls for the Shootout',
+        deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+      );
+      latestRoundIntro.value = intro;
+      _roundIntroController.add(intro);
+
+      // Auto-advance after 3s if not acknowledged
+      _mockTimer = Timer(const Duration(seconds: 3), () {
+        _startMockQuestion();
+      });
+    });
+  }
+
+  void _startMockQuestion() {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+
+    final q = GameQuestionEvent(
+      roundId: 'mock-round-q1-1',
+      prompt: "A classmate drops their books. What's the kind thing to do?",
+      options: [
+        'Walk past',
+        'Help them to pick',
+        'Laugh',
+        'Take Photo',
+      ],
+      roundType: 'Q1_WARMUP',
+      index: 1,
+      total: 5,
+      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+    );
+    latestQuestion.value = q;
+    _questionController.add(q);
+
+    // Bot buzz logic per D22: If nobody buzzes by 7s, bot buzzes!
+    _mockBotTimer = Timer(const Duration(seconds: 7), () {
+      if (latestBuzzWinner.value?.roundId != q.roundId) {
+        // Bot wins buzz!
+        final botWinner = GameBuzzWinnerEvent(
+          roundId: q.roundId,
+          participantId: 'part-bot-1',
+          userId: 'bot-user',
+          deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+        );
+        latestBuzzWinner.value = botWinner;
+        _buzzWinnerController.add(botWinner);
+
+        final wait = GameWaitingEvent(
+          roundId: q.roundId,
+          reason: 'OPPONENT',
+          playerName: 'Practice Bot',
+          teamLabel: 'Team B',
+        );
+        latestWaiting.value = wait;
+        _waitingController.add(wait);
+
+        // 2s later: bot answers correctly (option 1)
+        _mockBotTimer = Timer(const Duration(seconds: 2), () {
+          final res = GameAnswerResultEvent(
+            roundId: q.roundId,
+            participantId: 'part-bot-1',
+            userId: 'bot-user',
+            correct: true,
+            optionIndex: 1,
+            scores: {
+              'team-single-1': {'xp': 0, 'kindness': 0, 'baskets': 0},
+              'team-bot-2': {'xp': 10, 'kindness': 0, 'baskets': 1},
+            },
+          );
+          latestAnswerResult.value = res;
+          _answerResultController.add(res);
+        });
+      }
+    });
+  }
+
+  void _handleMockHumanBuzz(String roundId) {
+    _mockBotTimer?.cancel();
+    final youWinner = GameBuzzWinnerEvent(
+      roundId: roundId,
+      participantId: 'part-you-1',
+      userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ?? 'mock-student-id',
+      deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+    );
+    latestBuzzWinner.value = youWinner;
+    _buzzWinnerController.add(youWinner);
+  }
+
+  void _handleMockAnswer(String roundId, int? optionIndex) {
+    _mockBotTimer?.cancel();
+    final isCorrect = optionIndex == 1; // "Help them to pick" is correct
+
+    final res = GameAnswerResultEvent(
+      roundId: roundId,
+      participantId: 'part-you-1',
+      userId: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.userId ?? 'mock-student-id',
+      correct: isCorrect,
+      optionIndex: optionIndex,
+      scores: {
+        'team-single-1': {'xp': isCorrect ? 10 : 0, 'kindness': 0, 'baskets': isCorrect ? 1 : 0},
+        'team-bot-2': {'xp': 0, 'kindness': 0, 'baskets': 0},
+      },
+    );
+    latestAnswerResult.value = res;
+    _answerResultController.add(res);
+
+    // If wrong answer, open steal window for bot / other team!
+    if (!isCorrect) {
+      _mockTimer = Timer(const Duration(milliseconds: 1200), () {
+        final steal = GameStealOpenEvent(
+          roundId: roundId,
+          deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+          eligibleTeamId: 'team-bot-2',
+        );
+        latestStealOpen.value = steal;
+        _stealOpenController.add(steal);
+
+        // Bot steals at 3s and answers correctly
+        _mockBotTimer = Timer(const Duration(seconds: 3), () {
+          final botWinner = GameBuzzWinnerEvent(
+            roundId: roundId,
+            participantId: 'part-bot-1',
+            userId: 'bot-user',
+            deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+          );
+          latestBuzzWinner.value = botWinner;
+          _buzzWinnerController.add(botWinner);
+
+          final wait = GameWaitingEvent(
+            roundId: roundId,
+            reason: 'OPPONENT',
+            playerName: 'Practice Bot',
+            teamLabel: 'Team B',
+          );
+          latestWaiting.value = wait;
+          _waitingController.add(wait);
+
+          _mockBotTimer = Timer(const Duration(seconds: 2), () {
+            final stealResult = GameAnswerResultEvent(
+              roundId: roundId,
+              participantId: 'part-bot-1',
+              userId: 'bot-user',
+              correct: true,
+              optionIndex: 1,
+              scores: {
+                'team-single-1': {'xp': 0, 'kindness': 0, 'baskets': 0},
+                'team-bot-2': {'xp': 10, 'kindness': 0, 'baskets': 1},
+              },
+            );
+            latestAnswerResult.value = stealResult;
+            _answerResultController.add(stealResult);
+          });
+        });
+      });
+    }
   }
 
   void _cleanupSocket() {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
     try {
       _socket?.off('connect');
       _socket?.off('disconnect');
@@ -246,6 +595,14 @@ class GameSocketService extends GetxService {
       _socket?.off('queue:update');
       _socket?.off('queue:error');
       _socket?.off('match:error');
+      _socket?.off('match:countdown');
+      _socket?.off('round:intro');
+      _socket?.off('round:question');
+      _socket?.off('round:buzz_winner');
+      _socket?.off('round:waiting');
+      _socket?.off('round:answer_result');
+      _socket?.off('round:steal_open');
+      _socket?.off('round:complete');
       _socket?.disconnect();
       _socket?.dispose();
     } catch (_) {}
@@ -264,6 +621,14 @@ class GameSocketService extends GetxService {
     _matchFoundController.close();
     _snapshotController.close();
     _queueUpdateController.close();
+    _countdownController.close();
+    _roundIntroController.close();
+    _questionController.close();
+    _buzzWinnerController.close();
+    _waitingController.close();
+    _answerResultController.close();
+    _stealOpenController.close();
+    _roundCompleteController.close();
     super.onClose();
   }
 }
