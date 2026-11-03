@@ -18,6 +18,14 @@ class GameQuizBoard extends StatelessWidget {
     required this.onOptionTap,
     required this.onPassTap,
     this.avatarUrl,
+    this.isQ3 = false,
+    this.hint,
+    this.removedOptionIndices = const [],
+    this.prismWeights,
+    this.powerChips = const [],
+    this.canUsePower = false,
+    this.hasUsedPower = false,
+    this.onUsePower,
   });
 
   final GameQuestionEvent question;
@@ -32,6 +40,15 @@ class GameQuizBoard extends StatelessWidget {
   final ValueChanged<int> onOptionTap;
   final VoidCallback onPassTap;
   final String? avatarUrl;
+
+  final bool isQ3;
+  final String? hint;
+  final List<int> removedOptionIndices;
+  final List<num>? prismWeights;
+  final List<HeroPowerInfo> powerChips;
+  final bool canUsePower;
+  final bool hasUsedPower;
+  final ValueChanged<String>? onUsePower;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +90,30 @@ class GameQuizBoard extends StatelessWidget {
               height: 1.35,
             ),
           ),
+
+          // 3b. Hint Box (if hint sent by server)
+          if (hint != null && hint!.trim().isNotEmpty) ...[
+            SizedBox(height: 14.h),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0F2FE),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: const Color(0xFFBAE6FD)),
+              ),
+              child: Text(
+                'Hint: ${hint!.trim()}',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0369A1),
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+
           SizedBox(height: 20.h),
 
           // 4. Center Area: Buzzer OR Options Grid
@@ -90,6 +131,12 @@ class GameQuizBoard extends StatelessWidget {
 
           // 5. Bottom Action Row / Result Banner
           _buildBottomSection(),
+
+          // 6. Q3 Power Chips Row
+          if (isQ3 && powerChips.isNotEmpty) ...[
+            SizedBox(height: 16.h),
+            _buildPowerChipsRow(),
+          ],
         ],
       ),
     );
@@ -304,9 +351,20 @@ class GameQuizBoard extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10.w,
         mainAxisSpacing: 10.h,
-        childAspectRatio: 1.25,
+        childAspectRatio: 1.15,
       ),
       itemBuilder: (context, index) {
+        // Never hide an option the server did not list
+        if (removedOptionIndices.contains(index)) {
+          return const Visibility(
+            visible: false,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: SizedBox.shrink(),
+          );
+        }
+
         final optText = opts[index];
         final label = index < labels.length ? labels[index] : '$index';
 
@@ -341,7 +399,7 @@ class GameQuizBoard extends StatelessWidget {
           onTap: isTappable ? () => onOptionTap(index) : null,
           behavior: HitTestBehavior.opaque,
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16.r),
@@ -359,8 +417,8 @@ class GameQuizBoard extends StatelessWidget {
               children: [
                 // Badge circle
                 Container(
-                  width: 30.w,
-                  height: 30.w,
+                  width: 28.w,
+                  height: 28.w,
                   decoration: BoxDecoration(
                     color: badgeBg,
                     shape: BoxShape.circle,
@@ -370,26 +428,47 @@ class GameQuizBoard extends StatelessWidget {
                         Text(
                           label,
                           style: TextStyle(
-                            fontSize: 13.sp,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.bold,
                             color: badgeTextColor,
                           ),
                         ),
                   ),
                 ),
-                SizedBox(height: 8.h),
-                // Text
+                SizedBox(height: 6.h),
+                // Option text
                 Text(
                   optText,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1E1B4B),
                   ),
                 ),
+
+                // Prism weights percentage badge
+                if (prismWeights != null && index < prismWeights!.length) ...[
+                  SizedBox(height: 4.h),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE9FE),
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Text(
+                      '${prismWeights![index].toInt()}%',
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF7C3AED),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -498,5 +577,90 @@ class GameQuizBoard extends StatelessWidget {
     }
 
     return const SizedBox.shrink();
+  }
+
+  Widget _buildPowerChipsRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: powerChips.map((chip) {
+          final isTappable = canUsePower && !hasUsedPower;
+
+          return Padding(
+            padding: EdgeInsets.only(right: 12.w),
+            child: GestureDetector(
+              onTap: isTappable
+                  ? () => onUsePower?.call(chip.powerCode)
+                  : null,
+              behavior: HitTestBehavior.opaque,
+              child: Opacity(
+                opacity: hasUsedPower ? 0.45 : 1.0,
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: hasUsedPower
+                        ? const Color(0xFFF3F4F6)
+                        : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: hasUsedPower
+                          ? const Color(0xFFE5E7EB)
+                          : const Color(0xFFFFB300),
+                      width: 1.4,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Avatar circle
+                      Container(
+                        width: 26.w,
+                        height: 26.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: hasUsedPower
+                                ? const Color(0xFF9CA3AF)
+                                : const Color(0xFFFFB300),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            chip.assetPath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.bolt_rounded,
+                              size: 16,
+                              color: Color(0xFFE86726),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6.w),
+
+                      // Power label
+                      Text(
+                        hasUsedPower
+                            ? '${chip.powerLabel} (Used)'
+                            : chip.powerLabel,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                          color: hasUsedPower
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFFE86726),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }

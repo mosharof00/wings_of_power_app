@@ -28,6 +28,7 @@ class GameSocketService extends GetxService {
   final latestShootoutResult = Rxn<GameShootoutResultEvent>();
   final latestRoundCompleteEvent = Rxn<GameRoundCompleteEvent>();
   final latestKindnessResult = Rxn<GameKindnessResultEvent>();
+  final latestPowerEffect = Rxn<GamePowerEffectEvent>();
 
   final _matchFoundController = StreamController<GameMatchSnapshot>.broadcast();
   Stream<GameMatchSnapshot> get onMatchFound => _matchFoundController.stream;
@@ -74,9 +75,13 @@ class GameSocketService extends GetxService {
   final _kindnessResultController = StreamController<GameKindnessResultEvent>.broadcast();
   Stream<GameKindnessResultEvent> get onKindnessResult => _kindnessResultController.stream;
 
+  final _powerEffectController = StreamController<GamePowerEffectEvent>.broadcast();
+  Stream<GamePowerEffectEvent> get onPowerEffect => _powerEffectController.stream;
+
   Timer? _mockTimer;
   Timer? _mockBotTimer;
   Timer? _mockShootoutTimer;
+  bool _mockPowerUsed = false;
 
   int _mockCurrentRound = 1;
   String _mockRoundType = 'Q1_WARMUP';
@@ -336,6 +341,16 @@ class GameSocketService extends GetxService {
         }
       });
 
+      _socket?.on('power:effect', (data) {
+        debugPrint('[GameSocketService] power:effect: $data');
+        if (data is Map) {
+          final event =
+              GamePowerEffectEvent.fromJson(Map<String, dynamic>.from(data));
+          latestPowerEffect.value = event;
+          _powerEffectController.add(event);
+        }
+      });
+
       _socket?.connect();
     } catch (e) {
       debugPrint('[GameSocketService] Exception while connecting: $e');
@@ -400,6 +415,18 @@ class GameSocketService extends GetxService {
     }
   }
 
+  void usePower(String roundId, String powerCode) {
+    debugPrint('[GameSocketService] usePower -> roundId: $roundId, powerCode: $powerCode');
+    if (_socket != null && isConnected.value) {
+      _socket?.emit('power:use', {
+        'roundId': roundId,
+        'powerCode': powerCode,
+      });
+    } else {
+      _handleMockPowerUse(roundId, powerCode);
+    }
+  }
+
   void ackIntro(String roundType) {
     debugPrint('[GameSocketService] ackIntro -> roundType: $roundType');
     if (_socket != null && isConnected.value) {
@@ -408,6 +435,8 @@ class GameSocketService extends GetxService {
       _mockTimer?.cancel();
       if (roundType == 'Q2_DEFENSE') {
         _startMockQ2Question();
+      } else if (roundType == 'Q3_HOBBY') {
+        _startMockQ3Question();
       } else {
         _startMockQuestion();
       }
@@ -460,6 +489,8 @@ class GameSocketService extends GetxService {
     final youId = currentUserId ?? 'mock-student-id';
     final youNick = currentUserNickname ?? 'Alex';
 
+    _mockPowerUsed = false;
+
     final mock = GameMatchSnapshot(
       matchId: 'practice-${DateTime.now().millisecondsSinceEpoch}',
       mode: mode,
@@ -479,7 +510,10 @@ class GameSocketService extends GetxService {
               userId: youId,
               nickname: youNick,
               avatarUrl: 'assets/images/avatar_01.png',
-              heroId: 'faith',
+              heroId: 'harold',
+              heroName: 'Harold',
+              powerCode: 'LAB',
+              powerLabel: 'Lab Shot',
               jerseyNumber: 1,
               isConnected: true,
               isBot: false,
@@ -498,7 +532,10 @@ class GameSocketService extends GetxService {
               userId: null,
               nickname: 'Practice Bot',
               avatarUrl: null,
-              heroId: 'harold',
+              heroId: 'faith',
+              heroName: 'Faith',
+              powerCode: 'MELODY',
+              powerLabel: 'Melody Shot',
               jerseyNumber: 2,
               isConnected: true,
               isBot: true,
@@ -510,6 +547,10 @@ class GameSocketService extends GetxService {
         participantId: 'part-you-1',
         canBuzz: true,
         powerUsed: false,
+        heroId: 'harold',
+        powerCode: 'LAB',
+        powerLabel: 'Lab Shot',
+        usablePowers: ['LAB'],
         jerseyNumber: 1,
         canPass: false,
       ),
@@ -638,7 +679,8 @@ class GameSocketService extends GetxService {
 
   void _handleMockAnswer(String roundId, int? optionIndex) {
     _mockBotTimer?.cancel();
-    final isCorrect = optionIndex == 1; // "Help them to pick" is correct
+    final correctIdx = _mockRoundType == 'Q3_HOBBY' ? 0 : 1;
+    final isCorrect = optionIndex == correctIdx;
 
     final res = GameAnswerResultEvent(
       roundId: roundId,
@@ -658,9 +700,10 @@ class GameSocketService extends GetxService {
       // Alex earned a ball! Start shootout
       _mockTimer = Timer(const Duration(seconds: 2), () {
         _startMockShootout(
-          roundId: 'mock-shootout-q1',
+          roundId: 'mock-shootout-${_mockRoundType.toLowerCase()}',
           shooterParticipantId: 'part-you-1',
           shooterName: latestMatch.value?.teams.firstOrNull?.members.firstOrNull?.nickname ?? 'Alex',
+          roundType: _mockRoundType,
         );
       });
     } else {
@@ -700,7 +743,7 @@ class GameSocketService extends GetxService {
               participantId: 'part-bot-1',
               userId: 'bot-user',
               correct: true,
-              optionIndex: 1,
+              optionIndex: correctIdx,
               scores: {
                 'team-single-1': {'xp': 0, 'kindness': 0, 'baskets': 0},
                 'team-bot-2': {'xp': 10, 'kindness': 0, 'baskets': 1},
@@ -711,9 +754,10 @@ class GameSocketService extends GetxService {
 
             _mockTimer = Timer(const Duration(seconds: 2), () {
               _startMockShootout(
-                roundId: 'mock-shootout-q1',
+                roundId: 'mock-shootout-${_mockRoundType.toLowerCase()}',
                 shooterParticipantId: 'part-bot-1',
                 shooterName: 'Practice Bot',
+                roundType: _mockRoundType,
               );
             });
           });
@@ -1014,16 +1058,171 @@ class GameSocketService extends GetxService {
 
   void _handleMockRoundAdvance({required String matchId}) {
     _mockTimer?.cancel();
-    _mockCurrentRound = 2;
-    _mockRoundType = 'Q2_DEFENSE';
-    final intro = GameRoundIntroEvent(
-      roundType: 'Q2_DEFENSE',
-      title: 'Defense Round',
-      blurb: 'Share your kindness. There are no wrong answers.',
+    if (_mockCurrentRound == 1) {
+      _mockCurrentRound = 2;
+      _mockRoundType = 'Q2_DEFENSE';
+      final intro = GameRoundIntroEvent(
+        roundType: 'Q2_DEFENSE',
+        title: 'Defense Round',
+        blurb: 'Share your kindness. There are no wrong answers.',
+        deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+      );
+      latestRoundIntro.value = intro;
+      _roundIntroController.add(intro);
+    } else {
+      _mockCurrentRound = 3;
+      _mockRoundType = 'Q3_HOBBY';
+      final intro = GameRoundIntroEvent(
+        roundType: 'Q3_HOBBY',
+        title: 'Hobby Hoops',
+        blurb: 'Use your Power Wing once to help your team',
+        deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+      );
+      latestRoundIntro.value = intro;
+      _roundIntroController.add(intro);
+    }
+  }
+
+  void _startMockQ3Question() {
+    _mockTimer?.cancel();
+    _mockBotTimer?.cancel();
+    _mockCurrentRound = 3;
+    _mockRoundType = 'Q3_HOBBY';
+
+    final q = GameQuestionEvent(
+      roundId: 'mock-round-q3-1',
+      prompt: 'Why might learning to play the violin be a rewarding hobby?',
+      options: [
+        'Develops musical skills and patience',
+        'Guarantees becoming famous',
+        'It means you never need to practice',
+        'It makes everyone like the same music',
+      ],
+      roundType: 'Q3_HOBBY',
+      index: 1,
+      total: 5,
       deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
     );
-    latestRoundIntro.value = intro;
-    _roundIntroController.add(intro);
+    latestQuestion.value = q;
+    _questionController.add(q);
+
+    // Bot buzz logic per D22: If nobody buzzes by 7s, bot buzzes
+    _mockBotTimer = Timer(const Duration(seconds: 7), () {
+      if (latestBuzzWinner.value?.roundId != q.roundId) {
+        final botWinner = GameBuzzWinnerEvent(
+          roundId: q.roundId,
+          participantId: 'part-bot-1',
+          userId: 'bot-user',
+          deadlineAt: DateTime.now().add(const Duration(seconds: 10)),
+        );
+        latestBuzzWinner.value = botWinner;
+        _buzzWinnerController.add(botWinner);
+
+        final wait = GameWaitingEvent(
+          roundId: q.roundId,
+          reason: 'OPPONENT',
+          playerName: 'Practice Bot',
+          teamLabel: 'Team B',
+        );
+        latestWaiting.value = wait;
+        _waitingController.add(wait);
+
+        _mockBotTimer = Timer(const Duration(seconds: 2), () {
+          final res = GameAnswerResultEvent(
+            roundId: q.roundId,
+            participantId: 'part-bot-1',
+            userId: 'bot-user',
+            correct: true,
+            optionIndex: 0,
+            scores: {
+              'team-single-1': {'xp': _mockTeamAXp, 'kindness': _mockTeamACoins, 'baskets': _mockTeamAScoreVs},
+              'team-bot-2': {'xp': _mockTeamBXp + 10, 'kindness': _mockTeamBCoins, 'baskets': _mockTeamBScoreVs + 1},
+            },
+          );
+          latestAnswerResult.value = res;
+          _answerResultController.add(res);
+
+          _mockTimer = Timer(const Duration(seconds: 2), () {
+            _startMockShootout(
+              roundId: 'mock-shootout-q3',
+              shooterParticipantId: 'part-bot-1',
+              shooterName: 'Practice Bot',
+              roundType: 'Q3_HOBBY',
+            );
+          });
+        });
+      }
+    });
+  }
+
+  void _handleMockPowerUse(String roundId, String powerCode) {
+    if (_mockPowerUsed) {
+      debugPrint('[GameSocketService] Mock power already used; ignoring');
+      return;
+    }
+    if (powerCode.toUpperCase() == 'HARMONY') {
+      // 1v1 / solo match: NO_TEAMMATE
+      debugPrint('[GameSocketService] Mock Harmony in solo/1v1: NO_TEAMMATE');
+      return;
+    }
+    _mockPowerUsed = true;
+
+    Map<String, dynamic> effectMap;
+    switch (powerCode.toUpperCase()) {
+      case 'LAB':
+        effectMap = {
+          'type': 'removedOptions',
+          'value': [1, 2],
+        };
+        break;
+      case 'CHECKMATE':
+        effectMap = {
+          'type': 'removedOptions',
+          'value': [2],
+        };
+        break;
+      case 'MELODY':
+      case 'COLOR':
+        effectMap = {
+          'type': 'extraMs',
+          'value': 10000,
+        };
+        break;
+      case 'NATURE':
+        effectMap = {
+          'type': 'hint',
+          'value': 'Think about patience, discipline and expressing yourself.',
+        };
+        break;
+      case 'STORY':
+        effectMap = {
+          'type': 'hint',
+          'value': 'Practicing an instrument rewards you with lasting creativity.',
+        };
+        break;
+      case 'PRISM':
+        effectMap = {
+          'type': 'weights',
+          'value': [65, 15, 10, 10],
+        };
+        break;
+      default:
+        effectMap = {'type': 'none', 'value': null};
+        break;
+    }
+
+    final youParticipant = latestMatch.value?.teams.firstOrNull?.members.firstOrNull;
+    final effectEvent = GamePowerEffectEvent.fromJson({
+      'roundId': roundId,
+      'userId': youParticipant?.userId ?? 'mock-student-id',
+      'participantId': youParticipant?.id ?? 'part-you-1',
+      'powerCode': powerCode,
+      'effect': effectMap,
+      if (effectMap['type'] == 'extraMs')
+        'deadlineAt': DateTime.now().add(const Duration(seconds: 18)).toIso8601String(),
+    });
+    latestPowerEffect.value = effectEvent;
+    _powerEffectController.add(effectEvent);
   }
 
   void _cleanupSocket() {
@@ -1051,6 +1250,7 @@ class GameSocketService extends GetxService {
       _socket?.off('round:complete');
       _socket?.off('shootout:start');
       _socket?.off('shootout:result');
+      _socket?.off('power:effect');
       _socket?.disconnect();
       _socket?.dispose();
     } catch (_) {}
@@ -1081,6 +1281,7 @@ class GameSocketService extends GetxService {
     _shootoutStartController.close();
     _shootoutResultController.close();
     _roundCompleteEventController.close();
+    _powerEffectController.close();
     super.onClose();
   }
 }

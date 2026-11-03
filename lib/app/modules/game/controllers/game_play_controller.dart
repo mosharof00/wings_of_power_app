@@ -83,6 +83,15 @@ class GamePlayController extends GetxController {
   final showKindnessCelebration = false.obs;
   final userKindnessCoins = 245.obs;
 
+  // Q3 Hobby Hoops & Powers
+  final hasUsedPower = false.obs;
+  final activePowerEffect = Rxn<GamePowerEffectEvent>();
+  final removedOptionIndices = <int>[].obs;
+  final currentHint = RxnString();
+  final prismWeights = <num>[].obs;
+  final showingPowerBanner = Rxn<GamePowerEffectEvent>();
+  Timer? _bannerTimer;
+
   // Shootout & Round Complete
   final shootoutStart = Rxn<GameShootoutStartEvent>();
   final shootoutResult = Rxn<GameShootoutResultEvent>();
@@ -172,6 +181,76 @@ class GamePlayController extends GetxController {
     return rType == 'Q2_DEFENSE' || rType == 'ROUND_2';
   }
 
+  bool get isQ3Hobby {
+    final rType = currentQuestion.value?.roundType ??
+        currentIntro.value?.roundType ??
+        snapshot.value.roundType;
+    return rType == 'Q3_HOBBY' || rType == 'ROUND_3';
+  }
+
+  List<HeroPowerInfo> get usablePowerChips {
+    if (!isQ3Hobby) return const [];
+    final you = snapshot.value.you;
+    if (you != null && you.usablePowers.isNotEmpty) {
+      final list = <HeroPowerInfo>[];
+      for (final code in you.usablePowers) {
+        final info = HeroPowerInfo.findByPowerCode(code);
+        if (info != null) list.add(info);
+      }
+      if (list.isNotEmpty) return list;
+    }
+
+    final yourCode = you?.powerCode;
+    if (yourCode != null && yourCode.isNotEmpty) {
+      final info = HeroPowerInfo.findByPowerCode(yourCode);
+      if (info != null) return [info];
+    }
+
+    final mem = snapshot.value.allParticipants
+        .firstWhereOrNull((p) => p.userId == currentUserId || p.id == youParticipantId);
+    if (mem?.powerCode != null && mem!.powerCode!.isNotEmpty) {
+      final info = HeroPowerInfo.findByPowerCode(mem.powerCode);
+      if (info != null) return [info];
+    }
+
+    final heroId = you?.heroId ?? mem?.heroId;
+    if (heroId != null && heroId.isNotEmpty) {
+      final info = HeroPowerInfo.findByHeroIdOrCode(heroId);
+      if (info != null) return [info];
+    }
+
+    final defaultInfo = HeroPowerInfo.findByPowerCode('LAB');
+    return defaultInfo != null ? [defaultInfo] : const [];
+  }
+
+  bool get canUsePower {
+    if (!isQ3Hobby) return false;
+    if (hasUsedPower.value) return false;
+    if (questionSubPhase.value != QuestionSubPhase.buzzedYou) return false;
+    if (isSubmittingAnswer.value) return false;
+    if (selectedOptionIndex.value != null) return false;
+    return true;
+  }
+
+  void onUsePower(String powerCode) {
+    if (!canUsePower) return;
+    final q = currentQuestion.value;
+    if (q == null) return;
+
+    if (powerCode.toUpperCase() == 'HARMONY') {
+      final teams = snapshot.value.teams;
+      final isSingleOr1v1 = snapshot.value.mode == 'SINGLE' ||
+          snapshot.value.mode == 'ONE_V_ONE' ||
+          teams.every((t) => t.members.where((m) => !m.isBot).length <= 1);
+      if (isSingleOr1v1) {
+        // Harmony in 1v1 on NO_TEAMMATE shows no ask-for-help flow
+        return;
+      }
+    }
+
+    _socketService.usePower(q.roundId, powerCode);
+  }
+
   bool get canSubmitFreeText {
     return !isFreeTextSubmitted.value &&
         !isSubmittingAnswer.value &&
@@ -225,6 +304,16 @@ class GamePlayController extends GetxController {
       userKindnessCoins.value = firstTeam.scoreKindness;
     }
     _initScoresFromSnapshot();
+    final you = snapshot.value.you;
+    if (you != null && you.powerUsed) {
+      hasUsedPower.value = true;
+    } else {
+      final mem = snapshot.value.allParticipants
+          .firstWhereOrNull((p) => p.userId == currentUserId || p.id == youParticipantId);
+      if (mem != null && mem.powerUsed) {
+        hasUsedPower.value = true;
+      }
+    }
     _listenSocketEvents();
     _startClockTicker();
 
@@ -298,6 +387,13 @@ class GamePlayController extends GetxController {
       isFreeTextSubmitted.value = false;
       isWaitingOthers.value = false;
       showKindnessCelebration.value = false;
+
+      // Reset Q3 Power Effects for this question
+      removedOptionIndices.clear();
+      currentHint.value = null;
+      prismWeights.clear();
+      showingPowerBanner.value = null;
+      _bannerTimer?.cancel();
 
       final defaultSec = (event.roundType == 'Q2_DEFENSE') ? 60 : 10;
       _activeDeadline = event.deadlineAt ??
@@ -409,6 +505,47 @@ class GamePlayController extends GetxController {
         phase.value = GamePhase.roundComplete;
       }
     }));
+
+    _subscriptions.add(_socketService.onPowerEffect.listen((event) {
+      _handlePowerEffect(event);
+    }));
+  }
+
+  void _handlePowerEffect(GamePowerEffectEvent event) {
+    final isForYou = (event.userId != null && event.userId == currentUserId) ||
+        (event.participantId != null && event.participantId == youParticipantId) ||
+        questionSubPhase.value == QuestionSubPhase.buzzedYou;
+
+    if (isForYou) {
+      hasUsedPower.value = true;
+      activePowerEffect.value = event;
+
+      // Show power banner overlay for ~2.2 seconds
+      showingPowerBanner.value = event;
+      _bannerTimer?.cancel();
+      _bannerTimer = Timer(const Duration(milliseconds: 2200), () {
+        showingPowerBanner.value = null;
+      });
+
+      // Apply effects matching plan
+      if (event.removedOptions != null && event.removedOptions!.isNotEmpty) {
+        removedOptionIndices.assignAll(event.removedOptions!);
+      }
+      if (event.deadlineAt != null) {
+        _activeDeadline = event.deadlineAt;
+        _updateTimerDerived();
+      } else if (event.extraMs != null && event.extraMs! > 0) {
+        _activeDeadline = (_activeDeadline ?? DateTime.now())
+            .add(Duration(milliseconds: event.extraMs!));
+        _updateTimerDerived();
+      }
+      if (event.hint != null && event.hint!.trim().isNotEmpty) {
+        currentHint.value = event.hint!.trim();
+      }
+      if (event.weights != null && event.weights!.isNotEmpty) {
+        prismWeights.assignAll(event.weights!);
+      }
+    }
   }
 
   void _updateScores(Map<String, dynamic> rawScores) {
@@ -595,7 +732,13 @@ class GamePlayController extends GetxController {
   }
 
   void onPowersTap(BuildContext context) {
-    GamePowerWingsSheet.show(context: context);
+    GamePowerWingsSheet.show(
+      context: context,
+      isQ3: isQ3Hobby,
+      snapshot: snapshot.value,
+      currentUserId: currentUserId,
+      youParticipantId: youParticipantId,
+    );
   }
 
   int getTeamScore(int teamIndex) {
@@ -649,6 +792,7 @@ class GamePlayController extends GetxController {
   @override
   void onClose() {
     _clockTicker?.cancel();
+    _bannerTimer?.cancel();
     freeTextController.dispose();
     for (final sub in _subscriptions) {
       sub.cancel();

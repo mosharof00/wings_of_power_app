@@ -51,6 +51,9 @@ class GameMatchParticipant {
   final bool isBot;
   final String? leftAt;
   final bool powerUsed;
+  final String? powerCode;
+  final String? powerLabel;
+  final String? heroName;
 
   const GameMatchParticipant({
     this.id,
@@ -63,12 +66,29 @@ class GameMatchParticipant {
     this.isBot = false,
     this.leftAt,
     this.powerUsed = false,
+    this.powerCode,
+    this.powerLabel,
+    this.heroName,
   });
 
   factory GameMatchParticipant.fromJson(Map<String, dynamic> json) {
     final rawIsBot = json['isBot'] ?? json['is_bot'] ?? false;
     final isBotBool = rawIsBot is bool ? rawIsBot : rawIsBot.toString() == 'true';
     final rawNick = json['nickname']?.toString();
+    final rawHero = json['hero'] is Map ? Map<String, dynamic>.from(json['hero'] as Map) : null;
+    final pCode = json['powerCode']?.toString() ??
+        json['power_code']?.toString() ??
+        rawHero?['powerCode']?.toString() ??
+        rawHero?['power_code']?.toString();
+    final pLabel = json['powerLabel']?.toString() ??
+        json['power_label']?.toString() ??
+        rawHero?['powerLabel']?.toString() ??
+        rawHero?['power_label']?.toString();
+    final hName = json['heroName']?.toString() ??
+        json['hero_name']?.toString() ??
+        rawHero?['displayName']?.toString() ??
+        rawHero?['display_name']?.toString() ??
+        rawHero?['name']?.toString();
 
     return GameMatchParticipant(
       id: json['id']?.toString() ?? json['participantId']?.toString(),
@@ -81,6 +101,41 @@ class GameMatchParticipant {
       isBot: isBotBool,
       leftAt: json['leftAt']?.toString() ?? json['left_at']?.toString(),
       powerUsed: (json['powerUsed'] ?? json['power_used'] ?? false) as bool,
+      powerCode: pCode,
+      powerLabel: pLabel,
+      heroName: hName,
+    );
+  }
+
+  GameMatchParticipant copyWith({
+    String? id,
+    String? userId,
+    String? nickname,
+    String? avatarUrl,
+    String? heroId,
+    int? jerseyNumber,
+    bool? isConnected,
+    bool? isBot,
+    String? leftAt,
+    bool? powerUsed,
+    String? powerCode,
+    String? powerLabel,
+    String? heroName,
+  }) {
+    return GameMatchParticipant(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      nickname: nickname ?? this.nickname,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      heroId: heroId ?? this.heroId,
+      jerseyNumber: jerseyNumber ?? this.jerseyNumber,
+      isConnected: isConnected ?? this.isConnected,
+      isBot: isBot ?? this.isBot,
+      leftAt: leftAt ?? this.leftAt,
+      powerUsed: powerUsed ?? this.powerUsed,
+      powerCode: powerCode ?? this.powerCode,
+      powerLabel: powerLabel ?? this.powerLabel,
+      heroName: heroName ?? this.heroName,
     );
   }
 
@@ -95,6 +150,9 @@ class GameMatchParticipant {
         'isBot': isBot,
         'leftAt': leftAt,
         'powerUsed': powerUsed,
+        if (powerCode != null) 'powerCode': powerCode,
+        if (powerLabel != null) 'powerLabel': powerLabel,
+        if (heroName != null) 'heroName': heroName,
       };
 }
 
@@ -147,6 +205,9 @@ class GameMatchYou {
   final String? heroId;
   final int? jerseyNumber;
   final bool canPass;
+  final String? powerCode;
+  final String? powerLabel;
+  final List<String> usablePowers;
 
   const GameMatchYou({
     required this.participantId,
@@ -155,9 +216,17 @@ class GameMatchYou {
     this.heroId,
     this.jerseyNumber,
     this.canPass = false,
+    this.powerCode,
+    this.powerLabel,
+    this.usablePowers = const [],
   });
 
   factory GameMatchYou.fromJson(Map<String, dynamic> json) {
+    final rawPowers = json['usablePowers'] ?? json['usable_powers'];
+    final usableList = rawPowers is List
+        ? rawPowers.map((e) => e.toString()).toList()
+        : const <String>[];
+
     return GameMatchYou(
       participantId: json['participantId']?.toString() ??
           json['participant_id']?.toString() ??
@@ -167,6 +236,33 @@ class GameMatchYou {
       heroId: json['heroId']?.toString() ?? json['hero_id']?.toString(),
       jerseyNumber: (json['jerseyNumber'] ?? json['jersey_number']) as int?,
       canPass: (json['canPass'] ?? json['can_pass'] ?? false) as bool,
+      powerCode: json['powerCode']?.toString() ?? json['power_code']?.toString(),
+      powerLabel: json['powerLabel']?.toString() ?? json['power_label']?.toString(),
+      usablePowers: usableList,
+    );
+  }
+
+  GameMatchYou copyWith({
+    String? participantId,
+    bool? canBuzz,
+    bool? powerUsed,
+    String? heroId,
+    int? jerseyNumber,
+    bool? canPass,
+    String? powerCode,
+    String? powerLabel,
+    List<String>? usablePowers,
+  }) {
+    return GameMatchYou(
+      participantId: participantId ?? this.participantId,
+      canBuzz: canBuzz ?? this.canBuzz,
+      powerUsed: powerUsed ?? this.powerUsed,
+      heroId: heroId ?? this.heroId,
+      jerseyNumber: jerseyNumber ?? this.jerseyNumber,
+      canPass: canPass ?? this.canPass,
+      powerCode: powerCode ?? this.powerCode,
+      powerLabel: powerLabel ?? this.powerLabel,
+      usablePowers: usablePowers ?? this.usablePowers,
     );
   }
 
@@ -177,6 +273,9 @@ class GameMatchYou {
         'heroId': heroId,
         'jerseyNumber': jerseyNumber,
         'canPass': canPass,
+        if (powerCode != null) 'powerCode': powerCode,
+        if (powerLabel != null) 'powerLabel': powerLabel,
+        'usablePowers': usablePowers,
       };
 }
 
@@ -839,4 +938,254 @@ class GameRoundCompleteEvent {
         'teamB': teamB.toJson(),
         'deadlineAt': deadlineAt?.toIso8601String(),
       };
+}
+
+class GamePowerEffectEvent {
+  final String roundId;
+  final String? userId;
+  final String? participantId;
+  final String powerCode;
+  final List<int>? removedOptions;
+  final DateTime? deadlineAt;
+  final int? extraMs;
+  final String? hint;
+  final List<num>? weights;
+  final Map<String, dynamic> rawEffect;
+
+  const GamePowerEffectEvent({
+    required this.roundId,
+    this.userId,
+    this.participantId,
+    required this.powerCode,
+    this.removedOptions,
+    this.deadlineAt,
+    this.extraMs,
+    this.hint,
+    this.weights,
+    this.rawEffect = const {},
+  });
+
+  factory GamePowerEffectEvent.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(dynamic d) {
+      if (d == null) return null;
+      if (d is DateTime) return d;
+      return DateTime.tryParse(d.toString());
+    }
+
+    final rawEffect = json['effect'] is Map
+        ? Map<String, dynamic>.from(json['effect'] as Map)
+        : <String, dynamic>{};
+
+    final pCode = json['powerCode']?.toString() ??
+        json['power_code']?.toString() ??
+        rawEffect['powerCode']?.toString() ??
+        rawEffect['power_code']?.toString() ??
+        '';
+
+    // removedOptions
+    List<int>? removed;
+    final rawRemoved = json['removedOptions'] ??
+        json['removed_options'] ??
+        rawEffect['removedOptions'] ??
+        rawEffect['removed_options'] ??
+        (rawEffect['type'] == 'removedOptions' ? rawEffect['value'] : null);
+    if (rawRemoved is List) {
+      removed = rawRemoved
+          .map((e) => (e is int) ? e : int.tryParse('$e'))
+          .whereType<int>()
+          .toList();
+    }
+
+    // extraMs
+    int? extra;
+    final rawExtra = json['extraMs'] ??
+        json['extra_ms'] ??
+        rawEffect['extraMs'] ??
+        rawEffect['extra_ms'] ??
+        (rawEffect['type'] == 'extraMs' ? rawEffect['value'] : null);
+    if (rawExtra != null) {
+      extra = (rawExtra is int) ? rawExtra : int.tryParse('$rawExtra');
+    }
+
+    // deadlineAt
+    final deadline = parseDate(json['deadlineAt'] ??
+        json['deadline_at'] ??
+        rawEffect['deadlineAt'] ??
+        rawEffect['deadline_at']);
+
+    // hint
+    String? hintText;
+    final rawHint = json['hint'] ??
+        rawEffect['hint'] ??
+        (rawEffect['type'] == 'hint' ? rawEffect['value'] : null);
+    if (rawHint != null) {
+      hintText = rawHint.toString();
+    }
+
+    // weights
+    List<num>? weightList;
+    final rawWeights = json['weights'] ??
+        rawEffect['weights'] ??
+        (rawEffect['type'] == 'weights' ? rawEffect['value'] : null);
+    if (rawWeights is List) {
+      weightList = rawWeights
+          .map((e) => (e is num) ? e : num.tryParse('$e'))
+          .whereType<num>()
+          .toList();
+    }
+
+    return GamePowerEffectEvent(
+      roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? json['user_id']?.toString(),
+      participantId: json['participantId']?.toString() ?? json['participant_id']?.toString(),
+      powerCode: pCode,
+      removedOptions: removed,
+      deadlineAt: deadline,
+      extraMs: extra,
+      hint: hintText,
+      weights: weightList,
+      rawEffect: rawEffect.isNotEmpty ? rawEffect : json,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'roundId': roundId,
+        'userId': userId,
+        'participantId': participantId,
+        'powerCode': powerCode,
+        'removedOptions': removedOptions,
+        'deadlineAt': deadlineAt?.toIso8601String(),
+        'extraMs': extraMs,
+        'hint': hint,
+        'weights': weights,
+        'effect': rawEffect,
+      };
+}
+
+class HeroPowerInfo {
+  final String heroCode;
+  final String heroName;
+  final String powerCode;
+  final String powerLabel;
+  final String description;
+  final String bannerTitle;
+  final String bannerSubtitle;
+  final String assetPath;
+
+  const HeroPowerInfo({
+    required this.heroCode,
+    required this.heroName,
+    required this.powerCode,
+    required this.powerLabel,
+    required this.description,
+    required this.bannerTitle,
+    required this.bannerSubtitle,
+    required this.assetPath,
+  });
+
+  static const List<HeroPowerInfo> all = [
+    HeroPowerInfo(
+      heroCode: 'FAITH',
+      heroName: 'Faith',
+      powerCode: 'MELODY',
+      powerLabel: 'Melody Shot',
+      description: 'Extra focus time',
+      bannerTitle: 'Awesome!',
+      bannerSubtitle: 'You got extra time! +10s',
+      assetPath: 'assets/characters/hero_faith.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'MICHELE',
+      heroName: 'Michele',
+      powerCode: 'COLOR',
+      powerLabel: 'Color Shot',
+      description: 'Freezes timer',
+      bannerTitle: 'Awesome!',
+      bannerSubtitle: 'Time is frozen! 10s',
+      assetPath: 'assets/characters/hero_michele.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'MICHAEL',
+      heroName: 'Michael',
+      powerCode: 'CHECKMATE',
+      powerLabel: 'Checkmate Shot',
+      description: 'Sees defense strategy',
+      bannerTitle: 'Smart move!',
+      bannerSubtitle: 'Smart move! One option eliminated!',
+      assetPath: 'assets/characters/hero_michael.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'SAMANTHA',
+      heroName: 'Samantha',
+      powerCode: 'HARMONY',
+      powerLabel: 'Harmony Shot',
+      description: 'Ask teammate for help',
+      bannerTitle: 'Awesome!',
+      bannerSubtitle: 'Your teammate is here to help!',
+      assetPath: 'assets/characters/hero_samantha.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'CHI_SUNG',
+      heroName: 'Chi Sung',
+      powerCode: 'PRISM',
+      powerLabel: 'Prism Shot',
+      description: 'Shows probability of answer',
+      bannerTitle: 'Smart move!',
+      bannerSubtitle: 'Probability calculated!',
+      assetPath: 'assets/characters/hero_chi_sung.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'RALPH',
+      heroName: 'Ralph',
+      powerCode: 'NATURE',
+      powerLabel: 'Nature Shot',
+      description: 'Reveals animal hint',
+      bannerTitle: 'Awesome!',
+      bannerSubtitle: 'Nature has a clue for you!',
+      assetPath: 'assets/characters/hero_ralph.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'HAROLD',
+      heroName: 'Harold',
+      powerCode: 'LAB',
+      powerLabel: 'Lab Shot',
+      description: 'Removes 2 wrong answer',
+      bannerTitle: 'Smart move!',
+      bannerSubtitle: 'Science to the rescue! Two options eliminated!',
+      assetPath: 'assets/characters/hero_harold.png',
+    ),
+    HeroPowerInfo(
+      heroCode: 'EVELYA',
+      heroName: 'Evelya',
+      powerCode: 'STORY',
+      powerLabel: 'Story Shot',
+      description: 'Your story clue is ready',
+      bannerTitle: 'Awesome!',
+      bannerSubtitle: 'Your story clue is ready!',
+      assetPath: 'assets/characters/hero_evelya.png',
+    ),
+  ];
+
+  static HeroPowerInfo? findByPowerCode(String? code) {
+    if (code == null || code.isEmpty) return null;
+    final upper = code.toUpperCase();
+    for (final p in all) {
+      if (p.powerCode.toUpperCase() == upper) return p;
+    }
+    return null;
+  }
+
+  static HeroPowerInfo? findByHeroIdOrCode(String? heroId) {
+    if (heroId == null || heroId.isEmpty) return null;
+    final lower = heroId.toLowerCase();
+    for (final p in all) {
+      if (p.heroCode.toLowerCase() == lower ||
+          p.heroName.toLowerCase() == lower ||
+          lower.contains(p.heroName.toLowerCase()) ||
+          lower.contains(p.heroCode.toLowerCase())) {
+        return p;
+      }
+    }
+    return null;
+  }
 }

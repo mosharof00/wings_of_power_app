@@ -1,6 +1,6 @@
 # T-GAME-006 — Q3 powers on a one-person team
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-006.md`
 **Phase:** 1
 **Depends on:** T-GAME-005 and T-BE-GAME-006
@@ -51,4 +51,19 @@ Hobby Hoops plays like Q1, and the buzz winner can use their hero power once. Th
 
 ## Notes
 
--
+- Quarter 3 "Hobby Hoops" support implemented with round intro card and 5 MCQ buzz questions.
+- GameMatchParticipant and GameMatchYou updated with power fields, copyWith, and GamePowerEffectEvent model.
+- HeroPowerInfo helper maps hero and power codes to character art, labels, descriptions, and banner titles/subtitles per GAME_PLAN.md.
+- Power chips displayed along the bottom of the question card during Q3 only for usable powers.
+- Bolt button opens Team Power Wings sheet: displays "Not Available!" before Q3 and full snapshot player powers list during Q3 with active/used pills.
+- Power chip tap emits `power:use { roundId, powerCode }` when answering in Q3.
+- `power:effect` socket event handling:
+  * GamePowerBannerOverlay displays 3D character glow, purple ribbon title, and effect subtitle.
+  * `removedOptions`: disables and hides only specified option indices.
+  * `deadlineAt` / `extraMs`: updates timer countdown ring.
+  * `hint`: renders blue hint box on the question card.
+  * `weights`: renders percent badges on options (omits missing weights).
+- Single use per match enforced (`hasUsedPower == true` disables chip for match).
+- Harmony in 1v1 / single player bypasses ask-for-help flow.
+- Offline mock mode support in GameSocketService and GamePlayController for Q3 progression and power activations.
+- `flutter analyze` and `flutter test` passed with 0 issues.

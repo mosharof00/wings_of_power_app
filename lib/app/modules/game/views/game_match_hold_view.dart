@@ -7,6 +7,7 @@ import 'widgets/game_countdown_overlay.dart';
 import 'widgets/game_free_text_board.dart';
 import 'widgets/game_kindness_celebration_dialog.dart';
 import 'widgets/game_quiz_board.dart';
+import 'widgets/game_power_banner_overlay.dart';
 import 'widgets/game_round_intro_card.dart';
 import 'widgets/game_vs_pills.dart';
 import 'widgets/game_waiting_overlay.dart';
@@ -104,147 +105,174 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
     final selectedIdx = _controller.selectedOptionIndex.value;
     final result = _controller.answerResult.value;
     final canPass = _controller.canPass;
+    final isQ3 = _controller.isQ3Hobby;
+    final hint = _controller.currentHint.value;
+    final removedIndices = _controller.removedOptionIndices.toList();
+    final prismWeights = _controller.prismWeights.isNotEmpty
+        ? _controller.prismWeights.toList()
+        : null;
+    final powerChips = _controller.usablePowerChips;
+    final canUsePower = _controller.canUsePower;
+    final hasUsedPower = _controller.hasUsedPower.value;
+    final bannerEffect = _controller.showingPowerBanner.value;
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF7822B7),
-            Color(0xFF5D1D9B),
-            Color(0xFF4C157E),
-          ],
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: 10.h),
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF7822B7),
+                Color(0xFF5D1D9B),
+                Color(0xFF4C157E),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                SizedBox(height: 10.h),
 
-            // Top Bar
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                children: [
-                  // Close 'x' button
-                  GestureDetector(
-                    onTap: () => _controller.onLeaveTap(context),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      width: 42.w,
-                      height: 42.w,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE86726),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x33000000),
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
+                // Top Bar
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Row(
+                    children: [
+                      // Close 'x' button
+                      GestureDetector(
+                        onTap: () => _controller.onLeaveTap(context),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 42.w,
+                          height: 42.w,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE86726),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.close_rounded,
-                        color: Colors.white,
-                        size: 24.sp,
-                      ),
-                    ),
-                  ),
-
-                  // Center Title
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _controller.currentRoundSubtitle,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFFFD54F),
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          _controller.currentRoundTitle,
-                          style: TextStyle(
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.w900,
+                          child: Icon(
+                            Icons.close_rounded,
                             color: Colors.white,
+                            size: 24.sp,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  // Power bolt button
-                  GestureDetector(
-                    onTap: () => _controller.onPowersTap(context),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      width: 42.w,
-                      height: 42.w,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE86726),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x33000000),
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
+                      // Center Title
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _controller.currentRoundSubtitle,
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFFD54F),
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              _controller.currentRoundTitle,
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Power bolt button
+                      GestureDetector(
+                        onTap: () => _controller.onPowersTap(context),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 42.w,
+                          height: 42.w,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE86726),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ],
+                          child: Icon(
+                            Icons.bolt_rounded,
+                            color: Colors.white,
+                            size: 26.sp,
+                          ),
+                        ),
                       ),
-                      child: Icon(
-                        Icons.bolt_rounded,
-                        color: Colors.white,
-                        size: 26.sp,
-                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16.h),
+
+                // Vs Pills with scores
+                GameVsPills(
+                  teamALabel: _controller.getTeamLabel(0),
+                  teamAScore: _controller.getTeamScore(0),
+                  teamBLabel: _controller.getTeamLabel(1),
+                  teamBScore: _controller.getTeamScore(1),
+                  isTeamAActive: _controller.isTeamActive(0),
+                  isTeamBActive: _controller.isTeamActive(1),
+                ),
+                SizedBox(height: 16.h),
+
+                // Quiz Board Card
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
+                    child: GameQuizBoard(
+                      question: q,
+                      subPhase: subPhase,
+                      timerString: timerStr,
+                      isYouBuzzed: isYouBuzzed,
+                      waitingInfo: waiting,
+                      selectedOptionIndex: selectedIdx,
+                      answerResult: result,
+                      canPass: canPass,
+                      onBuzzTap: _controller.onBuzzTap,
+                      onOptionTap: _controller.onOptionTap,
+                      onPassTap: _controller.onPassTap,
+                      isQ3: isQ3,
+                      hint: hint,
+                      removedOptionIndices: removedIndices,
+                      prismWeights: prismWeights,
+                      powerChips: powerChips,
+                      canUsePower: canUsePower,
+                      hasUsedPower: hasUsedPower,
+                      onUsePower: _controller.onUsePower,
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16.h),
-
-            // Vs Pills with scores
-            GameVsPills(
-              teamALabel: _controller.getTeamLabel(0),
-              teamAScore: _controller.getTeamScore(0),
-              teamBLabel: _controller.getTeamLabel(1),
-              teamBScore: _controller.getTeamScore(1),
-              isTeamAActive: _controller.isTeamActive(0),
-              isTeamBActive: _controller.isTeamActive(1),
-            ),
-            SizedBox(height: 16.h),
-
-            // Quiz Board Card
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-                child: GameQuizBoard(
-                  question: q,
-                  subPhase: subPhase,
-                  timerString: timerStr,
-                  isYouBuzzed: isYouBuzzed,
-                  waitingInfo: waiting,
-                  selectedOptionIndex: selectedIdx,
-                  answerResult: result,
-                  canPass: canPass,
-                  onBuzzTap: _controller.onBuzzTap,
-                  onOptionTap: _controller.onOptionTap,
-                  onPassTap: _controller.onPassTap,
                 ),
-              ),
+                SizedBox(height: 12.h),
+              ],
             ),
-            SizedBox(height: 12.h),
-          ],
+          ),
         ),
-      ),
+        if (bannerEffect != null)
+          GamePowerBannerOverlay(
+            powerEffect: bannerEffect,
+            onDismiss: () => _controller.showingPowerBanner.value = null,
+          ),
+      ],
     );
   }
 
