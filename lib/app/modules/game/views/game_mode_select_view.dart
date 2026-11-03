@@ -45,16 +45,43 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                   padding: EdgeInsets.symmetric(horizontal: 24.w),
                   child: Obx(() {
                     final isSingle = controller.isSinglePlayer.value;
+                    final fixtureCode = controller.fixtureCode.value;
+                    final isBusy = controller.isStartingPractice.value;
+
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Single Player Card
                         Expanded(
                           child: _ModeCard(
-                            title: 'Single Player',
+                            title: isBusy ? 'Starting Practice...' : 'Single Player',
                             isSelected: isSingle,
-                            onTap: controller.selectSinglePlayer,
+                            onTap: controller.onSinglePlayerCardTap,
+                            onLongPress: controller.onSinglePlayerLongPress,
                             characterWidget: _buildSinglePlayerArt(),
+                            extraWidget: fixtureCode != null &&
+                                    fixtureCode.isNotEmpty
+                                ? Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10.w, vertical: 3.h),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4C1D95),
+                                      borderRadius: BorderRadius.circular(10.r),
+                                      border: Border.all(
+                                        color: const Color(0xFFFFD54F),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Fixture: $fixtureCode',
+                                      style: TextStyle(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : null,
                           ),
                         ),
                         SizedBox(height: 16.h),
@@ -89,37 +116,48 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
   Widget _buildTopBar() {
     return Row(
       children: [
-        // Avatar with golden border
-        Obx(() {
-          final avatar = controller.avatarUrl.value;
-          return Container(
-            width: 44.w,
-            height: 44.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFFFA726),
-                width: 2.w,
+        // Avatar with golden border (Tap to change avatar)
+        GestureDetector(
+          onTap: controller.onChangeAvatar,
+          behavior: HitTestBehavior.opaque,
+          child: Obx(() {
+            final avatar = controller.avatarUrl.value;
+            return Container(
+              width: 44.w,
+              height: 44.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFFFA726),
+                  width: 2.w,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-            ),
-            child: ClipOval(
-              child: avatar != null && avatar.startsWith('http')
-                  ? CachedNetworkImage(
-                      imageUrl: avatar,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => Image.asset(
-                        'assets/images/avatar_01.png',
+              child: ClipOval(
+                child: avatar != null && avatar.startsWith('http')
+                    ? CachedNetworkImage(
+                        imageUrl: avatar,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => Image.asset(
+                          'assets/images/avatar_01.png',
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Image.asset(
+                        avatar ?? 'assets/images/avatar_01.png',
                         fit: BoxFit.cover,
                       ),
-                    )
-                  : Image.asset(
-                      'assets/images/avatar_01.png',
-                      fit: BoxFit.cover,
-                    ),
-            ),
-          );
-        }),
-        SizedBox(width: 10.w),
+              ),
+            );
+          }),
+        ),
+        SizedBox(width: 8.w),
         // Kindness Coins Chip
         Obx(() {
           return Container(
@@ -185,6 +223,53 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
             ),
           );
         }),
+        SizedBox(width: 8.w),
+        // Selected Hero Chip in Header
+        Obx(() {
+          final hero = controller.selectedHero.value;
+          if (hero == null) return const SizedBox.shrink();
+          return GestureDetector(
+            onTap: controller.onChooseHero,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4C1D95),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: const Color(0xFFFFD54F),
+                  width: 1.2,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x22000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.bolt_rounded,
+                    color: const Color(0xFFFFD54F),
+                    size: 15.sp,
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    hero.displayName,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
         const Spacer(),
         // Home Button
         GestureDetector(
@@ -193,10 +278,10 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
           child: Container(
             width: 42.w,
             height: 42.w,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE86726),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE86726),
               shape: BoxShape.circle,
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
                   color: Color(0x33000000),
                   blurRadius: 6,
@@ -389,7 +474,7 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
   Widget _buildBottomActions() {
     return Row(
       children: [
-        // Choose Hero Button (Stub)
+        // Choose Hero Button
         Expanded(
           child: SizedBox(
             height: 50.h,
@@ -403,14 +488,17 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                   borderRadius: BorderRadius.circular(25.r),
                 ),
               ),
-              child: Text(
-                'Choose Hero',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              child: Obx(() {
+                final hero = controller.selectedHero.value;
+                return Text(
+                  hero != null ? 'Hero: ${hero.displayName}' : 'Choose Hero',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                );
+              }),
             ),
           ),
         ),
@@ -450,18 +538,23 @@ class _ModeCard extends StatelessWidget {
     required this.title,
     required this.isSelected,
     required this.onTap,
+    this.onLongPress,
     required this.characterWidget,
+    this.extraWidget,
   });
 
   final String title;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final Widget characterWidget;
+  final Widget? extraWidget;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -500,6 +593,10 @@ class _ModeCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (extraWidget != null) ...[
+              extraWidget!,
+              SizedBox(height: 6.h),
+            ],
             Padding(
               padding: EdgeInsets.only(bottom: 16.h),
               child: Text(

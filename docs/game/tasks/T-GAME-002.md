@@ -1,6 +1,6 @@
 # T-GAME-002 — Hero, avatar, and a live practice socket
 
-**Status:** Not started
+**Status:** Done
 **Pair:** `wings_of_power_backend/docs/tasks/T-BE-GAME-002.md`
 **Phase:** 1
 **Depends on:** T-GAME-001 and T-BE-GAME-002
@@ -52,4 +52,12 @@ Alex can pick an unlocked power hero and a face avatar, then start a practice ma
 
 ## Notes
 
--
+- Added `socket_io_client: ^3.0.2` to pubspec.yaml and executed `flutter pub get`.
+- Implemented `GameSocketService` in `lib/app/data/services/game_socket_service.dart` with gateway connection, JWT auth handshake, reconnection, lifecycle cleanup, and event handling (`connect`, `disconnect`, `connect_error`, `match:found`, `match:snapshot`, `queue:update`, `queue:error`, `match:error`).
+- Implemented `GameChooseHeroDialog` opening via Choose Hero button: fetches `GET /api/heroes`, prevents selecting locked heroes with friendly alert, selects unlocked hero via `POST /api/heroes/:id/select`, updates header and persists hero selection.
+- Implemented `GameChangeAvatarDialog` opening via top bar avatar: displays preset faces `avatar_01` to `avatar_08`, updates student profile avatar via `PATCH /api/student/profile`.
+- Added practice entry on Single Player card: normal tap calls `POST /api/game/queue` (`mode: SINGLE`), connects socket, listens for snapshot, navigates to `GameMatchHoldView` ("Match ready") showing participant info (student + bot seat / opponent), mode, phase, deadline countdown, and leave match button.
+- Added dev debug long-press on Single Player card opening `GameFixturePromptDialog` to configure `fixtureCode` for two-device test pairing.
+- Added clean socket disconnection on leaving the game module.
+- All Flutter analyze and test checks pass with 0 errors/warnings.
+
