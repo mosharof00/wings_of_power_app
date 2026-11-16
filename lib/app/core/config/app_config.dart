@@ -7,10 +7,10 @@ class AppConfig {
   static String appName = "Wings of Power";
 
   /// Host is unset. Repositories must not call the network while [useMocks] is true.
-  static const domainUrl = "http://localhost";
+  static const domainUrl = "http://10.0.2.2:6001";
 
   /// When true, repositories return fixtures and do not call the network.
-  static const bool useMocks = true;
+  static const bool useMocks = false;
 
   /// true: guests are sent to login from the splash.
   /// false: guests can open the main page.

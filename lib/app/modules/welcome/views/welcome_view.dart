@@ -20,18 +20,19 @@ class WelcomeView extends GetView<WelcomeController> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              Assets.backgrounds.bgAuthSky.path,
+              Assets.backgrounds.bgWelcome.path,
               fit: BoxFit.cover,
             ),
           ),
-          Positioned.fill(
-            bottom: 248.h,
-            child: Image.asset(
-              Assets.characters.welcomeHeroes.path,
-              fit: BoxFit.cover,
-              alignment: Alignment.bottomCenter,
-            ),
-          ),
+          // Positioned.fill(
+          //   bottom: 248.h,
+          //   top: 30.h,
+          //   child: Image.asset(
+          //     Assets.characters.welcomeHeroes.path,
+          //     fit: BoxFit.cover,
+          //     alignment: Alignment.bottomCenter,
+          //   ),
+          // ),
           const Align(
             alignment: Alignment.bottomCenter,
             child: _WelcomeCard(),

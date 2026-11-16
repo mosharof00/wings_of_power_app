@@ -29,8 +29,60 @@ class $AssetsBackgroundsGen {
   AssetGenImage get bgSplashSky =>
       const AssetGenImage('assets/backgrounds/bg_splash_sky.png');
 
+  /// File path: assets/backgrounds/bg_welcome.png
+  AssetGenImage get bgWelcome =>
+      const AssetGenImage('assets/backgrounds/bg_welcome.png');
+
   /// List of all assets
-  List<AssetGenImage> get values => [bgAuthSky, bgHomeSky, bgSplashSky];
+  List<AssetGenImage> get values => [
+    bgAuthSky,
+    bgHomeSky,
+    bgSplashSky,
+    bgWelcome,
+  ];
+}
+
+class $AssetsBadgesGen {
+  const $AssetsBadgesGen();
+
+  /// File path: assets/badges/badge_game_show_ready.png
+  AssetGenImage get badgeGameShowReady =>
+      const AssetGenImage('assets/badges/badge_game_show_ready.png');
+
+  /// File path: assets/badges/badge_helping_hand.png
+  AssetGenImage get badgeHelpingHand =>
+      const AssetGenImage('assets/badges/badge_helping_hand.png');
+
+  /// File path: assets/badges/badge_kindness_champion.png
+  AssetGenImage get badgeKindnessChampion =>
+      const AssetGenImage('assets/badges/badge_kindness_champion.png');
+
+  /// File path: assets/badges/badge_locked.png
+  AssetGenImage get badgeLocked =>
+      const AssetGenImage('assets/badges/badge_locked.png');
+
+  /// File path: assets/badges/badge_positive_leader.png
+  AssetGenImage get badgePositiveLeader =>
+      const AssetGenImage('assets/badges/badge_positive_leader.png');
+
+  /// File path: assets/badges/badge_speak_up.png
+  AssetGenImage get badgeSpeakUp =>
+      const AssetGenImage('assets/badges/badge_speak_up.png');
+
+  /// File path: assets/badges/badge_story_explorer.png
+  AssetGenImage get badgeStoryExplorer =>
+      const AssetGenImage('assets/badges/badge_story_explorer.png');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [
+    badgeGameShowReady,
+    badgeHelpingHand,
+    badgeKindnessChampion,
+    badgeLocked,
+    badgePositiveLeader,
+    badgeSpeakUp,
+    badgeStoryExplorer,
+  ];
 }
 
 class $AssetsBookCoversGen {
@@ -39,6 +91,10 @@ class $AssetsBookCoversGen {
   /// File path: assets/book_covers/cover_city_of_thieves.png
   AssetGenImage get coverCityOfThieves =>
       const AssetGenImage('assets/book_covers/cover_city_of_thieves.png');
+
+  /// File path: assets/book_covers/cover_the_golden_pearl.png
+  AssetGenImage get coverTheGoldenPearl =>
+      const AssetGenImage('assets/book_covers/cover_the_golden_pearl.png');
 
   /// File path: assets/book_covers/cover_the_golden_pearl_1.png
   AssetGenImage get coverTheGoldenPearl1 =>
@@ -52,17 +108,32 @@ class $AssetsBookCoversGen {
   AssetGenImage get coverTheTiesThatBindUs =>
       const AssetGenImage('assets/book_covers/cover_the_ties_that_bind_us.png');
 
+  /// File path: assets/book_covers/page_sample_1.png
+  AssetGenImage get pageSample1 =>
+      const AssetGenImage('assets/book_covers/page_sample_1.png');
+
+  /// File path: assets/book_covers/page_sample_2.png
+  AssetGenImage get pageSample2 =>
+      const AssetGenImage('assets/book_covers/page_sample_2.png');
+
   /// List of all assets
   List<AssetGenImage> get values => [
     coverCityOfThieves,
+    coverTheGoldenPearl,
     coverTheGoldenPearl1,
     coverTheGoldenPearl2,
     coverTheTiesThatBindUs,
+    pageSample1,
+    pageSample2,
   ];
 }
 
 class $AssetsCharactersGen {
   const $AssetsCharactersGen();
+
+  /// File path: assets/characters/gabriel_host.png
+  AssetGenImage get gabrielHost =>
+      const AssetGenImage('assets/characters/gabriel_host.png');
 
   /// File path: assets/characters/hero_approval.png
   AssetGenImage get heroApproval =>
@@ -120,12 +191,17 @@ class $AssetsCharactersGen {
   AssetGenImage get homePlayGame =>
       const AssetGenImage('assets/characters/home_play_game.png');
 
+  /// File path: assets/characters/safe_space_intro.png
+  AssetGenImage get safeSpaceIntro =>
+      const AssetGenImage('assets/characters/safe_space_intro.png');
+
   /// File path: assets/characters/welcome_heroes.png
   AssetGenImage get welcomeHeroes =>
       const AssetGenImage('assets/characters/welcome_heroes.png');
 
   /// List of all assets
   List<AssetGenImage> get values => [
+    gabrielHost,
     heroApproval,
     heroChiSung,
     heroCodeError,
@@ -140,6 +216,7 @@ class $AssetsCharactersGen {
     homeBannerQuiz,
     homeBannerReader,
     homePlayGame,
+    safeSpaceIntro,
     welcomeHeroes,
   ];
 }
@@ -186,9 +263,48 @@ class $AssetsIconsGen {
   SvgGenImage get icPointsCoin =>
       const SvgGenImage('assets/icons/ic_points_coin.svg');
 
+  /// File path: assets/icons/ic_profile_badges.svg
+  SvgGenImage get icProfileBadges =>
+      const SvgGenImage('assets/icons/ic_profile_badges.svg');
+
+  /// File path: assets/icons/ic_profile_hero.svg
+  SvgGenImage get icProfileHero =>
+      const SvgGenImage('assets/icons/ic_profile_hero.svg');
+
+  /// File path: assets/icons/ic_profile_leaderboard.svg
+  SvgGenImage get icProfileLeaderboard =>
+      const SvgGenImage('assets/icons/ic_profile_leaderboard.svg');
+
+  /// File path: assets/icons/ic_profile_notifications.svg
+  SvgGenImage get icProfileNotifications =>
+      const SvgGenImage('assets/icons/ic_profile_notifications.svg');
+
+  /// File path: assets/icons/ic_profile_points.svg
+  SvgGenImage get icProfilePoints =>
+      const SvgGenImage('assets/icons/ic_profile_points.svg');
+
+  /// File path: assets/icons/ic_profile_progress.svg
+  SvgGenImage get icProfileProgress =>
+      const SvgGenImage('assets/icons/ic_profile_progress.svg');
+
+  /// File path: assets/icons/ic_profile_reports.svg
+  SvgGenImage get icProfileReports =>
+      const SvgGenImage('assets/icons/ic_profile_reports.svg');
+
+  /// File path: assets/icons/ic_quiz_star.svg
+  SvgGenImage get icQuizStar =>
+      const SvgGenImage('assets/icons/ic_quiz_star.svg');
+
   /// File path: assets/icons/ic_safe_space.svg
   SvgGenImage get icSafeSpace =>
       const SvgGenImage('assets/icons/ic_safe_space.svg');
+
+  /// File path: assets/icons/ic_settings.svg
+  SvgGenImage get icSettings =>
+      const SvgGenImage('assets/icons/ic_settings.svg');
+
+  /// File path: assets/icons/ic_speaker.svg
+  SvgGenImage get icSpeaker => const SvgGenImage('assets/icons/ic_speaker.svg');
 
   /// List of all assets
   List<SvgGenImage> get values => [
@@ -202,16 +318,70 @@ class $AssetsIconsGen {
     icNavProfile,
     icNavStories,
     icPointsCoin,
+    icProfileBadges,
+    icProfileHero,
+    icProfileLeaderboard,
+    icProfileNotifications,
+    icProfilePoints,
+    icProfileProgress,
+    icProfileReports,
+    icQuizStar,
     icSafeSpace,
+    icSettings,
+    icSpeaker,
   ];
 }
 
 class $AssetsImagesGen {
   const $AssetsImagesGen();
 
+  /// File path: assets/images/avatar_01.png
+  AssetGenImage get avatar01 =>
+      const AssetGenImage('assets/images/avatar_01.png');
+
+  /// File path: assets/images/avatar_02.png
+  AssetGenImage get avatar02 =>
+      const AssetGenImage('assets/images/avatar_02.png');
+
+  /// File path: assets/images/avatar_03.png
+  AssetGenImage get avatar03 =>
+      const AssetGenImage('assets/images/avatar_03.png');
+
+  /// File path: assets/images/avatar_04.png
+  AssetGenImage get avatar04 =>
+      const AssetGenImage('assets/images/avatar_04.png');
+
+  /// File path: assets/images/avatar_05.png
+  AssetGenImage get avatar05 =>
+      const AssetGenImage('assets/images/avatar_05.png');
+
+  /// File path: assets/images/avatar_06.png
+  AssetGenImage get avatar06 =>
+      const AssetGenImage('assets/images/avatar_06.png');
+
+  /// File path: assets/images/avatar_07.png
+  AssetGenImage get avatar07 =>
+      const AssetGenImage('assets/images/avatar_07.png');
+
+  /// File path: assets/images/avatar_08.png
+  AssetGenImage get avatar08 =>
+      const AssetGenImage('assets/images/avatar_08.png');
+
+  /// File path: assets/images/avatar_logout.png
+  AssetGenImage get avatarLogout =>
+      const AssetGenImage('assets/images/avatar_logout.png');
+
   /// File path: assets/images/category_courage.png
   AssetGenImage get categoryCourage =>
       const AssetGenImage('assets/images/category_courage.png');
+
+  /// File path: assets/images/category_cyberbullying.png
+  AssetGenImage get categoryCyberbullying =>
+      const AssetGenImage('assets/images/category_cyberbullying.png');
+
+  /// File path: assets/images/category_friendship.png
+  AssetGenImage get categoryFriendship =>
+      const AssetGenImage('assets/images/category_friendship.png');
 
   /// File path: assets/images/category_kindness.png
   AssetGenImage get categoryKindness =>
@@ -239,7 +409,18 @@ class $AssetsImagesGen {
 
   /// List of all assets
   List<AssetGenImage> get values => [
+    avatar01,
+    avatar02,
+    avatar03,
+    avatar04,
+    avatar05,
+    avatar06,
+    avatar07,
+    avatar08,
+    avatarLogout,
     categoryCourage,
+    categoryCyberbullying,
+    categoryFriendship,
     categoryKindness,
     emptyBox,
     exploreAudioBooks,
@@ -286,14 +467,26 @@ class $AssetsOnboardingGen {
   ];
 }
 
+class $AssetsSoundsGen {
+  const $AssetsSoundsGen();
+
+  /// File path: assets/sounds/chapter_sample.m4a
+  String get chapterSample => 'assets/sounds/chapter_sample.m4a';
+
+  /// List of all assets
+  List<String> get values => [chapterSample];
+}
+
 abstract final class Assets {
   static const $AssetsBackgroundsGen backgrounds = $AssetsBackgroundsGen();
+  static const $AssetsBadgesGen badges = $AssetsBadgesGen();
   static const $AssetsBookCoversGen bookCovers = $AssetsBookCoversGen();
   static const $AssetsCharactersGen characters = $AssetsCharactersGen();
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
   static const $AssetsLogosGen logos = $AssetsLogosGen();
   static const $AssetsOnboardingGen onboarding = $AssetsOnboardingGen();
+  static const $AssetsSoundsGen sounds = $AssetsSoundsGen();
 }
 
 class AssetGenImage {
