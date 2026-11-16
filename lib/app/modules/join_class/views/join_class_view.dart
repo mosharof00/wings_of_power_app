@@ -1,13 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pinput/pinput.dart';
 
 import '../../../../gen/assets.gen.dart';
 import '../../../core/theme/app_color.dart';
+import '../../../global/widgets/app_scaffold.dart';
 import '../../../global/widgets/global_button.dart';
 import '../controllers/join_class_controller.dart';
 
@@ -38,151 +39,118 @@ class JoinClassView extends GetView<JoinClassController> {
 class _CodeEntry extends GetView<JoinClassController> {
   const _CodeEntry();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const _AuthSky(),
-          SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 12.h),
-              child: Column(
-                children: [
-                  Text(
-                    'Enter the Class Code',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.nunito(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.w800,
-                      color: AppColor.secondary,
-                    ),
-                  ),
-                  SizedBox(height: 10.h),
-                  Text(
-                    'Enter the class join code your teacher gave\nyou to join your class!',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.nunito(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColor.subtitle,
-                      height: 1.35,
-                    ),
-                  ),
-                  SizedBox(height: 28.h),
-                  GestureDetector(
-                    onTap: controller.focusNode.requestFocus,
-                    child: Obx(() {
-                      final value = controller.digits.value;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          for (var i = 0; i < 6; i++)
-                            _DigitCircle(
-                              digit: i < value.length ? value[i] : null,
-                            ),
-                        ],
-                      );
-                    }),
-                  ),
-                  SizedBox(
-                    height: 0,
-                    child: TextField(
-                      controller: controller.codeController,
-                      focusNode: controller.focusNode,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: const TextStyle(color: Colors.transparent, fontSize: 1),
-                      cursorColor: Colors.transparent,
-                      decoration: const InputDecoration(
-                        counterText: '',
-                        border: InputBorder.none,
-                      ),
-                      onChanged: controller.onCodeChanged,
-                    ),
-                  ),
-                  const Spacer(),
-                  Obx(
-                    () => GlobalButton(
-                      text: 'Join Class',
-                      isDisabled: controller.digits.value.length < 6,
-                      isLoading: controller.submitting.value,
-                      onTap: controller.submit,
-                    ),
-                  ),
-                  SizedBox(height: 14.h),
-                  GestureDetector(
-                    onTap: controller.openLogin,
-                    child: Text.rich(
-                      TextSpan(
-                        style: GoogleFonts.nunito(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColor.subtitle,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Already Joined? '),
-                          TextSpan(
-                            text: 'Login Here',
-                            style: GoogleFonts.nunito(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColor.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DigitCircle extends StatelessWidget {
-  const _DigitCircle({required this.digit});
-
-  final String? digit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
+  PinTheme _pinTheme({required Color lip}) {
+    return PinTheme(
       width: 48.w,
       height: 48.w,
-      alignment: Alignment.center,
+      textStyle: GoogleFonts.nunito(
+        fontSize: 20.sp,
+        fontWeight: FontWeight.w700,
+        color: AppColor.secondary,
+      ),
       decoration: BoxDecoration(
         color: AppColor.white,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppColor.buttonLip,
+            color: lip,
             offset: Offset(0, 3.h),
             blurRadius: 0,
           ),
         ],
       ),
-      child: digit == null
-          ? Container(
-              width: 10.w,
-              height: 2.h,
-              color: const Color(0xFF777980),
-            )
-          : Text(
-              digit!,
-              style: GoogleFonts.nunito(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColor.secondary,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = _pinTheme(lip: AppColor.buttonLip);
+    final focused = _pinTheme(lip: AppColor.primary);
+    final submitted = _pinTheme(lip: AppColor.buttonLip);
+
+    return AppScaffold(
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 12.h),
+          child: Column(
+            children: [
+              Text(
+                'Enter the Class Code',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColor.secondary,
+                ),
               ),
-            ),
+              SizedBox(height: 10.h),
+              Text(
+                'Enter the class join code your teacher gave\nyou to join your class!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppColor.subtitle,
+                  height: 1.35,
+                ),
+              ),
+              SizedBox(height: 28.h),
+              Pinput(
+                length: JoinClassController.codeLength,
+                controller: controller.pinController,
+                focusNode: controller.focusNode,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                defaultPinTheme: base,
+                focusedPinTheme: focused,
+                submittedPinTheme: submitted,
+                separatorBuilder: (index) => SizedBox(width: 8.w),
+                preFilledWidget: Container(
+                  width: 10.w,
+                  height: 2.h,
+                  color: const Color(0xFF777980),
+                ),
+                onChanged: controller.onCodeChanged,
+                onCompleted: controller.onCodeCompleted,
+              ),
+              const Spacer(),
+              Obx(
+                () => GlobalButton(
+                  text: 'Join Class',
+                  isDisabled: !controller.canSubmit,
+                  isLoading: controller.submitting.value,
+                  onTap: controller.submit,
+                ),
+              ),
+              SizedBox(height: 14.h),
+              GestureDetector(
+                onTap: controller.openLogin,
+                child: Text.rich(
+                  TextSpan(
+                    style: GoogleFonts.nunito(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.subtitle,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Already Joined? '),
+                      TextSpan(
+                        text: 'Login Here',
+                        style: GoogleFonts.nunito(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColor.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -200,11 +168,10 @@ class _CodeMessage extends GetView<JoinClassController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const _AuthSky(),
           Align(
             alignment: Alignment.topRight,
             child: Image.asset(
@@ -259,11 +226,10 @@ class _JoinedClass extends GetView<JoinClassController> {
   Widget build(BuildContext context) {
     final className = controller.className ?? '';
     final teacherName = controller.teacherName ?? '';
-    return Scaffold(
+    return AppScaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const _AuthSky(),
           const CustomPaint(painter: _SunburstPainter()),
           SafeArea(
             child: Padding(
@@ -317,20 +283,6 @@ class _JoinedClass extends GetView<JoinClassController> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _AuthSky extends StatelessWidget {
-  const _AuthSky();
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      Assets.backgrounds.bgAuthSky.path,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
     );
   }
 }

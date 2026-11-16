@@ -3,6 +3,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:wings_of_power_app/app/core/theme/app_gradients.dart'
+    show AppBackgroundKind;
+import 'package:wings_of_power_app/app/global/widgets/app_scaffold.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 import '../controllers/game_mode_select_controller.dart';
 
@@ -11,22 +14,9 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF7822B7),
-              Color(0xFF5D1D9B),
-              Color(0xFF4C157E),
-            ],
-          ),
-        ),
-        child: SafeArea(
+    return AppScaffold(
+      background: AppBackgroundKind.game,
+      body: SafeArea(
           child: Column(
             children: [
               SizedBox(height: 12.h),
@@ -111,7 +101,6 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
             ],
           ),
         ),
-      ),
     );
   }
 

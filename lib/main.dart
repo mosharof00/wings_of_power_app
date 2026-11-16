@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 
 import 'app/core/config/app_config.dart';
 import 'app/core/services/local_store_service.dart';
+import 'app/core/theme/app_gradients.dart';
 import 'app/core/theme/app_theme.dart';
 import 'app/data/repositories/app_repository_binding.dart';
 import 'app/routes/app_pages.dart';
@@ -35,8 +36,16 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
 
         theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
         themeMode: ThemeMode.light,
+
+        // Default sky gradient under every route. Game screens override with
+        // [AppScaffold] `background: AppBackgroundKind.game` (or their own art).
+        builder: (context, child) {
+          return DecoratedBox(
+            decoration: const BoxDecoration(gradient: AppGradients.app),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
 
         initialRoute: AppPages.INITIAL,
         getPages: AppPages.routes,

@@ -29,9 +29,14 @@ class AppColor {
   /// Points-chip coin. Home.png at (600, 240) on the 3× frame.
   static const Color coin = Color(0xFF9A6204);
 
-  // ── Light theme surfaces ──────────────────────────────
-  /// Sky page background. Splash Screen.png top sample.
-  static const Color background = Color(0xFFC4EAFE);
+  // ── App sky gradient (design `bg` export) ─────────────
+  static const Color skyTop = Color(0xFFB7E7FE);
+  static const Color skyMid = Color(0xFFC7ECFE);
+  static const Color skyBottom = Color(0xFFFDFEFF);
+
+  // ── Surfaces ─────────────────────────────────────────
+  /// Flat fallback / theme seed — prefer [AppGradients.app] via [AppScaffold].
+  static const Color background = skyTop;
 
   /// Cream cards, banners, and the logout sheet.
   static const Color cream = Color(0xFFFFF6DE);

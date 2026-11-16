@@ -1,24 +1,25 @@
 import '../../core/network/api_exception.dart';
 import '../models/auth_models/join_code_model.dart';
 
-/// Fixture for `POST /api/auth/student/join-code` until T-BE-010.
+/// Fixture for `POST /api/auth/student/join-code` when [AppConfig.useMocks].
 ///
-/// `123456` succeeds, `000000` is expired, any other code is wrong.
+/// Matches backend seed / admin format: 6-digit numeric codes.
 class JoinCodeMock {
   JoinCodeMock._();
 
-  static const successCode = '123456';
+  static const successCode = '864320';
   static const expiredCode = '000000';
 
   static JoinCodePreview resolve(String code) {
-    if (code == successCode) {
+    final normalized = code.trim();
+    if (normalized == successCode) {
       return const JoinCodePreview(
-        className: 'Grade 5',
-        teacherName: 'Ms. Smith',
-        classId: 'grade-5-ms-smith',
+        className: 'Grade 4 · Amber',
+        teacherName: 'Demo Teacher',
+        classId: 'grade-4-amber',
       );
     }
-    if (code == expiredCode) {
+    if (normalized == expiredCode) {
       throw ApiException('EXPIRED', statusCode: 422);
     }
     throw ApiException('WRONG_CODE', statusCode: 404);

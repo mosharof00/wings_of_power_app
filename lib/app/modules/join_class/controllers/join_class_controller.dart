@@ -11,11 +11,11 @@ class JoinClassController extends GetxController {
   JoinClassController(this._auth);
 
   final IAuthRepository _auth;
-  final codeController = TextEditingController();
+  final pinController = TextEditingController();
   final focusNode = FocusNode();
 
   final step = JoinStep.entry.obs;
-  final digits = ''.obs;
+  final code = ''.obs;
   final submitting = false.obs;
 
   /// Kept for the register call in T-APP-007.
@@ -23,24 +23,30 @@ class JoinClassController extends GetxController {
   String? className;
   String? teacherName;
 
+  static const codeLength = 6;
+
+  bool get canSubmit => code.value.length == codeLength;
+
   void onCodeChanged(String raw) {
-    final clipped = raw.replaceAll(RegExp(r'\D'), '');
-    final next = clipped.length > 6 ? clipped.substring(0, 6) : clipped;
-    if (next != codeController.text) {
-      codeController.value = TextEditingValue(
-        text: next,
-        selection: TextSelection.collapsed(offset: next.length),
-      );
+    final next = raw.replaceAll(RegExp(r'\D'), '');
+    final clipped =
+        next.length > codeLength ? next.substring(0, codeLength) : next;
+    code.value = clipped;
+  }
+
+  void onCodeCompleted(String raw) {
+    onCodeChanged(raw);
+    if (canSubmit) {
+      focusNode.unfocus();
+      submit();
     }
-    digits.value = next;
-    if (next.length == 6) focusNode.unfocus();
   }
 
   Future<void> submit() async {
-    if (digits.value.length < 6 || submitting.value) return;
+    if (!canSubmit || submitting.value) return;
     submitting.value = true;
     try {
-      final preview = await _auth.joinCode(code: digits.value);
+      final preview = await _auth.joinCode(code: code.value);
       classId = preview.classId;
       className = preview.className;
       teacherName = preview.teacherName;
@@ -54,8 +60,8 @@ class JoinClassController extends GetxController {
   }
 
   void backToCode() {
-    codeController.clear();
-    digits.value = '';
+    pinController.clear();
+    code.value = '';
     classId = null;
     className = null;
     teacherName = null;
@@ -69,7 +75,7 @@ class JoinClassController extends GetxController {
     Get.toNamed(
       Routes.ACCOUNT_SETUP,
       arguments: {
-        'code': digits.value,
+        'code': code.value,
         'classId': classId,
       },
     );
@@ -83,7 +89,7 @@ class JoinClassController extends GetxController {
 
   @override
   void onClose() {
-    codeController.dispose();
+    pinController.dispose();
     focusNode.dispose();
     super.onClose();
   }
