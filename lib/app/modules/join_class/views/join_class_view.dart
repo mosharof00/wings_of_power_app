@@ -1,6 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +8,7 @@ import 'package:pinput/pinput.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../core/theme/app_color.dart';
 import '../../../global/widgets/app_scaffold.dart';
+import '../../../global/widgets/app_sunburst_background.dart';
 import '../../../global/widgets/global_button.dart';
 import '../controllers/join_class_controller.dart';
 
@@ -114,6 +114,22 @@ class _CodeEntry extends GetView<JoinClassController> {
                 onChanged: controller.onCodeChanged,
                 onCompleted: controller.onCodeCompleted,
               ),
+              Obx(() {
+                final message = controller.networkError.value;
+                if (message.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: EdgeInsets.only(top: 16.h),
+                  child: Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.error,
+                    ),
+                  ),
+                );
+              }),
               const Spacer(),
               Obx(
                 () => GlobalButton(
@@ -179,7 +195,15 @@ class _CodeMessage extends GetView<JoinClassController> {
               width: 320.w,
               fit: BoxFit.contain,
               alignment: Alignment.topRight,
-            ),
+            )
+                .animate()
+                .fadeIn(duration: 500.ms)
+                .slideX(
+                  begin: -0.45,
+                  end: 0,
+                  duration: 900.ms,
+                  curve: Curves.easeOutCubic,
+                ),
           ),
           SafeArea(
             child: Padding(
@@ -230,7 +254,12 @@ class _JoinedClass extends GetView<JoinClassController> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const CustomPaint(painter: _SunburstPainter()),
+          // Origin sits behind the check badge (~38% from top).
+          const Positioned.fill(
+            child: AppSunburstBackground(
+              centerAlignment: Alignment(0, -0.13),
+            ),
+          ),
           SafeArea(
             child: Padding(
               padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
@@ -285,32 +314,4 @@ class _JoinedClass extends GetView<JoinClassController> {
       ),
     );
   }
-}
-
-class _SunburstPainter extends CustomPainter {
-  const _SunburstPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.38);
-    final paint = Paint()..color = const Color(0xFFDCC4B5);
-    const rays = 16;
-    final sweep = math.pi * 2 / rays;
-    final radius = size.longestSide;
-    for (var i = 0; i < rays; i += 2) {
-      final path = Path()
-        ..moveTo(center.dx, center.dy)
-        ..arcTo(
-          Rect.fromCircle(center: center, radius: radius),
-          -math.pi / 2 + i * sweep,
-          sweep * 0.72,
-          false,
-        )
-        ..close();
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

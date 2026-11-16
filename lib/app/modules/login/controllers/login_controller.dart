@@ -14,7 +14,7 @@ class LoginController extends GetxController {
   final username = TextEditingController();
   final password = TextEditingController();
 
-  final remember = false.obs;
+  final remember = true.obs;
   final obscure = true.obs;
   final submitting = false.obs;
   final isFormFilled = false.obs;
@@ -58,7 +58,7 @@ class LoginController extends GetxController {
         remember: remember.value,
       );
       if (session.status == 'PENDING') {
-        Get.offAllNamed(Routes.PENDING_APPROVAL);
+        Get.toNamed(Routes.PENDING_APPROVAL);
         return;
       }
       await HelperUtils.setUser(
@@ -70,7 +70,7 @@ class LoginController extends GetxController {
       Get.offAllNamed(Routes.MAIN_PAGE);
     } on ApiException catch (e) {
       if (e.statusCode == 422 && e.message.toUpperCase().contains('PENDING')) {
-        Get.offAllNamed(Routes.PENDING_APPROVAL);
+        Get.toNamed(Routes.PENDING_APPROVAL);
         return;
       }
       error.value = e.statusCode == 401

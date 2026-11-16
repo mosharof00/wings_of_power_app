@@ -17,6 +17,7 @@ class JoinClassController extends GetxController {
   final step = JoinStep.entry.obs;
   final code = ''.obs;
   final submitting = false.obs;
+  final networkError = ''.obs;
 
   /// Kept for the register call in T-APP-007.
   String? classId;
@@ -26,6 +27,16 @@ class JoinClassController extends GetxController {
   static const codeLength = 6;
 
   bool get canSubmit => code.value.length == codeLength;
+
+  bool _isNetworkFailure(ApiException error) {
+    final code = error.statusCode;
+    if (code != null) return false;
+    final message = error.message.toLowerCase();
+    return message.contains('timeout') ||
+        message.contains('internet') ||
+        message.contains('connection') ||
+        message.contains('timed out');
+  }
 
   void onCodeChanged(String raw) {
     final next = raw.replaceAll(RegExp(r'\D'), '');
@@ -45,6 +56,7 @@ class JoinClassController extends GetxController {
   Future<void> submit() async {
     if (!canSubmit || submitting.value) return;
     submitting.value = true;
+    networkError.value = '';
     try {
       final preview = await _auth.joinCode(code: code.value);
       classId = preview.classId;
@@ -52,6 +64,11 @@ class JoinClassController extends GetxController {
       teacherName = preview.teacherName;
       step.value = JoinStep.success;
     } on ApiException catch (error) {
+      if (_isNetworkFailure(error)) {
+        networkError.value =
+            'Cannot reach the server (${error.message}). Check Wi‑Fi and that the API is running.';
+        return;
+      }
       step.value =
           error.statusCode == 422 ? JoinStep.expired : JoinStep.wrong;
     } finally {
@@ -62,6 +79,7 @@ class JoinClassController extends GetxController {
   void backToCode() {
     pinController.clear();
     code.value = '';
+    networkError.value = '';
     classId = null;
     className = null;
     teacherName = null;

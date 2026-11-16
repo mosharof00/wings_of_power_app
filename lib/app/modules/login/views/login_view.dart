@@ -7,6 +7,7 @@ import '../../../../gen/assets.gen.dart';
 import '../../../core/theme/app_color.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../global/widgets/app_input_text_form_field.dart';
+import '../../../global/widgets/app_scaffold.dart';
 import '../../../global/widgets/global_button.dart';
 import '../controllers/login_controller.dart';
 
@@ -15,75 +16,68 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppColor.background,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(Assets.backgrounds.bgAuthSky.path, fit: BoxFit.cover),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24.w, 36.h, 24.w, 24.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Image.asset(
-                    Assets.logos.logoWordmark.path,
-                    width: 230.w,
-                    height: 120.h,
-                    fit: BoxFit.contain,
-                  ),
-                  SizedBox(height: 48.h),
-                  _LipField(
-                    child: TextFormField(
-                      controller: controller.username,
-                      textInputAction: TextInputAction.next,
-                      style: _fieldStyle(),
-                      decoration: _decoration(
-                        context,
-                        hint: 'User Name',
-                        icon: Icons.person_outline,
-                      ),
-                      onChanged: (_) => controller.clearError(),
-                    ),
-                  ),
-                  SizedBox(height: 14.h),
-                  const _PasswordField(),
-                  SizedBox(height: 16.h),
-                  const _RememberRow(),
-                  Obx(() {
-                    final message = controller.error.value;
-                    if (message.isEmpty) return const SizedBox.shrink();
-                    return Padding(
-                      padding: EdgeInsets.only(top: 12.h),
-                      child: Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.nunito(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColor.error,
-                        ),
-                      ),
-                    );
-                  }),
-                  SizedBox(height: 18.h),
-                  Obx(
-                    () => GlobalButton(
-                      text: 'Let’s Get Started',
-                      isDisabled: !controller.isFormFilled.value,
-                      isLoading: controller.submitting.value,
-                      onTap: controller.submit,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  const _JoinLine(),
-                ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24.w, 36.h, 24.w, 24.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Image.asset(
+                Assets.logos.logoWordmark.path,
+                width: 230.w,
+                height: 120.h,
+                fit: BoxFit.contain,
               ),
-            ),
+              SizedBox(height: 48.h),
+              _LipField(
+                child: TextFormField(
+                  controller: controller.username,
+                  textInputAction: TextInputAction.next,
+                  style: _fieldStyle(),
+                  decoration: _decoration(
+                    context,
+                    hint: 'User Name',
+                    icon: Icons.person_outline,
+                  ),
+                  onChanged: (_) => controller.clearError(),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              const _PasswordField(),
+              SizedBox(height: 16.h),
+              const _RememberRow(),
+              Obx(() {
+                final message = controller.error.value;
+                if (message.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: EdgeInsets.only(top: 12.h),
+                  child: Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColor.error,
+                    ),
+                  ),
+                );
+              }),
+              SizedBox(height: 18.h),
+              Obx(
+                () => GlobalButton(
+                  text: 'Let’s Get Started',
+                  isDisabled: !controller.isFormFilled.value,
+                  isLoading: controller.submitting.value,
+                  onTap: controller.submit,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              const _JoinLine(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

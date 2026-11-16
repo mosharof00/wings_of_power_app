@@ -19,12 +19,17 @@ abstract class IAuthRepository {
 
   Future<JoinCodePreview> joinCode({required String code});
 
+  Future<bool> checkUsernameAvailable(String username);
+
   Future<RegisterResult> registerStudent({
     required String code,
     required String username,
     required String password,
+    required String confirmPassword,
     required String nickname,
     required String realName,
+    required int age,
+    String? avatarUrl,
   });
 
   Future<UserModel> getMe();
@@ -82,20 +87,54 @@ class AuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<bool> checkUsernameAvailable(String username) async {
+    if (AppConfig.useMocks) {
+      return RegisterMock.isUsernameAvailable(username);
+    }
+    return _client.handleRequest(
+      () => _client.dio.get(
+        ApiEndpoint.studentCheckUsername,
+        queryParameters: {'username': username},
+      ),
+      (dynamic data) {
+        final body = data is Map<String, dynamic>
+            ? data
+            : data is Map
+                ? Map<String, dynamic>.from(data)
+                : <String, dynamic>{};
+        final raw = body['data'];
+        final payload = raw is Map<String, dynamic>
+            ? raw
+            : raw is Map
+                ? Map<String, dynamic>.from(raw)
+                : body;
+        return payload['available'] == true;
+      },
+      'Check username',
+    );
+  }
+
+  @override
   Future<RegisterResult> registerStudent({
     required String code,
     required String username,
     required String password,
+    required String confirmPassword,
     required String nickname,
     required String realName,
+    required int age,
+    String? avatarUrl,
   }) async {
     if (AppConfig.useMocks) {
       return RegisterMock.submit(
         code: code,
         username: username,
         password: password,
+        confirmPassword: confirmPassword,
         nickname: nickname,
         realName: realName,
+        age: age,
+        avatarUrl: avatarUrl,
       );
     }
     return _client.handleRequest(
@@ -105,8 +144,11 @@ class AuthRepository implements IAuthRepository {
           'code': code,
           'username': username,
           'password': password,
+          'confirmPassword': confirmPassword,
           'nickname': nickname,
           'realName': realName,
+          'age': age,
+          if (avatarUrl != null && avatarUrl.isNotEmpty) 'avatarUrl': avatarUrl,
         },
       ),
       (dynamic data) =>

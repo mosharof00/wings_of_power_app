@@ -17,6 +17,9 @@ class AppColor {
   /// Average of red pixels on Wrong Code.png. The sample includes the illustration.
   static const Color error = Color(0xFFB4513C);
 
+  /// Positive field feedback (e.g. username available).
+  static const Color success = Color(0xFF2F8F5B);
+
   /// Splash wordmark body. Splash Screen.png at (480, 880) on the 2× frame.
   static const Color gold = Color(0xFFFBC841);
 
