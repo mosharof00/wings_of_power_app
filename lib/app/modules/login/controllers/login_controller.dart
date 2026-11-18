@@ -36,8 +36,25 @@ class LoginController extends GetxController {
 
   void toggleObscure() => obscure.value = !obscure.value;
 
-  /// Drawn on Login-1.png. No student reset screen exists, so this stays here.
-  void forgotPassword() {}
+  void forgotPassword() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Need a new password?'),
+        content: const Text(
+          'That’s okay, little hero!\n\n'
+          'Ask your teacher or school helper. '
+          'They can give you a new password so you can sign in again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Got it!'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void openJoin() => Get.toNamed(Routes.JOIN_CLASS);
 
