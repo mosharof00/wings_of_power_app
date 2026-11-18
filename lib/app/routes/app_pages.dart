@@ -12,7 +12,6 @@ import '../modules/game/bindings/game_binding.dart';
 import '../modules/game/views/game_mode_select_view.dart';
 import '../modules/game/views/game_results_view.dart';
 import '../modules/heroes/bindings/heroes_binding.dart';
-import '../modules/heroes/views/character_choose_view.dart';
 import '../modules/heroes/views/hero_roster_view.dart';
 import '../modules/heroes/views/power_hero_view.dart';
 import '../modules/home/bindings/home_binding.dart';
@@ -97,11 +96,6 @@ class AppPages {
     GetPage(
       name: _Paths.PENDING_APPROVAL,
       page: () => const PendingApprovalView(),
-    ),
-    GetPage(
-      name: _Paths.CHARACTER_CHOOSE,
-      page: () => const CharacterChooseView(),
-      binding: HeroesBinding(),
     ),
     GetPage(
       name: _Paths.POWER_HERO,

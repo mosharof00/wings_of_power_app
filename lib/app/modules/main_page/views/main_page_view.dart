@@ -21,6 +21,7 @@ class MainPageView extends GetView<MainPageController> {
       },
       child: Scaffold(
         backgroundColor: AppColor.background,
+        extendBody: true,
         body: Obx(() {
           final index = controller.selectedIndex.value;
           return IndexedStack(
@@ -33,10 +34,19 @@ class MainPageView extends GetView<MainPageController> {
             ],
           );
         }),
-        bottomNavigationBar: Obx(
-          () => StudentBottomNav(
-            selectedIndex: controller.selectedIndex.value,
-            onTap: controller.onNavTap,
+        bottomNavigationBar: Theme(
+          data: Theme.of(context).copyWith(
+            canvasColor: Colors.transparent,
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
+          ),
+          child: Obx(
+            () => StudentBottomNav(
+              selectedIndex: controller.selectedIndex.value,
+              onTap: controller.onNavTap,
+            ),
           ),
         ),
       ),

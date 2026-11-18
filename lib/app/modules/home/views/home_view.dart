@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/home_models.dart';
+import 'package:wings_of_power_app/app/global/widgets/app_scaffold.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/search_field.dart';
@@ -21,8 +22,8 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColor.background,
+    return AppScaffold(
+      // backgroundColor: AppColor.background,
       body: Stack(
         children: [
           // Fluffy sky clouds background at the top
@@ -31,8 +32,8 @@ class HomeView extends GetView<HomeController> {
             left: 0,
             right: 0,
             child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 110.h,
+              fit: BoxFit.cover,
+              // height: 110.h,
             ),
           ),
           SafeArea(
@@ -124,10 +125,8 @@ class HomeView extends GetView<HomeController> {
                         ),
                       ),
                       SizedBox(height: 24.h),
-                      // Explore More circles
                       HomeExploreMoreSection(
-                        onKindnessCornerTap: controller.onKindnessCornerTap,
-                        onAudioBooksTap: controller.onAudioBooksTap,
+                        onLeaderboardTap: controller.onLeaderboardTap,
                         onSafeSpaceReportTap: controller.onSafeSpaceReport,
                       ),
                       // Bottom bar clearance

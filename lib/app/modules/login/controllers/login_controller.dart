@@ -47,10 +47,7 @@ class LoginController extends GetxController {
           'They can give you a new password so you can sign in again.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Got it!'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Got it!')),
         ],
       ),
     );

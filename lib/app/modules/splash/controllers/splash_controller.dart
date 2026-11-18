@@ -11,12 +11,12 @@ class SplashController extends GetxController {
   }
 
   Future<void> navigateToScreen() async {
-    final isLoggedIn = await HelperUtils.checkLoginStatus()
-        .timeout(const Duration(seconds: 5), onTimeout: () => false);
+    final isLoggedIn = await HelperUtils.checkLoginStatus().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => false,
+    );
 
     if (isLoggedIn) {
-      // Account verification (PENDING) is T-APP-007. Until that screen exists,
-      // a session opens the home shell.
       Get.offAllNamed(Routes.MAIN_PAGE);
       return;
     }

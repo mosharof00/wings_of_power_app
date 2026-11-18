@@ -159,19 +159,17 @@ class HomeController extends GetxController {
   /// Navigates to story details.
   void onStoryTap(HomeStoryModel story) => _openStoryLibrary();
 
-  /// Safe Space Report opens T-APP-016 placeholder stub.
+  /// Safe Space Report opens T-APP-016.
   void onSafeSpaceReport() {
     Get.toNamed(Routes.SAFE_SPACE_REPORT);
   }
 
+  void onLeaderboardTap() {
+    Get.toNamed(Routes.LEADERBOARD);
+  }
+
   /// Notification Bell has no route (D14).
   void onBellTap() {}
-
-  /// Kindness Corner has no route (D14).
-  void onKindnessCornerTap() {}
-
-  /// Audio Books has no route (D14).
-  void onAudioBooksTap() {}
 
   void _openStoryLibrary() {
     if (Get.isRegistered<MainPageController>()) {

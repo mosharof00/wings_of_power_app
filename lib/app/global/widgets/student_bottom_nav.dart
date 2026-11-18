@@ -6,11 +6,11 @@ import 'package:wings_of_power_app/app/core/theme/app_radius.dart';
 import '../../../gen/assets.gen.dart';
 import 'app_svg_icon.dart';
 
-/// Orange pill with five icons and no labels.
+/// Orange floating pill with five icons. Scaffold chrome behind it stays
+/// transparent via [MainPageView] `extendBody`.
 ///
-/// Home, stories, badges, and profile report [onTap]. The basketball icon is
-/// drawn so the bar matches Home.png. Its tap is reported as index 2 and the
-/// shell leaves that handler empty (game plan T-GAME-001).
+/// Home, stories, badges, and profile report [onTap]. Basketball reports index 2
+/// and the shell leaves that handler empty (game plan T-GAME-001).
 class StudentBottomNav extends StatelessWidget {
   const StudentBottomNav({
     super.key,
@@ -23,14 +23,23 @@ class StudentBottomNav extends StatelessWidget {
 
   static const _labels = ['Home', 'Stories', 'Game', 'Badges', 'Profile'];
 
+  static const _selectedYellow = Color(0xFFFCCB24);
+
   @override
   Widget build(BuildContext context) {
-    final icons = [
-      Assets.icons.icNavHome,
-      Assets.icons.icNavStories,
-      Assets.icons.icNavGame,
-      Assets.icons.icNavBadges,
-      Assets.icons.icNavProfile,
+    final outline = [
+      Assets.icons.icHome,
+      Assets.icons.icBook,
+      Assets.icons.icBasketBall,
+      Assets.icons.icBadge,
+      Assets.icons.icProfile,
+    ];
+    final filled = [
+      Assets.icons.icHomeFill,
+      Assets.icons.icBookFill,
+      Assets.icons.icBasketBallFill,
+      Assets.icons.icBadgeFill,
+      Assets.icons.icProfileFill,
     ];
 
     return SafeArea(
@@ -45,7 +54,7 @@ class StudentBottomNav extends StatelessWidget {
           ),
           child: Row(
             children: [
-              for (var i = 0; i < icons.length; i++)
+              for (var i = 0; i < outline.length; i++)
                 Expanded(
                   child: Semantics(
                     button: true,
@@ -67,10 +76,10 @@ class StudentBottomNav extends StatelessWidget {
                           ),
                           alignment: Alignment.center,
                           child: AppSvgIcon(
-                            icons[i].path,
+                            (selectedIndex == i ? filled[i] : outline[i]).path,
                             size: 22.w,
                             color: selectedIndex == i
-                                ? AppColor.primary
+                                ? _selectedYellow
                                 : AppColor.white,
                           ),
                         ),

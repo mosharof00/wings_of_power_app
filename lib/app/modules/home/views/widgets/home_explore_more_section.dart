@@ -7,13 +7,11 @@ import 'package:wings_of_power_app/gen/assets.gen.dart';
 class HomeExploreMoreSection extends StatelessWidget {
   const HomeExploreMoreSection({
     super.key,
-    this.onKindnessCornerTap,
-    this.onAudioBooksTap,
+    this.onLeaderboardTap,
     this.onSafeSpaceReportTap,
   });
 
-  final VoidCallback? onKindnessCornerTap;
-  final VoidCallback? onAudioBooksTap;
+  final VoidCallback? onLeaderboardTap;
   final VoidCallback? onSafeSpaceReportTap;
 
   @override
@@ -36,29 +34,21 @@ class HomeExploreMoreSection extends StatelessWidget {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildExploreItem(
-                image: Assets.images.exploreKindnessCorner.path,
-                title: 'Kindness\nCorner',
-                borderColor: const Color(0xFFFFE0B2),
-                backgroundColor: const Color(0xFFFFF6DE),
-                onTap: onKindnessCornerTap,
+              Expanded(
+                child: _ExploreCard(
+                  image: Assets.images.leaderboard.path,
+                  title: 'Leaderboard',
+                  onTap: onLeaderboardTap,
+                ),
               ),
-              _buildExploreItem(
-                image: Assets.images.exploreAudioBooks.path,
-                title: 'Audio\nBooks',
-                borderColor: const Color(0xFFE1BEE7),
-                backgroundColor: const Color(0xFFF3E5F5),
-                onTap: onAudioBooksTap,
-              ),
-              _buildExploreItem(
-                image: Assets.images.exploreSafeSpace.path,
-                title: 'Safe Space\nReport',
-                borderColor: const Color(0xFFFFCDD2),
-                backgroundColor: const Color(0xFFFFEBEE),
-                onTap: onSafeSpaceReportTap,
+              SizedBox(width: 12.w),
+              Expanded(
+                child: _ExploreCard(
+                  image: Assets.images.safeSpaceReport.path,
+                  title: 'Safe Space Report',
+                  onTap: onSafeSpaceReportTap,
+                ),
               ),
             ],
           ),
@@ -66,57 +56,63 @@ class HomeExploreMoreSection extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildExploreItem({
-    required String image,
-    required String title,
-    required Color borderColor,
-    required Color backgroundColor,
-    VoidCallback? onTap,
-  }) {
+class _ExploreCard extends StatelessWidget {
+  const _ExploreCard({
+    required this.image,
+    required this.title,
+    this.onTap,
+  });
+
+  final String image;
+  final String title;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 90.w,
-        child: Column(
-          children: [
-            Container(
-              width: 72.w,
-              height: 72.w,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 1.6,
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: backgroundColor,
-                border: Border.all(color: borderColor, width: 2.w),
+                color: AppColor.white,
+                borderRadius: BorderRadius.circular(18.r),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: ClipOval(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18.r),
                 child: Image.asset(
                   image,
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-            SizedBox(height: 8.h),
-            AppText(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                color: AppColor.secondary,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.sp,
-                height: 1.2,
-              ),
+          ),
+          SizedBox(height: 8.h),
+          AppText(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: TextStyle(
+              color: AppColor.secondary,
+              fontWeight: FontWeight.w700,
+              fontSize: 13.sp,
+              height: 1.2,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+import '../../core/services/local_store_service.dart';
 import '../models/hero_models.dart';
 
 /// Fixture for hero roster and selection until T-BE-014.
@@ -6,6 +7,20 @@ class HeroesMock {
 
   static bool allUnlockedOverride = false;
   static String? selectedIdOverride;
+
+  static const selectedHeroKey = 'selected_hero_id';
+
+  /// Null until the student picks a hero on the first-login grid.
+  static String? get chosenId {
+    if (selectedIdOverride != null && selectedIdOverride!.isNotEmpty) {
+      return selectedIdOverride;
+    }
+    final stored = HiveService.read<String>(selectedHeroKey);
+    if (stored == null || stored.isEmpty) return null;
+    return stored;
+  }
+
+  static bool get hasChosenHero => chosenId != null;
 
   static final List<HeroModel> _defaultHeroes = [
     const HeroModel(
@@ -38,7 +53,7 @@ class HeroesMock {
       sortOrder: 2,
       unlockStoriesRequired: 0,
       isUnlocked: true,
-      isSelected: true,
+      isSelected: false,
     ),
     const HeroModel(
       id: 'hero-michael',
@@ -141,12 +156,12 @@ class HeroesMock {
   ];
 
   static List<HeroModel> getHeroes() {
-    final activeId = selectedIdOverride ?? 'hero-michele';
+    final activeId = chosenId;
     return _defaultHeroes.map((hero) {
       final unlocked = allUnlockedOverride || hero.isUnlocked;
       return hero.copyWith(
         isUnlocked: unlocked,
-        isSelected: hero.id == activeId,
+        isSelected: activeId != null && hero.id == activeId,
       );
     }).toList();
   }
@@ -161,12 +176,17 @@ class HeroesMock {
       throw Exception('Cannot select locked hero: $id');
     }
     selectedIdOverride = id;
+    HiveService.write(selectedHeroKey, id);
     return target.copyWith(isSelected: true);
   }
 
   static HeroModel get selectedHero {
     final heroes = getHeroes();
-    return heroes.firstWhere((h) => h.isSelected, orElse: () => heroes[1]);
+    return heroes.firstWhere(
+      (h) => h.isSelected,
+      orElse: () =>
+          heroes.firstWhere((h) => h.isUnlocked, orElse: () => heroes.first),
+    );
   }
 
   static List<HeroModel> get unlockedHeroes {

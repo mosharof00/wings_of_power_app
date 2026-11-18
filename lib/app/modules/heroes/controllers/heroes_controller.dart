@@ -1,13 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/mocks/heroes.dart';
 import 'package:wings_of_power_app/app/data/models/hero_models.dart';
 import 'package:wings_of_power_app/app/data/repositories/auth_repository.dart';
 import 'package:wings_of_power_app/app/data/repositories/hero_repository.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
+
 import '../views/widgets/hero_confirm_dialog.dart';
-import '../views/widgets/hero_detail_sheet.dart';
 import '../views/widgets/hero_locked_dialog.dart';
 
 enum HeroSignupStep { grid, detail, ready }
@@ -39,9 +37,7 @@ class HeroesController extends GetxController {
     try {
       final list = await _heroRepo.getHeroes();
       heroes.assignAll(list);
-      final current = list.firstWhereOrNull((h) => h.isSelected) ??
-          list.firstWhereOrNull((h) => h.code == 'MICHELE') ??
-          list.firstOrNull;
+      final current = list.firstWhereOrNull((h) => h.isSelected);
       activeHero.value = current;
       previewHero.value = current;
     } finally {
@@ -50,10 +46,6 @@ class HeroesController extends GetxController {
   }
 
   void onSignupHeroTapped(HeroModel hero) {
-    if (!hero.isUnlocked) {
-      showLockedDialog(hero);
-      return;
-    }
     previewHero.value = hero;
     signupStep.value = HeroSignupStep.detail;
   }
@@ -79,10 +71,11 @@ class HeroesController extends GetxController {
     isSelecting.value = true;
     try {
       final selected = await _heroRepo.selectHero(hero.id);
-      activeHero.value = selected;
-      previewHero.value = selected;
+      final shown = _keptHero(hero, selected);
+      activeHero.value = shown;
+      previewHero.value = shown;
       final updated = heroes.map((h) {
-        return h.copyWith(isSelected: h.id == selected.id);
+        return h.copyWith(isSelected: h.id == hero.id);
       }).toList();
       heroes.assignAll(updated);
       signupStep.value = HeroSignupStep.ready;
@@ -114,13 +107,9 @@ class HeroesController extends GetxController {
     }
   }
 
-  void onRosterHeroTapped(HeroModel hero, BuildContext context) {
-    if (!hero.isUnlocked) {
-      showLockedDialog(hero);
-      return;
-    }
+  void onRosterHeroTapped(HeroModel hero) {
     previewHero.value = hero;
-    showRosterHeroDetail(hero, context);
+    signupStep.value = HeroSignupStep.detail;
   }
 
   Future<void> selectRosterHero(HeroModel hero) async {
@@ -128,17 +117,41 @@ class HeroesController extends GetxController {
     isSelecting.value = true;
     try {
       final selected = await _heroRepo.selectHero(hero.id);
-      activeHero.value = selected;
+      final shown = _keptHero(hero, selected);
+      activeHero.value = shown;
+      previewHero.value = shown;
       final updated = heroes.map((h) {
-        return h.copyWith(isSelected: h.id == selected.id);
+        return h.copyWith(isSelected: h.id == hero.id);
       }).toList();
       heroes.assignAll(updated);
       if (Get.isBottomSheetOpen ?? false) {
         Get.back();
       }
+      signupStep.value = HeroSignupStep.ready;
     } finally {
       isSelecting.value = false;
     }
+  }
+
+  /// Select response is the user payload. Keep the tapped hero's name,
+  /// quote, and portrait when those fields come back empty.
+  HeroModel _keptHero(HeroModel tapped, HeroModel fromApi) {
+    String pick(String apiValue, String local) =>
+        apiValue.trim().isNotEmpty ? apiValue : local;
+    final code = pick(fromApi.code, tapped.code);
+    return tapped.copyWith(
+      code: code,
+      displayName: pick(fromApi.displayName, tapped.displayName),
+      roleTitle: pick(fromApi.roleTitle, tapped.roleTitle),
+      bulliedFor: pick(fromApi.bulliedFor, tapped.bulliedFor),
+      powerCode: pick(fromApi.powerCode, tapped.powerCode),
+      powerLabel: pick(fromApi.powerLabel, tapped.powerLabel),
+      powerDescription: pick(fromApi.powerDescription, tapped.powerDescription),
+      quote: pick(fromApi.quote, tapped.quote),
+      assetPath: heroAssetForCode(code),
+      isSelected: true,
+      isUnlocked: true,
+    );
   }
 
   void exploreStories() {
@@ -163,23 +176,4 @@ class HeroesController extends GetxController {
     );
   }
 
-  void showRosterHeroDetail(HeroModel hero, BuildContext context) {
-    Get.bottomSheet(
-      Container(
-        height: 680.h,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: HeroDetailContent(
-          hero: hero,
-          isSignup: false,
-          onBack: () => Get.back(),
-          onChoose: () => selectRosterHero(hero),
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
 }

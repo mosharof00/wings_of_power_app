@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/hero_models.dart';
 import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
@@ -205,10 +206,7 @@ class _GameChooseHeroDialogState extends State<GameChooseHeroDialog> {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF6EB),
           borderRadius: BorderRadius.circular(28.r),
-          border: Border.all(
-            color: const Color(0xFFFFDFC8),
-            width: 1.5,
-          ),
+          border: Border.all(color: const Color(0xFFFFDFC8), width: 1.5),
           boxShadow: const [
             BoxShadow(
               color: Color(0x33000000),
@@ -267,9 +265,7 @@ class _GameChooseHeroDialogState extends State<GameChooseHeroDialog> {
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 40.h),
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFE86726),
-                  ),
+                  child: CircularProgressIndicator(color: Color(0xFFE86726)),
                 ),
               )
             else if (_errorMessage != null)
@@ -323,8 +319,8 @@ class _GameChooseHeroDialogState extends State<GameChooseHeroDialog> {
                             color: isSelected
                                 ? const Color(0xFFE86726)
                                 : (isUnlocked
-                                    ? const Color(0xFFFFDFC8)
-                                    : const Color(0xFFE5E7EB)),
+                                      ? const Color(0xFFFFDFC8)
+                                      : const Color(0xFFE5E7EB)),
                             width: isSelected ? 2.5.w : 1.w,
                           ),
                           boxShadow: isSelected
@@ -364,16 +360,15 @@ class _GameChooseHeroDialogState extends State<GameChooseHeroDialog> {
                                         ),
                                         if (!isUnlocked)
                                           Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.65),
+                                            width: 36.w,
+                                            height: 36.w,
+                                            padding: EdgeInsets.all(6.w),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
                                               shape: BoxShape.circle,
                                             ),
-                                            padding: EdgeInsets.all(6.w),
-                                            child: Icon(
-                                              Icons.lock_rounded,
-                                              size: 22.sp,
-                                              color: const Color(0xFF6B7280),
+                                            child: SvgPicture.asset(
+                                              'assets/icons/ic_lock.svg',
                                             ),
                                           ),
                                       ],

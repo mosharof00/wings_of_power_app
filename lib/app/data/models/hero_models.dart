@@ -97,9 +97,7 @@ class HeroModel {
           json['powerDescription']?.toString() ??
           '',
       quote: json['quote']?.toString() ?? '',
-      assetPath: json['asset_path']?.toString() ??
-          json['assetPath']?.toString() ??
-          'assets/characters/hero_${json['code']?.toString().toLowerCase() ?? 'faith'}.png',
+      assetPath: heroAssetForCode(json['code']?.toString() ?? ''),
       artUrl: json['art_url']?.toString() ?? json['artUrl']?.toString(),
       sortOrder: (json['sort_order'] ?? json['sortOrder'] ?? 0) as int,
       unlockStoriesRequired: (json['unlock_stories_required'] ??
@@ -128,5 +126,34 @@ class HeroModel {
       'is_unlocked': isUnlocked,
       'is_selected': isSelected,
     };
+  }
+}
+
+/// Local portrait for a hero code. API code `CHI` is the Chi Sung file.
+String heroAssetForCode(String code) {
+  switch (code.trim().toUpperCase()) {
+    case 'FAITH':
+      return 'assets/characters/hero_faith.png';
+    case 'MICHELE':
+      return 'assets/characters/hero_michele.png';
+    case 'MICHAEL':
+      return 'assets/characters/hero_michael.png';
+    case 'SAMANTHA':
+      return 'assets/characters/hero_samantha.png';
+    case 'CHI':
+    case 'CHI_SUNG':
+    case 'CHISUNG':
+      return 'assets/characters/hero_chi_sung.png';
+    case 'RALPH':
+      return 'assets/characters/hero_ralph.png';
+    case 'HAROLD':
+      return 'assets/characters/hero_harold.png';
+    case 'EVELYA':
+    case 'EVELYN':
+      return 'assets/characters/hero_evelya.png';
+    default:
+      final slug = code.trim().toLowerCase();
+      if (slug.isEmpty) return 'assets/characters/hero_faith.png';
+      return 'assets/characters/hero_$slug.png';
   }
 }

@@ -42,9 +42,9 @@ class HeroRepository implements IHeroRepository {
     return _client.handleRequest(
       () => _client.dio.post(ApiEndpoint.heroSelect(id)),
       (dynamic data) {
-        final map = (data is Map && data['data'] is Map)
-            ? data['data'] as Map
-            : (data is Map ? data : {'id': id});
+        Map map = data is Map ? data : {'id': id};
+        if (map['data'] is Map) map = map['data'] as Map;
+        if (map['hero'] is Map) map = map['hero'] as Map;
         return HeroModel.fromJson(Map<String, dynamic>.from(map));
       },
       'Select Hero',

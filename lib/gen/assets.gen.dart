@@ -232,12 +232,44 @@ class $AssetsIconsGen {
   SvgGenImage get icAudioBooks =>
       const SvgGenImage('assets/icons/ic_audio_books.svg');
 
+  /// File path: assets/icons/ic_badge.svg
+  SvgGenImage get icBadge => const SvgGenImage('assets/icons/ic_badge.svg');
+
+  /// File path: assets/icons/ic_badge_fill.svg
+  SvgGenImage get icBadgeFill =>
+      const SvgGenImage('assets/icons/ic_badge_fill.svg');
+
+  /// File path: assets/icons/ic_basket_ball.svg
+  SvgGenImage get icBasketBall =>
+      const SvgGenImage('assets/icons/ic_basket_ball.svg');
+
+  /// File path: assets/icons/ic_basket_ball_fill.svg
+  SvgGenImage get icBasketBallFill =>
+      const SvgGenImage('assets/icons/ic_basket_ball_fill.svg');
+
   /// File path: assets/icons/ic_bell.svg
   SvgGenImage get icBell => const SvgGenImage('assets/icons/ic_bell.svg');
+
+  /// File path: assets/icons/ic_book.svg
+  SvgGenImage get icBook => const SvgGenImage('assets/icons/ic_book.svg');
+
+  /// File path: assets/icons/ic_book_fill.svg
+  SvgGenImage get icBookFill =>
+      const SvgGenImage('assets/icons/ic_book_fill.svg');
+
+  /// File path: assets/icons/ic_home.svg
+  SvgGenImage get icHome => const SvgGenImage('assets/icons/ic_home.svg');
+
+  /// File path: assets/icons/ic_home_fill.svg
+  SvgGenImage get icHomeFill =>
+      const SvgGenImage('assets/icons/ic_home_fill.svg');
 
   /// File path: assets/icons/ic_kindness_corner.svg
   SvgGenImage get icKindnessCorner =>
       const SvgGenImage('assets/icons/ic_kindness_corner.svg');
+
+  /// File path: assets/icons/ic_lock.svg
+  SvgGenImage get icLock => const SvgGenImage('assets/icons/ic_lock.svg');
 
   /// File path: assets/icons/ic_nav_badges.svg
   SvgGenImage get icNavBadges =>
@@ -263,9 +295,16 @@ class $AssetsIconsGen {
   SvgGenImage get icPointsCoin =>
       const SvgGenImage('assets/icons/ic_points_coin.svg');
 
+  /// File path: assets/icons/ic_profile.svg
+  SvgGenImage get icProfile => const SvgGenImage('assets/icons/ic_profile.svg');
+
   /// File path: assets/icons/ic_profile_badges.svg
   SvgGenImage get icProfileBadges =>
       const SvgGenImage('assets/icons/ic_profile_badges.svg');
+
+  /// File path: assets/icons/ic_profile_fill.svg
+  SvgGenImage get icProfileFill =>
+      const SvgGenImage('assets/icons/ic_profile_fill.svg');
 
   /// File path: assets/icons/ic_profile_hero.svg
   SvgGenImage get icProfileHero =>
@@ -310,15 +349,26 @@ class $AssetsIconsGen {
   List<SvgGenImage> get values => [
     backArrowIcon,
     icAudioBooks,
+    icBadge,
+    icBadgeFill,
+    icBasketBall,
+    icBasketBallFill,
     icBell,
+    icBook,
+    icBookFill,
+    icHome,
+    icHomeFill,
     icKindnessCorner,
+    icLock,
     icNavBadges,
     icNavGame,
     icNavHome,
     icNavProfile,
     icNavStories,
     icPointsCoin,
+    icProfile,
     icProfileBadges,
+    icProfileFill,
     icProfileHero,
     icProfileLeaderboard,
     icProfileNotifications,
@@ -403,9 +453,21 @@ class $AssetsImagesGen {
   AssetGenImage get exploreSafeSpace =>
       const AssetGenImage('assets/images/explore_safe_space.png');
 
+  /// File path: assets/images/leaderboard.png
+  AssetGenImage get leaderboard =>
+      const AssetGenImage('assets/images/leaderboard.png');
+
   /// File path: assets/images/placeholder_image.jpg
   AssetGenImage get placeholderImage =>
       const AssetGenImage('assets/images/placeholder_image.jpg');
+
+  /// File path: assets/images/play_game_card.png
+  AssetGenImage get playGameCard =>
+      const AssetGenImage('assets/images/play_game_card.png');
+
+  /// File path: assets/images/safe_space_report.png
+  AssetGenImage get safeSpaceReport =>
+      const AssetGenImage('assets/images/safe_space_report.png');
 
   /// List of all assets
   List<AssetGenImage> get values => [
@@ -426,7 +488,10 @@ class $AssetsImagesGen {
     exploreAudioBooks,
     exploreKindnessCorner,
     exploreSafeSpace,
+    leaderboard,
     placeholderImage,
+    playGameCard,
+    safeSpaceReport,
   ];
 }
 

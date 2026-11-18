@@ -327,11 +327,13 @@ class ChapterPageModel {
   }
 
   factory ChapterPageModel.fromJson(Map<String, dynamic> json) {
+    final rawBody = json['bodyText'] ?? json['body_text'] as String? ?? '';
     return ChapterPageModel(
       number: (json['number'] ?? json['pageNumber'] as num?)?.toInt() ?? 1,
       id: json['id'] as String?,
       chapterId: json['chapterId'] ?? json['chapter_id'] as String?,
-      bodyText: json['bodyText'] ?? json['body_text'] as String? ?? '',
+      // Dashboard may store HTML (D58); strip tags until Flutter HTML render ships.
+      bodyText: _stripHtmlTags(rawBody is String ? rawBody : ''),
       imageUrl: json['imageUrl'] ?? json['image_url'] as String?,
       assetPath: json['assetPath'] as String?,
       hasCheckpoint: json['hasCheckpoint'] as bool? ?? false,
@@ -446,5 +448,16 @@ class ChapterDetailModel {
         'hasQuiz': hasQuiz,
         if (quizId != null) 'quizId': quizId,
       };
+}
+
+String _stripHtmlTags(String value) {
+  return value
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<[^>]+>'), ' ')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll(RegExp(r'[ \t]+'), ' ')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
 }
 
