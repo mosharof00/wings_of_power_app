@@ -97,10 +97,11 @@ Mock until `T-BE-012`:
 - Implemented Story Library (`StoryLibraryView`), Story Details (`StoryDetailsView`), and components matching 375×812 designs.
 - Handled all three story details variants: new student (locked chapters), returning student (progress bar & completed checkmark), and retake quiz (chapter rows with Quiz links).
 - Implemented category and age group filter pills and modal sheets, supporting section row grouping and 2-column grid view when both filters are active.
-- Added search field toggling with shared empty state (`ShowEmptyResult`) on empty search results.
-- Added mock stories fixtures with "City of Thieves", "The Ties That Bind Us", "The Golden Pearl Book 1", "The Golden Pearl Book 2", and retake story.
-- Added story API endpoints and repository with `useMocks` support.
+- **Dynamic themes (D59):** library loads `GET /themes` + `GET /stories` (`themeId` / age / search). Sections built from API themes (no hardcoded Kindness/Courage duplicates). Covers via `CachedImage` + `placeholderImage`. Home category tap passes `themeId`.
+- Search field always visible; empty results use `ShowEmptyResult`.
+- Added mock stories fixtures with themeId mapping for offline mode.
 - Registered `IStoryRepository` in `AppRepositoryBinding` and wired book tab in `MainPageView` to `StoryLibraryView`.
+- Tests: `test/stories_controller_test.dart`, `test/story_library_view_test.dart`.
 - Added stub routes for T-APP-012 (`STORY_READER`), T-APP-013 (`STORY_LISTENING`), and T-APP-014 (`CHAPTER_QUIZ`).
-- Verified locked chapters prevent opening reader and display notification.
+- Verified on iPhone 18 Pro Max simulator against live API themes/stories.
 - Validated with `flutter analyze` (clean) and `flutter test` (all tests passed).

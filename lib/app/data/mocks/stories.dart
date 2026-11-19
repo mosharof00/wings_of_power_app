@@ -5,6 +5,26 @@ class StoriesMock {
 
   static bool errorOverride = false;
 
+  static List<StoryThemeModel> getThemes() {
+    if (errorOverride) {
+      throw Exception('Failed to load themes.');
+    }
+    return const [
+      StoryThemeModel(id: 'theme_kindness', name: 'Kindness', slug: 'kindness'),
+      StoryThemeModel(id: 'theme_courage', name: 'Courage', slug: 'courage'),
+      StoryThemeModel(
+        id: 'theme_cyberbullying',
+        name: 'Cyberbullying',
+        slug: 'cyberbullying',
+      ),
+      StoryThemeModel(
+        id: 'theme_friendship',
+        name: 'Friendship',
+        slug: 'friendship',
+      ),
+    ];
+  }
+
   static final List<StoryDetailModel> _allStories = [
     // 1. New student story (The Golden Pearl Book 1) - later chapters locked
     const StoryDetailModel(
@@ -355,24 +375,40 @@ class StoriesMock {
     ),
   ];
 
+  static String? _themeIdForCategory(String category) {
+    final cat = category.toLowerCase();
+    for (final theme in getThemes()) {
+      if (theme.slug == cat || theme.name.toLowerCase() == cat) {
+        return theme.id;
+      }
+    }
+    return null;
+  }
+
   static StorySummaryModel _toSummary(StoryDetailModel detail) {
+    final slug = detail.category.toLowerCase();
     return StorySummaryModel(
       id: detail.id,
       title: detail.title,
       author: detail.author,
       synopsis: detail.synopsis,
-      category: detail.category,
+      category: slug,
+      themeId: _themeIdForCategory(detail.category),
+      themeName: detail.category,
       ageGroup: detail.ageGroup,
       coverUrl: detail.coverUrl,
       assetPath: detail.assetPath,
       chapterCount: detail.chapterCount,
       estimatedMinutes: detail.estimatedMinutes,
       progressPercent: detail.overallPercent,
-      isLocked: !detail.isStarted && detail.chapters.isNotEmpty && detail.chapters.first.isLocked,
+      isLocked: !detail.isStarted &&
+          detail.chapters.isNotEmpty &&
+          detail.chapters.first.isLocked,
     );
   }
 
   static StoryListResponse getStories({
+    String? themeId,
     String? category,
     String? ageGroup,
     String? search,
@@ -385,52 +421,43 @@ class StoriesMock {
 
     var list = _allStories.map(_toSummary).toList();
 
-    // In the design screenshots:
-    // Kindness has The Golden Pearl Book 1 & 2
-    // Courage also shows The Golden Pearl Book 1 & 2
-    // Cyberbullying has City of Thieves & The Ties That Bind Us
-    // Friendship has City of Thieves & The Ties That Bind Us
-    // When category is provided and not 'ALL' / 'All Category':
-    if (category != null &&
+    if (themeId != null && themeId.isNotEmpty) {
+      list = list.where((s) => s.themeId == themeId).toList();
+    } else if (category != null &&
         category.isNotEmpty &&
         category.toLowerCase() != 'all' &&
         category.toLowerCase() != 'all category') {
       final cat = category.toLowerCase();
-      list = list.where((s) {
-        if (cat == 'kindness') {
-          return s.category.toLowerCase() == 'kindness' ||
-              s.id.contains('golden-pearl');
-        } else if (cat == 'courage') {
-          return s.category.toLowerCase() == 'courage' ||
-              s.id.contains('golden-pearl');
-        } else if (cat == 'cyberbullying') {
-          return s.category.toLowerCase() == 'cyberbullying' ||
-              s.id.contains('city-of-thieves') ||
-              s.id.contains('ties-that-bind');
-        } else if (cat == 'friendship') {
-          return s.category.toLowerCase() == 'friendship' ||
-              s.id.contains('city-of-thieves') ||
-              s.id.contains('ties-that-bind');
-        }
-        return s.category.toLowerCase() == cat;
-      }).toList();
+      list = list
+          .where(
+            (s) =>
+                s.category.toLowerCase() == cat ||
+                (s.themeName?.toLowerCase() == cat),
+          )
+          .toList();
     }
 
     if (ageGroup != null &&
         ageGroup.isNotEmpty &&
         ageGroup.toLowerCase() != 'all' &&
         ageGroup.toLowerCase() != 'all age group') {
-      final ag = ageGroup.toLowerCase().replaceAll('age ', '').trim();
+      final ag = ageGroup.toUpperCase().replaceAll(' ', '_');
       list = list.where((s) {
-        final storyAg = s.ageGroup.toLowerCase();
-        if (ag.contains('6') || ag == '6-9') {
-          return storyAg == '6-9' || s.id.contains('golden-pearl');
+        final storyAg = s.ageGroup.toUpperCase();
+        if (ag.contains('6') || ag == 'AGE_6_9' || ag == '6-9') {
+          return storyAg == 'AGE_6_9' ||
+              storyAg == '6-9' ||
+              storyAg.contains('6');
         }
-        if (ag.contains('10') || ag == '10-13') {
-          return storyAg == '10-13' || s.id.contains('city-of-thieves');
+        if (ag.contains('10') || ag == 'AGE_10_13' || ag == '10-13') {
+          return storyAg == 'AGE_10_13' ||
+              storyAg == '10-13' ||
+              storyAg.contains('10');
         }
-        if (ag.contains('adult') || ag.contains('14')) {
-          return storyAg == 'adults' || s.id.contains('ties-that-bind');
+        if (ag.contains('ADULT') || ag.contains('14')) {
+          return storyAg == 'ADULTS' ||
+              storyAg.contains('ADULT') ||
+              storyAg.contains('14');
         }
         return storyAg == ag;
       }).toList();

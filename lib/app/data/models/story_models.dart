@@ -66,17 +66,19 @@ class ChapterModel {
   }
 
   factory ChapterModel.fromJson(Map<String, dynamic> json) {
+    final numberRaw = json['chapterNumber'] ?? json['number'] ?? json['order'];
     return ChapterModel(
       id: json['id'] as String? ?? '',
       storyId: json['storyId'] as String? ?? '',
-      chapterNumber: (json['chapterNumber'] ?? json['order'] as num?)?.toInt() ?? 1,
+      chapterNumber: (numberRaw as num?)?.toInt() ?? 1,
       title: json['title'] as String? ?? '',
       pageCount: (json['pageCount'] ?? json['pages'] as num?)?.toInt() ?? 15,
       estimatedMinutes: (json['estimatedMinutes'] as num?)?.toInt() ?? 3,
       isLocked: json['isLocked'] as bool? ?? false,
       isCompleted: json['isCompleted'] as bool? ?? false,
       progressPercent: (json['progressPercent'] as num?)?.toDouble(),
-      hasQuiz: json['hasQuiz'] as bool? ?? false,
+      hasQuiz: json['hasQuiz'] as bool? ??
+          (json['quizId'] != null && (json['quizId'] as String).isNotEmpty),
       quizId: json['quizId'] as String?,
       quizScore: (json['quizScore'] as num?)?.toInt(),
       coverUrl: json['coverUrl'] as String?,
@@ -102,6 +104,36 @@ class ChapterModel {
       };
 }
 
+class StoryThemeModel {
+  const StoryThemeModel({
+    required this.id,
+    required this.name,
+    required this.slug,
+    this.coverUrl,
+  });
+
+  final String id;
+  final String name;
+  final String slug;
+  final String? coverUrl;
+
+  factory StoryThemeModel.fromJson(Map<String, dynamic> json) {
+    return StoryThemeModel(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
+      coverUrl: json['coverUrl'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'slug': slug,
+        'coverUrl': coverUrl,
+      };
+}
+
 class StorySummaryModel {
   const StorySummaryModel({
     required this.id,
@@ -109,6 +141,8 @@ class StorySummaryModel {
     this.author,
     this.synopsis,
     required this.category,
+    this.themeId,
+    this.themeName,
     required this.ageGroup,
     this.coverUrl,
     this.assetPath,
@@ -122,7 +156,10 @@ class StorySummaryModel {
   final String title;
   final String? author;
   final String? synopsis;
+  /// Theme slug (legacy filter / grouping key).
   final String category;
+  final String? themeId;
+  final String? themeName;
   final String ageGroup;
   final String? coverUrl;
   final String? assetPath;
@@ -131,14 +168,32 @@ class StorySummaryModel {
   final double? progressPercent;
   final bool isLocked;
 
+  String get displayThemeName =>
+      (themeName != null && themeName!.trim().isNotEmpty)
+          ? themeName!
+          : (category.isNotEmpty ? category : 'Stories');
+
   factory StorySummaryModel.fromJson(Map<String, dynamic> json) {
+    final theme = json['theme'];
+    String? themeName;
+    String? themeId = json['themeId'] as String?;
+    String category = json['category'] as String? ?? '';
+    if (theme is Map) {
+      themeId ??= theme['id'] as String?;
+      themeName = theme['name'] as String?;
+      category = (theme['slug'] as String?) ?? category;
+    }
+    if (category.isEmpty) category = themeId ?? 'other';
+
     return StorySummaryModel(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       author: json['author'] as String?,
       synopsis: json['synopsis'] as String? ?? json['description'] as String?,
-      category: json['category'] as String? ?? 'Kindness',
-      ageGroup: json['ageGroup'] as String? ?? '6-9',
+      category: category,
+      themeId: themeId,
+      themeName: themeName,
+      ageGroup: json['ageGroup'] as String? ?? 'AGE_6_9',
       coverUrl: json['coverUrl'] as String?,
       assetPath: json['assetPath'] as String?,
       chapterCount: (json['chapterCount'] as num?)?.toInt() ?? 0,
@@ -154,6 +209,8 @@ class StorySummaryModel {
         'author': author,
         'synopsis': synopsis,
         'category': category,
+        'themeId': themeId,
+        'themeName': themeName,
         'ageGroup': ageGroup,
         'coverUrl': coverUrl,
         'assetPath': assetPath,
@@ -201,28 +258,55 @@ class StoryDetailModel {
 
   factory StoryDetailModel.fromJson(Map<String, dynamic> json) {
     final rawChapters = (json['chapters'] as List? ?? []);
-    final chaptersList = rawChapters
-        .map((e) => ChapterModel.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final storyId = json['id'] as String? ?? '';
+    final chaptersList = rawChapters.map((e) {
+      final map = Map<String, dynamic>.from(e as Map);
+      map.putIfAbsent('storyId', () => storyId);
+      return ChapterModel.fromJson(map);
+    }).toList();
+
+    final progress = json['progress'];
+    String? progressChapterId;
+    double? progressPercent;
+    if (progress is Map) {
+      progressChapterId = progress['chapterId'] as String?;
+      progressPercent = (progress['percent'] as num?)?.toDouble();
+    }
+
+    final theme = json['theme'];
+    String category = json['category'] as String? ?? '';
+    if (category.isEmpty && theme is Map) {
+      category = (theme['slug'] as String?) ??
+          (theme['name'] as String?) ??
+          '';
+    }
 
     return StoryDetailModel(
-      id: json['id'] as String? ?? '',
+      id: storyId,
       title: json['title'] as String? ?? '',
       author: json['author'] as String? ?? 'Audrey Cuff Ed. D.',
       synopsis: json['synopsis'] as String? ??
           json['description'] as String? ??
-          'The sound of the school bell rings, and all the children run out of Kramer School with glee.',
-      category: json['category'] as String? ?? 'Kindness',
+          '',
+      category: category.isNotEmpty ? category : 'Stories',
       ageGroup: json['ageGroup'] as String? ?? '6-9',
       coverUrl: json['coverUrl'] as String?,
       assetPath: json['assetPath'] as String?,
-      chapterCount: (json['chapterCount'] as num?)?.toInt() ?? chaptersList.length,
+      chapterCount:
+          (json['chapterCount'] as num?)?.toInt() ?? chaptersList.length,
       estimatedMinutes: (json['estimatedMinutes'] as num?)?.toInt() ?? 10,
       chapters: chaptersList,
-      isStarted: json['isStarted'] as bool? ?? false,
-      isCompleted: json['isCompleted'] as bool? ?? false,
-      currentChapterId: json['currentChapterId'] as String?,
-      overallPercent: (json['overallPercent'] as num?)?.toDouble() ?? 0.0,
+      isStarted: json['isStarted'] as bool? ??
+          (progress != null ||
+              chaptersList.any((c) => c.isCompleted || c.progressPercent != null)),
+      isCompleted: json['isCompleted'] as bool? ??
+          (chaptersList.isNotEmpty &&
+              chaptersList.every((c) => c.isCompleted)),
+      currentChapterId:
+          json['currentChapterId'] as String? ?? progressChapterId,
+      overallPercent: (json['overallPercent'] as num?)?.toDouble() ??
+          progressPercent ??
+          0.0,
     );
   }
 
@@ -293,6 +377,8 @@ class ChapterPageModel {
     this.assetPath,
     this.hasCheckpoint = false,
     this.checkpointId,
+    this.isRead = false,
+    this.isLocked = false,
   });
 
   final int number;
@@ -303,6 +389,8 @@ class ChapterPageModel {
   final String? assetPath;
   final bool hasCheckpoint;
   final String? checkpointId;
+  final bool isRead;
+  final bool isLocked;
 
   ChapterPageModel copyWith({
     int? number,
@@ -313,6 +401,8 @@ class ChapterPageModel {
     String? assetPath,
     bool? hasCheckpoint,
     String? checkpointId,
+    bool? isRead,
+    bool? isLocked,
   }) {
     return ChapterPageModel(
       number: number ?? this.number,
@@ -323,6 +413,8 @@ class ChapterPageModel {
       assetPath: assetPath ?? this.assetPath,
       hasCheckpoint: hasCheckpoint ?? this.hasCheckpoint,
       checkpointId: checkpointId ?? this.checkpointId,
+      isRead: isRead ?? this.isRead,
+      isLocked: isLocked ?? this.isLocked,
     );
   }
 
@@ -338,6 +430,8 @@ class ChapterPageModel {
       assetPath: json['assetPath'] as String?,
       hasCheckpoint: json['hasCheckpoint'] as bool? ?? false,
       checkpointId: json['checkpointId'] as String?,
+      isRead: json['isRead'] as bool? ?? false,
+      isLocked: json['isLocked'] as bool? ?? false,
     );
   }
 
@@ -350,6 +444,8 @@ class ChapterPageModel {
         if (assetPath != null) 'assetPath': assetPath,
         'hasCheckpoint': hasCheckpoint,
         if (checkpointId != null) 'checkpointId': checkpointId,
+        'isRead': isRead,
+        'isLocked': isLocked,
       };
 }
 

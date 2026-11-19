@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/core/network/api_client.dart';
@@ -10,6 +12,7 @@ import 'package:wings_of_power_app/app/modules/game/views/widgets/game_congratul
 import 'package:wings_of_power_app/app/modules/game/views/widgets/game_how_to_play_sheet.dart';
 import 'package:wings_of_power_app/app/modules/game/views/widgets/game_unlock_dialog.dart';
 import 'package:wings_of_power_app/app/modules/main_page/controllers/main_page_controller.dart';
+import 'package:wings_of_power_app/app/modules/stories/controllers/stories_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
 class HomeController extends GetxController {
@@ -153,11 +156,22 @@ class HomeController extends GetxController {
   /// Navigates to story library (See all).
   void onSeeAllStories() => _openStoryLibrary();
 
-  /// Navigates to stories filtered by category.
-  void onCategoryTap(HomeCategoryModel category) => _openStoryLibrary();
+  /// Navigates to stories filtered by theme / category.
+  void onCategoryTap(HomeCategoryModel category) {
+    _openStoryLibrary(arguments: {
+      'themeId': category.id,
+      'category': category.title,
+    });
+  }
 
-  /// Navigates to story details.
-  void onStoryTap(HomeStoryModel story) => _openStoryLibrary();
+  /// Navigates to story details when available; else library.
+  void onStoryTap(HomeStoryModel story) {
+    if (story.id.isEmpty) {
+      _openStoryLibrary();
+      return;
+    }
+    Get.toNamed(Routes.STORY_DETAILS, arguments: {'storyId': story.id});
+  }
 
   /// Safe Space Report opens T-APP-016.
   void onSafeSpaceReport() {
@@ -171,7 +185,19 @@ class HomeController extends GetxController {
   /// Notification Bell has no route (D14).
   void onBellTap() {}
 
-  void _openStoryLibrary() {
+  void _openStoryLibrary({Map<String, dynamic>? arguments}) {
+    if (arguments != null && Get.isRegistered<StoriesController>()) {
+      final stories = Get.find<StoriesController>();
+      if (arguments['themeId'] is String &&
+          (arguments['themeId'] as String).isNotEmpty) {
+        stories.selectedThemeId.value = arguments['themeId'] as String;
+      }
+      if (arguments['category'] is String &&
+          (arguments['category'] as String).isNotEmpty) {
+        stories.selectedCategoryLabel.value = arguments['category'] as String;
+      }
+      unawaited(stories.fetchStories());
+    }
     if (Get.isRegistered<MainPageController>()) {
       Get.find<MainPageController>().changePage(1);
     }

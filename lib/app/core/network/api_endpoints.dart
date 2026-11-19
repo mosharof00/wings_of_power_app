@@ -44,6 +44,9 @@ class ApiEndpoint {
   static String get heroes => '$baseUrl/heroes'; // get
   static String heroSelect(String id) => '$baseUrl/heroes/$id/select'; // post
 
+  /// Themes (active book categories)
+  static String get themes => '$baseUrl/themes'; // get
+
   /// Stories
   static String get stories => '$baseUrl/stories'; // get
   static String storyDetail(String id) => '$baseUrl/stories/$id'; // get
@@ -53,6 +56,7 @@ class ApiEndpoint {
       '$baseUrl/stories/$storyId/progress'; // put
   static String storyChapterComplete(String storyId, String chapterId) =>
       '$baseUrl/stories/$storyId/chapters/$chapterId/complete'; // post
+  static String get pageRead => '$baseUrl/reading/page-read'; // post
 
   /// Quizzes
   static String chapterQuiz(String chapterId) =>

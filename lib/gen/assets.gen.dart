@@ -421,14 +421,6 @@ class $AssetsImagesGen {
   AssetGenImage get avatarLogout =>
       const AssetGenImage('assets/images/avatar_logout.png');
 
-  /// File path: assets/images/category_courage.png
-  AssetGenImage get categoryCourage =>
-      const AssetGenImage('assets/images/category_courage.png');
-
-  /// File path: assets/images/category_cyberbullying.png
-  AssetGenImage get categoryCyberbullying =>
-      const AssetGenImage('assets/images/category_cyberbullying.png');
-
   /// File path: assets/images/category_friendship.png
   AssetGenImage get categoryFriendship =>
       const AssetGenImage('assets/images/category_friendship.png');
@@ -457,6 +449,10 @@ class $AssetsImagesGen {
   AssetGenImage get leaderboard =>
       const AssetGenImage('assets/images/leaderboard.png');
 
+  /// File path: assets/images/other_categories..png
+  AssetGenImage get otherCategories =>
+      const AssetGenImage('assets/images/other_categories..png');
+
   /// File path: assets/images/placeholder_image.jpg
   AssetGenImage get placeholderImage =>
       const AssetGenImage('assets/images/placeholder_image.jpg');
@@ -480,8 +476,6 @@ class $AssetsImagesGen {
     avatar07,
     avatar08,
     avatarLogout,
-    categoryCourage,
-    categoryCyberbullying,
     categoryFriendship,
     categoryKindness,
     emptyBox,
@@ -489,6 +483,7 @@ class $AssetsImagesGen {
     exploreKindnessCorner,
     exploreSafeSpace,
     leaderboard,
+    otherCategories,
     placeholderImage,
     playGameCard,
     safeSpaceReport,

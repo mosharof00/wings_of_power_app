@@ -1,9 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/story_models.dart';
+import 'package:wings_of_power_app/app/global/widgets/cached_image.dart';
+import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 class StoryCoverCard extends StatelessWidget {
   const StoryCoverCard({
@@ -18,17 +19,13 @@ class StoryCoverCard extends StatelessWidget {
   final double? width;
 
   Widget _buildCoverImage() {
-    if (story.coverUrl != null && story.coverUrl!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: story.coverUrl!,
+    final url = story.coverUrl?.trim();
+    if (url != null && url.isNotEmpty) {
+      return CachedImage(
+        imgUrl: url,
         fit: BoxFit.cover,
-        placeholder: (_, _) => Container(
-          color: AppColor.cream,
-          child: const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-        errorWidget: (_, _, _) => _fallbackCover(),
+        width: double.infinity,
+        height: double.infinity,
       );
     }
     if (story.assetPath != null && story.assetPath!.isNotEmpty) {
@@ -42,14 +39,9 @@ class StoryCoverCard extends StatelessWidget {
   }
 
   Widget _fallbackCover() {
-    return Container(
-      color: AppColor.cream,
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.menu_book_rounded,
-        size: 36.sp,
-        color: AppColor.primary.withValues(alpha: 0.6),
-      ),
+    return Image.asset(
+      Assets.images.placeholderImage.path,
+      fit: BoxFit.cover,
     );
   }
 

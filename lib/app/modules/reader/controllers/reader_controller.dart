@@ -33,10 +33,12 @@ class ReaderController extends GetxController {
 
   AudioPlayer? _audioPlayer;
   Timer? _playbackTimer;
+  Timer? _dwellTimer;
   StreamSubscription? _playerStateSubscription;
   StreamSubscription? _positionSubscription;
   StreamSubscription? _durationSubscription;
   bool _useTimerFallback = false;
+  final _readPages = <int>{};
 
   int get totalPages => chapter.value?.pageCount ?? 0;
   int get currentPageNumber => currentPageIndex.value + 1;
@@ -101,6 +103,9 @@ class ReaderController extends GetxController {
       chapter.value = detail;
       currentPageIndex.value = 0;
       isLoading.value = false;
+      _readPages
+        ..clear()
+        ..addAll(detail.pages.where((p) => p.isRead).map((p) => p.number));
 
       await initAudio();
 
@@ -109,6 +114,7 @@ class ReaderController extends GetxController {
       }
 
       _reportProgress();
+      _startDwellTimer();
     } catch (e) {
       isLoading.value = false;
       isError.value = true;
@@ -270,6 +276,7 @@ class ReaderController extends GetxController {
     if (!isLastPage) {
       currentPageIndex.value++;
       _reportProgress();
+      _startDwellTimer();
     } else {
       await completeChapter();
     }
@@ -300,10 +307,13 @@ class ReaderController extends GetxController {
     }
 
     if (isLastPage) {
+      await _markCurrentPageRead(force: true);
       await completeChapter();
     } else {
+      await _markCurrentPageRead(force: true);
       currentPageIndex.value++;
       _reportProgress();
+      _startDwellTimer();
     }
   }
 
@@ -311,6 +321,36 @@ class ReaderController extends GetxController {
     if (canGoBack) {
       currentPageIndex.value--;
       _reportProgress();
+      _startDwellTimer();
+    }
+  }
+
+  void _startDwellTimer() {
+    _dwellTimer?.cancel();
+    if (!isReadMode.value || isChapterComplete.value) return;
+    final page = currentPageNumber;
+    if (_readPages.contains(page)) return;
+    _dwellTimer = Timer(const Duration(seconds: 3), () {
+      unawaited(_markCurrentPageRead());
+    });
+  }
+
+  Future<void> _markCurrentPageRead({bool force = false}) async {
+    final page = currentPageNumber;
+    if (_readPages.contains(page) && !force) return;
+    try {
+      final mode = isReadMode.value ? 'READ' : 'LISTEN';
+      final ok = await _repository.markPageRead(
+        storyId: storyId,
+        chapterId: chapterId,
+        pageNumber: page,
+        mode: mode,
+        dwellSeconds: isReadMode.value ? 3 : null,
+        listenPercent: isReadMode.value ? null : audioProgressPercent,
+      );
+      if (ok) _readPages.add(page);
+    } catch (_) {
+      // Page-read failures should not block turning pages in UX; server still gates complete.
     }
   }
 
@@ -327,6 +367,9 @@ class ReaderController extends GetxController {
         percent: percent,
         mode: mode,
       );
+      if (!isReadMode.value && audioProgressPercent >= 80) {
+        await _markCurrentPageRead(force: true);
+      }
     } catch (_) {
       // Progress reporting shouldn't crash the reader UI
     }
@@ -408,6 +451,7 @@ class ReaderController extends GetxController {
 
   @override
   void onClose() {
+    _dwellTimer?.cancel();
     _playbackTimer?.cancel();
     _playerStateSubscription?.cancel();
     _positionSubscription?.cancel();

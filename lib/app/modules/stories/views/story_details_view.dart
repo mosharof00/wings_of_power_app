@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/story_models.dart';
+import 'package:wings_of_power_app/app/global/widgets/app_scaffold.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
@@ -49,21 +50,19 @@ class StoryDetailsView extends GetView<StoriesController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColor.background,
+    return AppScaffold(
       body: Stack(
         children: [
           // Top Sky & Clouds Background
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 10,
+            left: -10,
+            right: -10,
             child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 120.h,
+              fit: BoxFit.cover,
+              // height: 110.h,
             ),
           ),
-
           SafeArea(
             child: Obx(() {
               if (controller.isDetailLoading.value) {
