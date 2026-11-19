@@ -8,6 +8,7 @@ import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/points_chip.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
+import '../../../global/widgets/app_scaffold.dart';
 import '../controllers/achievements_controller.dart';
 import 'widgets/badge_card.dart';
 
@@ -20,18 +21,18 @@ class BadgesView extends GetView<AchievementsController> {
   Widget build(BuildContext context) {
     final showBackButton = !isEmbeddedInNav && Navigator.of(context).canPop();
 
-    return Scaffold(
-      backgroundColor: AppColor.background,
+    return AppScaffold(
+
       body: Stack(
         children: [
           // Sky & clouds background banner
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 10,
+            left: -10,
+            right: -10,
             child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 120.h,
+              fit: BoxFit.cover,
+              // height: 110.h,
             ),
           ),
 

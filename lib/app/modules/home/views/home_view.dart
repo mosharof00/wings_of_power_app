@@ -28,9 +28,9 @@ class HomeView extends GetView<HomeController> {
         children: [
           // Fluffy sky clouds background at the top
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 10,
+            left: -10,
+            right: -10,
             child: Assets.backgrounds.bgHomeSky.image(
               fit: BoxFit.cover,
               // height: 110.h,

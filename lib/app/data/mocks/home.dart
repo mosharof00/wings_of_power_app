@@ -21,25 +21,21 @@ class HomeMock {
       id: 'cat-kindness',
       title: 'Kindness',
       storyCount: 5,
-      assetPath: 'assets/images/category_kindness.png',
     ),
     const HomeCategoryModel(
       id: 'cat-courage',
       title: 'Courage',
       storyCount: 3,
-      assetPath: 'assets/images/category_courage.png',
     ),
     const HomeCategoryModel(
       id: 'cat-cyberbullying',
       title: 'Cyberbullying',
       storyCount: 4,
-      assetPath: 'assets/images/category_kindness.png',
     ),
     const HomeCategoryModel(
       id: 'cat-friendship',
       title: 'Friendship',
       storyCount: 6,
-      assetPath: 'assets/images/category_courage.png',
     ),
   ];
 

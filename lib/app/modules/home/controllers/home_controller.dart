@@ -60,7 +60,7 @@ class HomeController extends GetxController {
   }
 
   List<HomeStoryModel> get filteredPopularStories {
-    final stories = homeData.value?.popularStories ?? [];
+    final stories = (homeData.value?.popularStories ?? []).take(8).toList();
     final query = searchQuery.value.toLowerCase();
     if (query.isEmpty) return stories;
     return stories.where((story) {

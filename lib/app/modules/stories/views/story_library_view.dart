@@ -10,6 +10,7 @@ import 'package:wings_of_power_app/app/global/widgets/search_field.dart';
 import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
+import '../../../global/widgets/app_scaffold.dart';
 import '../controllers/stories_controller.dart';
 import 'widgets/filter_dropdown_pill.dart';
 import 'widgets/story_cover_card.dart';
@@ -20,18 +21,17 @@ class StoryLibraryView extends GetView<StoriesController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColor.background,
+    return AppScaffold(
       body: Stack(
         children: [
           // Top Sky & Clouds Background
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 10,
+            left: -10,
+            right: -10,
             child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 120.h,
+              fit: BoxFit.cover,
+              // height: 110.h,
             ),
           ),
 
@@ -108,7 +108,8 @@ class StoryLibraryView extends GetView<StoriesController> {
                     child: SearchField(
                       controller: controller.searchController,
                       hintText: 'Search stories...',
-                      onChanged: (val) => controller.searchQuery.value = val.trim(),
+                      onChanged: (val) =>
+                          controller.searchQuery.value = val.trim(),
                     ),
                   );
                 }),
@@ -161,7 +162,8 @@ class StoryLibraryView extends GetView<StoriesController> {
                       return Center(
                         child: ShowEmptyResult(
                           title: 'No stories found',
-                          desc: 'Try adjusting your filters or search keywords.',
+                          desc:
+                              'Try adjusting your filters or search keywords.',
                           refreshOnTap: controller.fetchStories,
                         ),
                       );
@@ -185,8 +187,7 @@ class StoryLibraryView extends GetView<StoriesController> {
   Widget _buildStoryContent(List<StorySummaryModel> allStories) {
     final isCategoryFiltered =
         controller.selectedCategory.value != 'All Category';
-    final isAgeFiltered =
-        controller.selectedAgeGroup.value != 'All Age Group';
+    final isAgeFiltered = controller.selectedAgeGroup.value != 'All Age Group';
 
     // State 3: Both Category and Age Group are filtered -> 2-Column Grid
     if (isCategoryFiltered && isAgeFiltered) {
@@ -223,7 +224,9 @@ class StoryLibraryView extends GetView<StoriesController> {
 
       final storiesAdults = allStories.where((s) {
         final ag = s.ageGroup.toLowerCase();
-        return ag.contains('adult') || ag.contains('14') || s.id.contains('ties-that-bind');
+        return ag.contains('adult') ||
+            ag.contains('14') ||
+            s.id.contains('ties-that-bind');
       }).toList();
 
       return ListView(
@@ -300,7 +303,9 @@ class StoryLibraryView extends GetView<StoriesController> {
         SizedBox(height: 18.h),
         StorySectionRow(
           title: 'Friendship',
-          stories: friendshipStories.isNotEmpty ? friendshipStories : allStories,
+          stories: friendshipStories.isNotEmpty
+              ? friendshipStories
+              : allStories,
           onSeeAll: () => controller.setCategory('Friendship'),
           onStoryTap: (s) => controller.openStoryDetail(s.id),
         ),

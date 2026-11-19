@@ -3,8 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/home_models.dart';
 import 'package:wings_of_power_app/app/global/widgets/app_text.dart';
+import 'package:wings_of_power_app/app/global/widgets/cached_image.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
+/// Stacked / overlapping book-category cards (design: Home Book Categories).
 class HomeCategoriesCarousel extends StatefulWidget {
   const HomeCategoriesCarousel({
     super.key,
@@ -23,10 +25,15 @@ class _HomeCategoriesCarouselState extends State<HomeCategoriesCarousel> {
   late final PageController _pageController;
   double _currentPage = 0.0;
 
+  static const double _viewportFraction = 0.42;
+
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.52);
+    _pageController = PageController(
+      viewportFraction: _viewportFraction,
+      // Left-align first card like design (not centered with empty gutters).
+    );
     _pageController.addListener(() {
       if (mounted) {
         setState(() {
@@ -62,89 +69,106 @@ class _HomeCategoriesCarouselState extends State<HomeCategoriesCarousel> {
         ),
         SizedBox(height: 12.h),
         SizedBox(
-          height: 205.h,
+          height: 210.h,
           child: PageView.builder(
             controller: _pageController,
             itemCount: widget.categories.length,
+            padEnds: false,
             clipBehavior: Clip.none,
             itemBuilder: (context, index) {
               final category = widget.categories[index];
-              final delta = (index - _currentPage).abs();
-              final scale = (1.0 - (delta * 0.12)).clamp(0.86, 1.0);
-              final opacity = (1.0 - (delta * 0.15)).clamp(0.75, 1.0);
+              final delta = index - _currentPage;
+              final absDelta = delta.abs();
+              // Pull neighbors under the focused card (fan / stacked deck).
+              final overlapPull = -delta * 52.w;
+              final scale = (1.0 - (absDelta * 0.1)).clamp(0.78, 1.0);
+              final opacity = (1.0 - (absDelta * 0.18)).clamp(0.55, 1.0);
 
-              return Center(
-                child: SizedBox(
-                  height: 205.h * scale,
-                  width: 175.w,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: GestureDetector(
-                      onTap: () => widget.onCategoryTap?.call(category),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16.r),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // Background category illustration
-                              _buildCategoryCover(category),
-                              // Bottom gradient shadow for readable text
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black.withValues(alpha: 0.1),
-                                      Colors.black.withValues(alpha: 0.75),
-                                    ],
-                                    stops: const [0.3, 0.6, 1.0],
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.only(left: index == 0 ? 16.w : 0),
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..translateByDouble(overlapPull, absDelta * 6.h, 0, 1)
+                      ..scaleByDouble(scale, scale, 1, 1),
+                    child: Opacity(
+                      opacity: opacity,
+                      child: SizedBox(
+                        height: 200.h,
+                        width: 150.w,
+                        child: GestureDetector(
+                          onTap: () => widget.onCategoryTap?.call(category),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: 0.14 * (1 - absDelta.clamp(0, 1)),
                                   ),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
                                 ),
-                              ),
-                              // Text at bottom
-                              Positioned(
-                                left: 12.w,
-                                right: 12.w,
-                                bottom: 12.h,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AppText(
-                                      category.title,
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        color: AppColor.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16.sp,
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16.r),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  _buildCategoryCover(category),
+                                  const DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          Color(0x14000000),
+                                          Color(0xC7000000),
+                                        ],
+                                        stops: [0.35, 0.62, 1.0],
                                       ),
                                     ),
-                                    SizedBox(height: 2.h),
-                                    AppText(
-                                      '${category.storyCount} Stories',
-                                      style: TextStyle(
-                                        color: AppColor.white.withValues(alpha: 0.9),
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 12.sp,
-                                      ),
+                                  ),
+                                  Positioned(
+                                    left: 12.w,
+                                    right: 12.w,
+                                    bottom: 12.h,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        AppText(
+                                          category.title,
+                                          maxLines: 2,
+                                          style: TextStyle(
+                                            color: AppColor.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15.sp,
+                                            height: 1.15,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2.h),
+                                        AppText(
+                                          '${category.storyCount} Stories',
+                                          style: TextStyle(
+                                            color: AppColor.white
+                                                .withValues(alpha: 0.92),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 11.sp,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -160,27 +184,18 @@ class _HomeCategoriesCarouselState extends State<HomeCategoriesCarousel> {
   }
 
   Widget _buildCategoryCover(HomeCategoryModel category) {
-    if (category.imageUrl != null && category.imageUrl!.startsWith('http')) {
-      return Image.network(
-        category.imageUrl!,
+    final url = category.imageUrl?.trim();
+    if (url != null && url.isNotEmpty) {
+      return CachedImage(
+        imgUrl: url,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _defaultImage(category),
+        width: double.infinity,
+        height: double.infinity,
       );
     }
-    if (category.assetPath != null && category.assetPath!.isNotEmpty) {
-      return Image.asset(
-        category.assetPath!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _defaultImage(category),
-      );
-    }
-    return _defaultImage(category);
-  }
-
-  Widget _defaultImage(HomeCategoryModel category) {
-    if (category.title.toLowerCase().contains('courage')) {
-      return Assets.images.categoryCourage.image(fit: BoxFit.cover);
-    }
-    return Assets.images.categoryKindness.image(fit: BoxFit.cover);
+    return Image.asset(
+      Assets.images.placeholderImage.path,
+      fit: BoxFit.cover,
+    );
   }
 }

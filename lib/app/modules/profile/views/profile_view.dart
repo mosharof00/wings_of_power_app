@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
+import '../../../global/widgets/app_scaffold.dart';
 import '../controllers/profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -15,21 +16,19 @@ class ProfileView extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
 
-    return Scaffold(
-      backgroundColor: AppColor.background,
+    return AppScaffold(
       body: Stack(
         children: [
           // Sky background banner
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 10,
+            left: -10,
+            right: -10,
             child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 140.h,
+              fit: BoxFit.cover,
+              // height: 110.h,
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -100,13 +99,15 @@ class ProfileView extends GetView<ProfileController> {
 
                   // Avatar with pencil edit badge
                   Obx(() {
-                    final avatarPath = controller.profile.value?.avatarUrl ??
+                    final avatarPath =
+                        controller.profile.value?.avatarUrl ??
                         'assets/images/avatar_01.png';
                     final name = controller.profile.value?.nickname ?? 'Sarah';
-                    final age = controller.profile.value?.ageText ?? '4 years old';
+                    final age =
+                        controller.profile.value?.ageText ?? '4 years old';
                     final className =
                         controller.profile.value?.displayClassName ??
-                            'Grade A, Ms. Smith Class';
+                        'Grade A, Ms. Smith Class';
 
                     return Column(
                       children: [
@@ -128,7 +129,9 @@ class ProfileView extends GetView<ProfileController> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.08),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.08,
+                                      ),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -145,9 +148,9 @@ class ProfileView extends GetView<ProfileController> {
                                           fit: BoxFit.cover,
                                           errorBuilder: (_, _, _) =>
                                               Image.asset(
-                                            'assets/images/avatar_01.png',
-                                            fit: BoxFit.cover,
-                                          ),
+                                                'assets/images/avatar_01.png',
+                                                fit: BoxFit.cover,
+                                              ),
                                         ),
                                 ),
                               ),
@@ -168,7 +171,9 @@ class ProfileView extends GetView<ProfileController> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.1),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -264,7 +269,8 @@ class ProfileView extends GetView<ProfileController> {
                             SizedBox(width: 10.w),
                             Expanded(
                               child: _buildStatCard(
-                                iconPath: 'assets/icons/ic_profile_progress.svg',
+                                iconPath:
+                                    'assets/icons/ic_profile_progress.svg',
                                 value: '$progress%',
                                 label: 'Progress',
                                 onTap: controller.openReadingProgress,
@@ -362,11 +368,7 @@ class ProfileView extends GetView<ProfileController> {
         ),
         child: Column(
           children: [
-            SvgPicture.asset(
-              iconPath,
-              width: 26.w,
-              height: 26.w,
-            ),
+            SvgPicture.asset(iconPath, width: 26.w, height: 26.w),
             SizedBox(height: 6.h),
             Text(
               value,
@@ -417,11 +419,7 @@ class ProfileView extends GetView<ProfileController> {
                     shape: BoxShape.circle,
                   ),
                   padding: EdgeInsets.all(9.w),
-                  child: SvgPicture.asset(
-                    iconPath,
-                    width: 22.w,
-                    height: 22.w,
-                  ),
+                  child: SvgPicture.asset(iconPath, width: 22.w, height: 22.w),
                 ),
                 SizedBox(width: 14.w),
                 Expanded(
