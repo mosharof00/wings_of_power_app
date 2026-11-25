@@ -61,72 +61,77 @@ class ReaderView extends GetView<ReaderController> {
         body: SafeArea(
           child: Column(
             children: [
-              // 1. Top Bar
+              // 1. Fixed Top Bar (Back button + Read/Listen toggle)
               _buildTopBar(),
 
-              SizedBox(height: 12.h),
-
-              // 2. Chapter Badge
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FE),
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-                child: Text(
-                  'Chapter ${chapter.chapterNumber}',
-                  style: GoogleFonts.nunito(
-                    color: const Color(0xFF5B4DBC),
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 8.h),
-
-              // 3. Chapter Title
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Text(
-                  chapter.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
-                    color: AppColor.secondary,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 14.h),
-
-              // 4. Page Image Card
-              _buildImageCard(page),
-
-              SizedBox(height: 16.h),
-
-              // 5. Page Body Text
+              // 2. Scrollable Body Content (Chapter badge, Title, Image Card & Body Text)
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: Text(
-                    page.bodyText,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.nunito(
-                      color: const Color(0xFF333333),
-                      fontSize: 14.sp,
-                      height: 1.55,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 12.h),
+
+                      // Chapter Badge
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 14.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDE9FE),
+                          borderRadius: BorderRadius.circular(16.r),
+                        ),
+                        child: Text(
+                          'Chapter ${chapter.chapterNumber}',
+                          style: GoogleFonts.nunito(
+                            color: const Color(0xFF5B4DBC),
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 8.h),
+
+                      // Chapter Title
+                      Text(
+                        chapter.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.nunito(
+                          color: AppColor.secondary,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+
+                      SizedBox(height: 14.h),
+
+                      // Page Image Card
+                      _buildImageCard(page),
+
+                      SizedBox(height: 16.h),
+
+                      // Page Body Text
+                      Text(
+                        page.bodyText,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.nunito(
+                          color: const Color(0xFF333333),
+                          fontSize: 14.sp,
+                          height: 1.55,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+
+                      SizedBox(height: 16.h),
+                    ],
                   ),
                 ),
               ),
 
-              // 6. Bottom Navigation Controls (Reading or Listening mode)
+              // 3. Fixed Bottom Navigation Controls
               controller.isReadMode.value
                   ? _buildBottomBar()
                   : AudioPlayerControlBox(controller: controller),
@@ -307,13 +312,15 @@ class ReaderView extends GetView<ReaderController> {
               height: 42.w,
               decoration: BoxDecoration(
                 color: controller.canGoBack
-                    ? AppColor.primary
-                    : AppColor.primary.withValues(alpha: 0.35),
+                    ? const Color(0xFFFDEEE5)
+                    : const Color(0xFFFDEEE5).withValues(alpha: 0.5),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back,
-                color: Colors.white,
+                color: controller.canGoBack
+                    ? AppColor.primary
+                    : AppColor.primary.withValues(alpha: 0.4),
                 size: 20,
               ),
             ),

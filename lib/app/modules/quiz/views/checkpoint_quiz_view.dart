@@ -14,12 +14,6 @@ class CheckpointQuizView extends GetView<QuizController> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (controller.checkpointQuiz.value == null) {
-        controller.loadCheckpointQuiz();
-      }
-    });
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(

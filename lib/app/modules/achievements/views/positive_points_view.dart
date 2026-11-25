@@ -8,6 +8,7 @@ import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
+import '../../../global/widgets/bg_header_sky.dart';
 import '../controllers/achievements_controller.dart';
 import 'widgets/point_ledger_item.dart';
 
@@ -21,15 +22,7 @@ class PositivePointsView extends GetView<AchievementsController> {
       body: Stack(
         children: [
           // Top Sky & Clouds Background
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 120.h,
-            ),
-          ),
+          BgHeaderSky(),
 
           SafeArea(
             child: Column(

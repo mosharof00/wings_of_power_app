@@ -6,8 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/quiz_models.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
+import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
+import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
+
+import '../../../global/widgets/bg_header_sky.dart';
 import '../controllers/quiz_controller.dart';
+import 'chapter_quiz_result_view.dart';
 import 'widgets/quiz_leave_dialog.dart';
 
 class ChapterQuizView extends GetView<QuizController> {
@@ -15,45 +20,67 @@ class ChapterQuizView extends GetView<QuizController> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure quiz is loaded
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (controller.quiz.value == null && !controller.isLoading.value) {
-        controller.loadChapterQuiz();
-      } else if (controller.quiz.value == null) {
-        controller.loadChapterQuiz();
+    return Obx(() {
+      final result = controller.result.value;
+      if (result != null && !controller.isLoading.value) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) controller.backToStory();
+          },
+          child: ChapterQuizResultView(result: result),
+        );
       }
+      return _buildQuiz(context);
     });
+  }
 
+  Widget _buildQuiz(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFCBEBFE),
       body: Stack(
         children: [
           // Background sky & clouds
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 260.h,
-            child: Image.asset(
-              Assets.backgrounds.bgHomeSky.path,
-              fit: BoxFit.cover,
-            ),
-          ),
+          BgHeaderSky(),
 
           SafeArea(
             child: Obx(() {
               if (controller.isLoading.value) {
                 return const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFE06D28),
+                  child: CircularProgressIndicator(color: Color(0xFFE06D28)),
+                );
+              }
+
+              if (controller.isQuizUnavailable.value) {
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: ShowEmptyResult(
+                    title: 'No quiz yet',
+                    desc: 'This chapter’s quiz isn’t ready. You can come back later.',
+                    widget: GlobalButton(
+                      text: 'Back to Story',
+                      width: 180.w,
+                      onTap: controller.backToStory,
+                    ),
                   ),
                 );
               }
 
               if (controller.isError.value) {
-                return ErrorBlock(
-                  message: controller.errorMessage.value,
-                  onRetry: controller.loadChapterQuiz,
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ErrorBlock(
+                        message: controller.errorMessage.value,
+                        onRetry: controller.loadChapterQuiz,
+                      ),
+                      TextButton(
+                        onPressed: controller.backToStory,
+                        child: const Text('Back to Story'),
+                      ),
+                    ],
+                  ),
                 );
               }
 
@@ -96,6 +123,7 @@ class ChapterQuizView extends GetView<QuizController> {
                         ],
                       ),
                       child: SingleChildScrollView(
+                        key: ValueKey(currentQ.id),
                         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                         child: Column(
                           children: [
@@ -138,6 +166,14 @@ class ChapterQuizView extends GetView<QuizController> {
                             if (controller.isAnswerChecked.value)
                               _buildFeedbackMessage(),
 
+                            if (controller.submitError.value.isNotEmpty) ...[
+                              SizedBox(height: 8.h),
+                              Text(
+                                controller.submitError.value,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.red.shade700),
+                              ),
+                            ],
                             SizedBox(height: 14.h),
 
                             // Bottom Button (Check Answer / Next Question / See Result)
@@ -169,7 +205,7 @@ class ChapterQuizView extends GetView<QuizController> {
                   onKeepGoing: () => Get.back(),
                   onLeave: () {
                     Get.back();
-                    controller.leaveQuiz();
+                    controller.backToStory();
                   },
                 ),
               );
@@ -182,11 +218,7 @@ class ChapterQuizView extends GetView<QuizController> {
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                child: Icon(Icons.close, color: Colors.white, size: 24),
               ),
             ),
           ),
@@ -201,6 +233,7 @@ class ChapterQuizView extends GetView<QuizController> {
                 final total = controller.totalQuestions;
                 final current = controller.currentQuestionNumber;
                 final progressFraction = (current / total).clamp(0.0, 1.0);
+                final starSize = (barWidth / total).clamp(0.0, 24.w);
 
                 return Stack(
                   alignment: Alignment.centerLeft,
@@ -236,13 +269,13 @@ class ChapterQuizView extends GetView<QuizController> {
                           return isEarned
                               ? SvgPicture.asset(
                                   'assets/icons/ic_quiz_star.svg',
-                                  width: 24.w,
-                                  height: 24.w,
+                                  width: starSize,
+                                  height: starSize,
                                 )
                               : SvgPicture.asset(
                                   'assets/icons/ic_quiz_star.svg',
-                                  width: 24.w,
-                                  height: 24.w,
+                                  width: starSize,
+                                  height: starSize,
                                   colorFilter: const ColorFilter.mode(
                                     Color(0xFFE0E7FF),
                                     BlendMode.srcIn,
@@ -285,10 +318,7 @@ class ChapterQuizView extends GetView<QuizController> {
           decoration: BoxDecoration(
             color: const Color(0xFFFFF8EE),
             borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: const Color(0xFFE06D28),
-              width: 2.w,
-            ),
+            border: Border.all(color: const Color(0xFFE06D28), width: 2.w),
           ),
           child: Text(
             question.prompt,
@@ -341,47 +371,29 @@ class ChapterQuizView extends GetView<QuizController> {
   }
 
   Widget _buildOptionsGrid(QuizQuestionModel question) {
-    final letters = ['A', 'B', 'C', 'D'];
     final options = question.options;
-
-    return Column(
-      children: [
-        // Row 1: A and B
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = 12.w;
+        final largeText = MediaQuery.textScalerOf(context).scale(13.sp) > 18;
+        final width = constraints.maxWidth < 280 || largeText
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 12.h,
           children: [
-            Expanded(
-              child: options.isNotEmpty
-                  ? _buildOptionCard(options[0], letters[0])
-                  : const SizedBox.shrink(),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: options.length > 1
-                  ? _buildOptionCard(options[1], letters[1])
-                  : const SizedBox.shrink(),
-            ),
+            for (var index = 0; index < options.length; index++)
+              SizedBox(
+                width: width,
+                child: _buildOptionCard(
+                  options[index],
+                  index < 26 ? String.fromCharCode(65 + index) : '${index + 1}',
+                ),
+              ),
           ],
-        ),
-
-        SizedBox(height: 12.h),
-
-        // Row 2: C and D
-        Row(
-          children: [
-            Expanded(
-              child: options.length > 2
-                  ? _buildOptionCard(options[2], letters[2])
-                  : const SizedBox.shrink(),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: options.length > 3
-                  ? _buildOptionCard(options[3], letters[3])
-                  : const SizedBox.shrink(),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -389,7 +401,8 @@ class ChapterQuizView extends GetView<QuizController> {
     final isSelected = controller.selectedOptionId.value == option.id;
     final isChecked = controller.isAnswerChecked.value;
     final isCorrectOption =
-        isChecked && (controller.correctOptionId.value == option.id ||
+        isChecked &&
+        (controller.correctOptionId.value == option.id ||
             (controller.isAnswerCorrect.value && isSelected));
     final isWrongSelection =
         isChecked && isSelected && !controller.isAnswerCorrect.value;
@@ -410,11 +423,7 @@ class ChapterQuizView extends GetView<QuizController> {
             shape: BoxShape.circle,
           ),
           child: const Center(
-            child: Icon(
-              Icons.check,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Icon(Icons.check, color: Colors.white, size: 20),
           ),
         );
       } else if (isWrongSelection) {
@@ -428,11 +437,7 @@ class ChapterQuizView extends GetView<QuizController> {
             shape: BoxShape.circle,
           ),
           child: const Center(
-            child: Icon(
-              Icons.close,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Icon(Icons.close, color: Colors.white, size: 20),
           ),
         );
       } else {
@@ -504,15 +509,12 @@ class ChapterQuizView extends GetView<QuizController> {
     return GestureDetector(
       onTap: () => controller.selectOption(option.id),
       child: Container(
-        height: 82.h,
+        constraints: BoxConstraints(minHeight: 82.h),
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: borderColor,
-            width: borderWidth,
-          ),
+          border: Border.all(color: borderColor, width: borderWidth),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -522,6 +524,7 @@ class ChapterQuizView extends GetView<QuizController> {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             badge,
@@ -529,8 +532,6 @@ class ChapterQuizView extends GetView<QuizController> {
             Text(
               option.label,
               textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.nunito(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
@@ -548,19 +549,20 @@ class ChapterQuizView extends GetView<QuizController> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          isCorrect ? '🎉' : '❤️',
-          style: TextStyle(fontSize: 18.sp),
-        ),
+        Text(isCorrect ? '🎉' : '❤️', style: TextStyle(fontSize: 18.sp)),
         SizedBox(width: 8.w),
-        Text(
-          isCorrect
-              ? 'Correct! Well done.'
-              : 'Nice try! The correct answer is shown',
-          style: GoogleFonts.nunito(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF4F46E5),
+        Flexible(
+          child: Text(
+            isCorrect
+                ? 'Correct! Well done.'
+                : controller.correctOptionId.value != null
+                ? 'Nice try! The correct answer is shown.'
+                : 'Nice try! Keep going.',
+            style: GoogleFonts.nunito(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF4F46E5),
+            ),
           ),
         ),
       ],
@@ -597,6 +599,12 @@ class ChapterQuizView extends GetView<QuizController> {
       }
     }
 
+    if (controller.isSubmitting.value) {
+      onTap = null;
+      buttonText = 'Please wait…';
+      buttonColor = const Color(0xFFFED7AA);
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -629,4 +637,3 @@ class ChapterQuizView extends GetView<QuizController> {
     );
   }
 }
-

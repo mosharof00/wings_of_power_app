@@ -75,6 +75,16 @@ class _FakeRepo implements IStoryRepository {
       throw UnimplementedError();
 
   @override
+  Future<bool> markPageRead({
+    required String storyId,
+    required String chapterId,
+    required int pageNumber,
+    required String mode,
+    int? dwellSeconds,
+    int? listenPercent,
+  }) => throw UnimplementedError();
+
+  @override
   Future<bool> completeChapter({
     required String storyId,
     required String chapterId,

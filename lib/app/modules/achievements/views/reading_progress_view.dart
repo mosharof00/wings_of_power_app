@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
+import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
@@ -23,15 +24,7 @@ class ReadingProgressView extends GetView<AchievementsController> {
       body: Stack(
         children: [
           // Top Sky & Clouds Background
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.fill,
-              height: 120.h,
-            ),
-          ),
+          BgHeaderSky(),
 
           SafeArea(
             child: Column(

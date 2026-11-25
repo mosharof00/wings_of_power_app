@@ -9,13 +9,11 @@ class _FakeStoryRepository implements IStoryRepository {
     this.themes = const [],
     this.stories = const [],
     this.throwOnThemes = false,
-    this.throwOnStories = false,
   });
 
   List<StoryThemeModel> themes;
   List<StorySummaryModel> stories;
   bool throwOnThemes;
-  bool throwOnStories;
 
   String? lastThemeId;
   String? lastCategory;
@@ -41,7 +39,6 @@ class _FakeStoryRepository implements IStoryRepository {
     lastCategory = category;
     lastAgeGroup = ageGroup;
     lastSearch = search;
-    if (throwOnStories) throw Exception('stories failed');
 
     var items = List<StorySummaryModel>.from(stories);
     if (themeId != null && themeId.isNotEmpty) {
@@ -103,6 +100,16 @@ class _FakeStoryRepository implements IStoryRepository {
   }) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool> markPageRead({
+    required String storyId,
+    required String chapterId,
+    required int pageNumber,
+    required String mode,
+    int? dwellSeconds,
+    int? listenPercent,
+  }) => throw UnimplementedError();
 
   @override
   Future<bool> completeChapter({

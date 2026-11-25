@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
+import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/points_chip.dart';
@@ -26,15 +27,7 @@ class BadgesView extends GetView<AchievementsController> {
       body: Stack(
         children: [
           // Sky & clouds background banner
-          Positioned(
-            top: 10,
-            left: -10,
-            right: -10,
-            child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.cover,
-              // height: 110.h,
-            ),
-          ),
+          BgHeaderSky(),
 
           SafeArea(
             child: Column(

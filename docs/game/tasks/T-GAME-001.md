@@ -57,6 +57,10 @@ From Home, an ineligible student sees the lock modal. An eligible student sees t
 
 ## Notes
 
+- D62 makes Basketball a browsable bottom tab. The lobby displays live progress and lets students open How to Play and Choose Hero before they qualify. The unlock dialog opens when they tap a play mode. End-of-match and leave actions return to the same tab when the main shell is still open.
+- The lobby regression passed at 375×812, including both preview actions and zero queue requests for a locked student. All 23 Flutter tests, the Android debug build, and 94 focused backend tests passed. Live multi-device matches were not exercised.
+- The basketball item in the student bottom bar now uses the same eligibility flow as the Home button and opens mode select above the current tab.
+- The unlock mean uses submitted end-of-chapter quiz attempts (D61). The basketball tab regression, Flutter test suite, and Android debug build passed.
 - Implemented `GameEligibilityModel` and `HowToPlayModel`.
 - Added endpoints `ApiEndpoint.gameEligibility` and `ApiEndpoint.gameHowToPlay`.
 - Implemented `IGameRepository` and `GameRepository` with mock fallback for eligibility and how-to-play.

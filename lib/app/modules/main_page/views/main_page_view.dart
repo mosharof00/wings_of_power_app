@@ -4,6 +4,7 @@ import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/student_bottom_nav.dart';
 
 import '../../achievements/views/badges_view.dart';
+import '../../game/views/game_mode_select_view.dart';
 import '../../home/views/home_view.dart';
 import '../../profile/views/profile_view.dart';
 import '../../stories/views/story_library_view.dart';
@@ -25,12 +26,16 @@ class MainPageView extends GetView<MainPageController> {
         body: Obx(() {
           final index = controller.selectedIndex.value;
           return IndexedStack(
-            index: _bodyIndex(index),
-            children: const [
-              HomeView(),
-              StoryLibraryView(),
-              BadgesView(isEmbeddedInNav: true),
-              ProfileView(),
+            index: index,
+            children: [
+              const HomeView(),
+              const StoryLibraryView(),
+              if (index == 2)
+                const GameModeSelectView(embeddedInTab: true)
+              else
+                const SizedBox.shrink(),
+              const BadgesView(isEmbeddedInNav: true),
+              const ProfileView(),
             ],
           );
         }),
@@ -51,12 +56,5 @@ class MainPageView extends GetView<MainPageController> {
         ),
       ),
     );
-  }
-
-  /// Nav index 2 is the basketball icon and is never selected.
-  int _bodyIndex(int navIndex) {
-    if (navIndex <= 1) return navIndex;
-    if (navIndex == 3) return 2;
-    return 3;
   }
 }

@@ -153,6 +153,9 @@ Listed in the tables above, plus the leave modal and the three result scores.
 
 ## Notes
 
+- Fixed opening a chapter quiz from the reader's completion screen by matching the GetX route's dynamic result type. Missing or empty quizzes show an illustrated empty state with Back to Story and skip attempt creation.
+- 25 Nov follow-up: use the animated shared sunburst and show the submitted attempt's score percentage and server points (D60). Let answer cards grow with content. Keep results and retakes on one quiz route, reuse the existing story and Home routes, and resolve the next chapter using live story details.
+- Existing attempts resume with server-saved answers. Reading progress uses the API's uppercase mode values. Analyzer, 21 tests, and Android debug build passed. The signed-in iOS story was not exercised.
 - Implemented Chapter Quiz flow with host card, 2x2 MCQ options grid, star progress bar, speaker button, and Check Answer / Next Question / See Result state machine.
 - Implemented Leave Questions confirmation dialog matching `chapter_quiz_leave_confirm.png`.
 - Implemented Quiz Result view supporting 1/5 (+2 pts), 3/5 (+6 pts), and 5/5 (+10 pts) scenarios. Result progress bar matched at 10% per specification; Play Again button shown on non-perfect scores and hidden on 5/5 perfect score.

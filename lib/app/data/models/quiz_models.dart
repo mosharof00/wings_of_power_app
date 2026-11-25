@@ -117,6 +117,7 @@ class QuizAttemptModel {
     this.pointsAwarded = 0,
     this.status = 'IN_PROGRESS',
     this.quizBestPercent,
+    this.answers = const [],
   });
 
   final String id;
@@ -127,9 +128,14 @@ class QuizAttemptModel {
   final int pointsAwarded;
   final String status;
   final int? quizBestPercent;
+  final List<SubmitAnswerResponseModel> answers;
 
   factory QuizAttemptModel.fromJson(Map<String, dynamic> json) {
     return QuizAttemptModel(
+      answers: (json['answers'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SubmitAnswerResponseModel.fromJson)
+          .toList(),
       id: json['id'] as String? ?? '',
       quizId: json['quizId'] ?? json['quiz_id'] as String? ?? '',
       userId: json['userId'] ?? json['user_id'] as String? ?? '',
@@ -152,6 +158,7 @@ class QuizAttemptModel {
         'scoreTotal': scoreTotal,
         'pointsAwarded': pointsAwarded,
         'status': status,
+        if (answers.isNotEmpty) 'answers': answers.map((a) => a.toJson()).toList(),
         if (quizBestPercent != null) 'quizBestPercent': quizBestPercent,
       };
 }

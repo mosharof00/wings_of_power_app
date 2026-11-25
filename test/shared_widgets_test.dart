@@ -35,13 +35,15 @@ Future<void> pumpApp(WidgetTester tester, Widget child) async {
 }
 
 void main() {
-  test('basketball nav tap does not change the tab', () {
-    final controller = MainPageController();
+  test('basketball nav selects and refreshes the game tab', () {
+    var openCount = 0;
+    final controller = MainPageController(onGameTabOpened: () => openCount++);
     addTearDown(controller.dispose);
     controller.onNavTap(1);
     expect(controller.selectedIndex.value, 1);
     controller.onNavTap(2);
-    expect(controller.selectedIndex.value, 1);
+    expect(controller.selectedIndex.value, 2);
+    expect(openCount, 1);
     controller.onNavTap(4);
     expect(controller.selectedIndex.value, 4);
   });
@@ -128,7 +130,7 @@ void main() {
     expect(shown.obscureText, isFalse);
   });
 
-  testWidgets('nav selects home and profile and ignores basketball', (
+  testWidgets('nav selects home, profile, and basketball', (
     tester,
   ) async {
     var selected = 0;
@@ -139,7 +141,6 @@ void main() {
           return StudentBottomNav(
             selectedIndex: selected,
             onTap: (index) => setState(() {
-              if (index == 2) return;
               selected = index;
             }),
           );
@@ -160,7 +161,7 @@ void main() {
     await tester.tap(find.byKey(const Key('nav-game')));
     await tester.pump();
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Profile')).flagsCollection.isSelected,
+      tester.getSemantics(find.bySemanticsLabel('Game')).flagsCollection.isSelected,
       Tristate.isTrue,
     );
   });

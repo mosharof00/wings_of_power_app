@@ -190,7 +190,7 @@ class StoryRepository implements IStoryRepository {
           'chapterId': chapterId,
           'pageNumber': pageNumber,
           'percent': percent,
-          'mode': mode,
+          'mode': mode.toUpperCase(),
         },
       ),
       (dynamic data) => true,

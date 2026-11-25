@@ -28,7 +28,6 @@ abstract class Routes {
   static const READER = _Paths.READER;
   static const STORY_LISTENING = _Paths.STORY_LISTENING;
   static const CHAPTER_QUIZ = _Paths.CHAPTER_QUIZ;
-  static const CHAPTER_QUIZ_RESULT = _Paths.CHAPTER_QUIZ_RESULT;
   static const CHECKPOINT_QUIZ = _Paths.CHECKPOINT_QUIZ;
   static const BADGES = _Paths.BADGES;
   static const POSITIVE_POINTS = _Paths.POSITIVE_POINTS;
@@ -70,7 +69,6 @@ abstract class _Paths {
   static const READER = '/reader';
   static const STORY_LISTENING = '/story-listening';
   static const CHAPTER_QUIZ = '/chapter-quiz';
-  static const CHAPTER_QUIZ_RESULT = '/chapter-quiz-result';
   static const CHECKPOINT_QUIZ = '/checkpoint-quiz';
   static const BADGES = '/badges';
   static const POSITIVE_POINTS = '/positive-points';

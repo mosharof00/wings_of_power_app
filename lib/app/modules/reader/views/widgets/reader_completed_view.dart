@@ -33,8 +33,8 @@ class ReaderCompletedView extends StatelessWidget {
               children: [
                 const Spacer(flex: 2),
                 Image.asset(
-                  Assets.characters.heroApproval.path,
-                  height: 280.h,
+                  Assets.characters.hiHeroe.path,
+                  height: 220.h,
                   fit: BoxFit.contain,
                 ),
                 Transform.translate(

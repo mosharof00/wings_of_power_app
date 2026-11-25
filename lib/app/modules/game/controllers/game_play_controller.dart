@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/game_match.dart';
 import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
 import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
-import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 import '../controllers/game_mode_select_controller.dart';
 import '../models/game_match_finished.dart';
@@ -803,7 +802,7 @@ class GamePlayController extends GetxController {
 
     if (phaseStr == 'CANCELLED') {
       _socketService.disconnect();
-      Get.offAllNamed(Routes.GAME_MODE_SELECT);
+      GameModeSelectController.returnToLobby();
       return;
     }
 
@@ -1111,13 +1110,7 @@ class GamePlayController extends GetxController {
           } catch (_) {}
         }
         _socketService.disconnect();
-        if (Get.isRegistered<GameModeSelectController>()) {
-          Get.find<GameModeSelectController>().reloadStudentStats();
-        }
-        if (Get.isRegistered<HomeController>()) {
-          Get.find<HomeController>().fetchHome();
-        }
-        Get.offAllNamed(Routes.GAME_MODE_SELECT);
+        GameModeSelectController.returnToLobby();
       },
     );
   }
@@ -1307,14 +1300,7 @@ class GamePlayController extends GetxController {
     }
     _socketService.disconnect();
 
-    if (Get.isRegistered<GameModeSelectController>()) {
-      Get.find<GameModeSelectController>().reloadStudentStats();
-    }
-    if (Get.isRegistered<HomeController>()) {
-      Get.find<HomeController>().fetchHome();
-    }
-
-    Get.offAllNamed(Routes.GAME_MODE_SELECT);
+    GameModeSelectController.returnToLobby();
   }
 
   void onLeaderboardTap() {

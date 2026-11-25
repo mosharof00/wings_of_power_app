@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/utils/helper_utils.dart';
 import '../../../data/models/story_models.dart';
 import '../../../data/repositories/story_repository.dart';
 import '../../../routes/app_pages.dart';
+import '../../home/controllers/home_controller.dart';
 
 class ReaderController extends GetxController {
   ReaderController([IStoryRepository? repository])
@@ -429,19 +431,32 @@ class ReaderController extends GetxController {
     }
   }
 
-  void onTakeQuiz() {
-    Get.toNamed(
+  Future<void> onTakeQuiz() async {
+    final nextChapterId = await Get.toNamed(
       Routes.CHAPTER_QUIZ,
       arguments: {
         'storyId': storyId,
         'chapterId': chapterId,
+        'fromReader': true,
       },
     );
+    if (isClosed || nextChapterId is! String || nextChapterId.isEmpty) return;
+
+    _dwellTimer?.cancel();
+    _playbackTimer?.cancel();
+    passedCheckpoints.clear();
+    audioPosition.value = Duration.zero;
+    _useTimerFallback = false;
+    chapterId = nextChapterId;
+    await loadChapter();
   }
 
   void onBackToHome() {
     pauseAudio();
-    Get.offAllNamed(Routes.MAIN_PAGE);
+    HelperUtils.backToMain();
+    if (Get.isRegistered<HomeController>()) {
+      unawaited(Get.find<HomeController>().fetchHome());
+    }
   }
 
   void onBackTap() {

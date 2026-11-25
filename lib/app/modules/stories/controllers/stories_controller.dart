@@ -261,8 +261,28 @@ class StoriesController extends GetxController {
   final isDetailLoading = false.obs;
   final detailErrorMessage = ''.obs;
   final selectedDetailTab = 0.obs;
+  /// Last requested detail id (for retry when fetch fails before model exists).
+  String? pendingDetailStoryId;
+
+  /// Load detail from current route args. Safe to call every time StoryDetails opens
+  /// (MainPage-scoped controller already ran [onInit] without storyId).
+  void loadDetailFromRoute() {
+    final args = Get.arguments;
+    if (args is Map &&
+        args['storyId'] is String &&
+        (args['storyId'] as String).isNotEmpty) {
+      final id = args['storyId'] as String;
+      if (storyDetail.value?.id == id &&
+          !isDetailLoading.value &&
+          detailErrorMessage.value.isEmpty) {
+        return;
+      }
+      fetchStoryDetail(id);
+    }
+  }
 
   Future<void> fetchStoryDetail(String storyId) async {
+    pendingDetailStoryId = storyId;
     isDetailLoading.value = true;
     detailErrorMessage.value = '';
     try {
@@ -276,8 +296,10 @@ class StoriesController extends GetxController {
   }
 
   void openStoryDetail(String storyId) {
-    fetchStoryDetail(storyId);
     selectedDetailTab.value = 0;
+    // Kick off fetch before navigate — MainPage-scoped controller already
+    // finished onInit without a storyId; do not wait only on route args.
+    fetchStoryDetail(storyId);
     Get.toNamed(Routes.STORY_DETAILS, arguments: {'storyId': storyId});
   }
 

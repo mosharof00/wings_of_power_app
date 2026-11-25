@@ -135,6 +135,10 @@ class $AssetsCharactersGen {
   AssetGenImage get gabrielHost =>
       const AssetGenImage('assets/characters/gabriel_host.png');
 
+  /// File path: assets/characters/gabriel_host_done.png
+  AssetGenImage get gabrielHostDone =>
+      const AssetGenImage('assets/characters/gabriel_host_done.png');
+
   /// File path: assets/characters/hero_approval.png
   AssetGenImage get heroApproval =>
       const AssetGenImage('assets/characters/hero_approval.png');
@@ -175,6 +179,10 @@ class $AssetsCharactersGen {
   AssetGenImage get heroSamantha =>
       const AssetGenImage('assets/characters/hero_samantha.png');
 
+  /// File path: assets/characters/hi_heroe.png
+  AssetGenImage get hiHeroe =>
+      const AssetGenImage('assets/characters/hi_heroe.png');
+
   /// File path: assets/characters/home_banner_continue.png
   AssetGenImage get homeBannerContinue =>
       const AssetGenImage('assets/characters/home_banner_continue.png');
@@ -202,6 +210,7 @@ class $AssetsCharactersGen {
   /// List of all assets
   List<AssetGenImage> get values => [
     gabrielHost,
+    gabrielHostDone,
     heroApproval,
     heroChiSung,
     heroCodeError,
@@ -212,6 +221,7 @@ class $AssetsCharactersGen {
     heroMichele,
     heroRalph,
     heroSamantha,
+    hiHeroe,
     homeBannerContinue,
     homeBannerQuiz,
     homeBannerReader,
@@ -461,6 +471,10 @@ class $AssetsImagesGen {
   AssetGenImage get playGameCard =>
       const AssetGenImage('assets/images/play_game_card.png');
 
+  /// File path: assets/images/quiz_result_star.png
+  AssetGenImage get quizResultStar =>
+      const AssetGenImage('assets/images/quiz_result_star.png');
+
   /// File path: assets/images/safe_space_report.png
   AssetGenImage get safeSpaceReport =>
       const AssetGenImage('assets/images/safe_space_report.png');
@@ -486,6 +500,7 @@ class $AssetsImagesGen {
     otherCategories,
     placeholderImage,
     playGameCard,
+    quizResultStar,
     safeSpaceReport,
   ];
 }
@@ -496,12 +511,16 @@ class $AssetsLogosGen {
   /// File path: assets/logos/app_icon.png
   AssetGenImage get appIcon => const AssetGenImage('assets/logos/app_icon.png');
 
+  /// File path: assets/logos/game_banner.png
+  AssetGenImage get gameBanner =>
+      const AssetGenImage('assets/logos/game_banner.png');
+
   /// File path: assets/logos/logo_wordmark.png
   AssetGenImage get logoWordmark =>
       const AssetGenImage('assets/logos/logo_wordmark.png');
 
   /// List of all assets
-  List<AssetGenImage> get values => [appIcon, logoWordmark];
+  List<AssetGenImage> get values => [appIcon, gameBanner, logoWordmark];
 }
 
 class $AssetsOnboardingGen {

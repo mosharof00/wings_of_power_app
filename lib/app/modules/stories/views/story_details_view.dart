@@ -14,8 +14,24 @@ import 'package:wings_of_power_app/gen/assets.gen.dart';
 import '../controllers/stories_controller.dart';
 import 'widgets/chapter_list_item.dart';
 
-class StoryDetailsView extends GetView<StoriesController> {
+class StoryDetailsView extends StatefulWidget {
   const StoryDetailsView({super.key});
+
+  @override
+  State<StoryDetailsView> createState() => _StoryDetailsViewState();
+}
+
+class _StoryDetailsViewState extends State<StoryDetailsView> {
+  StoriesController get controller => Get.find<StoriesController>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Controller is MainPage-scoped; onInit already ran without storyId.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadDetailFromRoute();
+    });
+  }
 
   Widget _buildCoverImage(StoryDetailModel story) {
     if (story.coverUrl != null && story.coverUrl!.isNotEmpty) {
@@ -60,7 +76,6 @@ class StoryDetailsView extends GetView<StoriesController> {
             right: -10,
             child: Assets.backgrounds.bgHomeSky.image(
               fit: BoxFit.cover,
-              // height: 110.h,
             ),
           ),
           SafeArea(
@@ -74,9 +89,12 @@ class StoryDetailsView extends GetView<StoriesController> {
                   child: ErrorBlock(
                     message: controller.detailErrorMessage.value,
                     onRetry: () {
-                      final storyId = controller.storyDetail.value?.id;
-                      if (storyId != null) {
+                      final storyId = controller.pendingDetailStoryId ??
+                          controller.storyDetail.value?.id;
+                      if (storyId != null && storyId.isNotEmpty) {
                         controller.fetchStoryDetail(storyId);
+                      } else {
+                        controller.loadDetailFromRoute();
                       }
                     },
                   ),
@@ -85,14 +103,19 @@ class StoryDetailsView extends GetView<StoriesController> {
 
               final story = controller.storyDetail.value;
               if (story == null) {
-                return const Center(child: GlobalLoading());
+                return Center(
+                  child: ErrorBlock(
+                    message: 'Story details could not be loaded.',
+                    onRetry: controller.loadDetailFromRoute,
+                  ),
+                );
               }
 
               return Column(
                 children: [
                   SizedBox(height: 8.h),
 
-                  // Header: Back button + Title
+                  // Fixed Header Row: Back button + Title (always stays at top)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     child: Row(
@@ -129,190 +152,194 @@ class StoryDetailsView extends GetView<StoriesController> {
 
                   SizedBox(height: 10.h),
 
-                  // Top Book Card with Cover + Title + Author
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColor.cream,
-                        borderRadius: BorderRadius.circular(22.r),
-                        border: Border.all(
-                          color: AppColor.primary.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      padding: EdgeInsets.all(14.w),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16.r),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: AppColor.primary,
-                                  width: 2.w,
-                                ),
-                                borderRadius: BorderRadius.circular(16.r),
-                              ),
-                              child: AspectRatio(
-                                aspectRatio: 1.6,
-                                child: _buildCoverImage(story),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 10.h),
-                          Text(
-                            story.title,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.nunito(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.w800,
-                              color: AppColor.primary,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            'Written By ${story.author}',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.nunito(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColor.subtitle,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 12.h),
-
-                  // White bottom card for Description and Chapters tabs
+                  // Scrollable Area: Book Cover scrolls away, Tab Bar pins below header
                   Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColor.white,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(30.r),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 16,
-                            offset: const Offset(0, -4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          SizedBox(height: 16.h),
-
-                          // Segmented Tab Control: Description vs Chapters
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: Container(
-                              height: 46.h,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFDEEE5),
-                                borderRadius: BorderRadius.circular(24.r),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () =>
-                                          controller.selectedDetailTab.value = 0,
-                                      child: Obx(
-                                        () {
-                                          final isSelected = controller
-                                                  .selectedDetailTab.value ==
-                                              0;
-                                          return Container(
-                                            height: double.infinity,
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? AppColor.primary
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(24.r),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              'Description',
-                                              style: GoogleFonts.nunito(
-                                                fontSize: 15.sp,
-                                                fontWeight: FontWeight.w800,
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : AppColor.primary,
-                                              ),
-                                            ),
-                                          );
-                                        },
+                    child: NestedScrollView(
+                      headerSliverBuilder:
+                          (BuildContext context, bool innerBoxIsScrolled) {
+                        return <Widget>[
+                          // Top Book Cover Card (Hides on scroll)
+                          SliverToBoxAdapter(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 16.w),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColor.cream,
+                                      borderRadius: BorderRadius.circular(22.r),
+                                      border: Border.all(
+                                        color: AppColor.primary
+                                            .withValues(alpha: 0.3),
+                                        width: 1.5,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.08),
+                                          blurRadius: 14,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    padding: EdgeInsets.all(14.w),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(16.r),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                color: AppColor.primary,
+                                                width: 2.w,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(16.r),
+                                            ),
+                                            child: AspectRatio(
+                                              aspectRatio: 1.6,
+                                              child: _buildCoverImage(story),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: 10.h),
+                                        Text(
+                                          story.title,
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.nunito(
+                                            fontSize: 18.sp,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColor.primary,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2.h),
+                                        Text(
+                                          'Written By ${story.author}',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.nunito(
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColor.subtitle,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () =>
-                                          controller.selectedDetailTab.value = 1,
-                                      child: Obx(
-                                        () {
-                                          final isSelected = controller
-                                                  .selectedDetailTab.value ==
-                                              1;
-                                          return Container(
-                                            height: double.infinity,
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? AppColor.primary
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(24.r),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              'Chapters',
-                                              style: GoogleFonts.nunito(
-                                                fontSize: 15.sp,
-                                                fontWeight: FontWeight.w800,
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : AppColor.primary,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                SizedBox(height: 12.h),
+                              ],
                             ),
                           ),
 
-                          SizedBox(height: 12.h),
-
-                          // Tab Content Area
-                          Expanded(
-                            child: Obx(() {
-                              if (controller.selectedDetailTab.value == 0) {
-                                return _buildDescriptionTab(story);
-                              } else {
-                                return _buildChaptersTab(story);
-                              }
-                            }),
+                          // Sticky Segmented Tab Control Header
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _SliverTabBarDelegate(
+                              height: 66.h,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20.w,
+                                  vertical: 10.h,
+                                ),
+                                child: Container(
+                                  height: 46.h,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFDEEE5),
+                                    borderRadius: BorderRadius.circular(24.r),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => controller
+                                              .selectedDetailTab.value = 0,
+                                          child: Obx(
+                                            () {
+                                              final isSelected = controller
+                                                      .selectedDetailTab.value ==
+                                                  0;
+                                              return Container(
+                                                height: double.infinity,
+                                                decoration: BoxDecoration(
+                                                  color: isSelected
+                                                      ? AppColor.primary
+                                                      : Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          24.r),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  'Description',
+                                                  style: GoogleFonts.nunito(
+                                                    fontSize: 15.sp,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: isSelected
+                                                        ? Colors.white
+                                                        : AppColor.primary,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => controller
+                                              .selectedDetailTab.value = 1,
+                                          child: Obx(
+                                            () {
+                                              final isSelected = controller
+                                                      .selectedDetailTab.value ==
+                                                  1;
+                                              return Container(
+                                                height: double.infinity,
+                                                decoration: BoxDecoration(
+                                                  color: isSelected
+                                                      ? AppColor.primary
+                                                      : Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          24.r),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  'Chapters',
+                                                  style: GoogleFonts.nunito(
+                                                    fontSize: 15.sp,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: isSelected
+                                                        ? Colors.white
+                                                        : AppColor.primary,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ],
+                        ];
+                      },
+                      body: Container(
+                        color: AppColor.white,
+                        child: Obx(() {
+                          if (controller.selectedDetailTab.value == 0) {
+                            return _buildDescriptionTab(story);
+                          } else {
+                            return _buildChaptersTab(story);
+                          }
+                        }),
                       ),
                     ),
                   ),
@@ -326,8 +353,9 @@ class StoryDetailsView extends GetView<StoriesController> {
   }
 
   Widget _buildDescriptionTab(StoryDetailModel story) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
+    return SingleChildScrollView(
+      key: const PageStorageKey('story_description_tab'),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -374,21 +402,17 @@ class StoryDetailsView extends GetView<StoriesController> {
           SizedBox(height: 8.h),
 
           // Description text
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                story.synopsis,
-                style: GoogleFonts.nunito(
-                  fontSize: 14.sp,
-                  height: 1.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppColor.subtitle,
-                ),
-              ),
+          Text(
+            story.synopsis,
+            style: GoogleFonts.nunito(
+              fontSize: 14.sp,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+              color: AppColor.subtitle,
             ),
           ),
 
-          SizedBox(height: 12.h),
+          SizedBox(height: 24.h),
 
           // CTA Button: Start Reading / Continue Reading
           GlobalButton(
@@ -401,7 +425,7 @@ class StoryDetailsView extends GetView<StoriesController> {
             fontWeight: FontWeight.w800,
           ),
 
-          SizedBox(height: 20.h),
+          SizedBox(height: 30.h),
         ],
       ),
     );
@@ -409,6 +433,7 @@ class StoryDetailsView extends GetView<StoriesController> {
 
   Widget _buildChaptersTab(StoryDetailModel story) {
     return ListView.separated(
+      key: const PageStorageKey('story_chapters_tab'),
       padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 30.h),
       itemCount: story.chapters.length,
       separatorBuilder: (_, _) => SizedBox(height: 12.h),
@@ -451,5 +476,49 @@ class StoryDetailsView extends GetView<StoriesController> {
         ),
       ],
     );
+  }
+}
+
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverTabBarDelegate({
+    required this.child,
+    required this.height,
+  });
+
+  final Widget child;
+  final double height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColor.white,
+        borderRadius: shrinkOffset < 5
+            ? BorderRadius.vertical(top: Radius.circular(30.r))
+            : BorderRadius.zero,
+        boxShadow: shrinkOffset > 5
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return oldDelegate.height != height || oldDelegate.child != child;
   }
 }

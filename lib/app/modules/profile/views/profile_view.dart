@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
+import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 import '../../../global/widgets/app_scaffold.dart';
@@ -20,15 +21,7 @@ class ProfileView extends GetView<ProfileController> {
       body: Stack(
         children: [
           // Sky background banner
-          Positioned(
-            top: 10,
-            left: -10,
-            right: -10,
-            child: Assets.backgrounds.bgHomeSky.image(
-              fit: BoxFit.cover,
-              // height: 110.h,
-            ),
-          ),
+          BgHeaderSky(),
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),

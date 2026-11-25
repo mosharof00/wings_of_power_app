@@ -223,12 +223,15 @@ class _GameChooseHeroDialogState extends State<GameChooseHeroDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SizedBox(width: 32.w),
-                Text(
-                  'Choose Power Hero',
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1E1B4B),
+                Expanded(
+                  child: Text(
+                    'Choose Power Hero',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E1B4B),
+                    ),
                   ),
                 ),
                 GestureDetector(

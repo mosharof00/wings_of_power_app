@@ -9,8 +9,6 @@ import 'app_svg_icon.dart';
 /// Orange floating pill with five icons. Scaffold chrome behind it stays
 /// transparent via [MainPageView] `extendBody`.
 ///
-/// Home, stories, badges, and profile report [onTap]. Basketball reports index 2
-/// and the shell leaves that handler empty (game plan T-GAME-001).
 class StudentBottomNav extends StatelessWidget {
   const StudentBottomNav({
     super.key,

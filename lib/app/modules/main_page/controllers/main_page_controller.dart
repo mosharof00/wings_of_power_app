@@ -5,20 +5,20 @@ import 'package:wings_of_power_app/app/core/utils/dialog_utils.dart';
 import 'package:get/get.dart';
 
 class MainPageController extends GetxController {
+  MainPageController({this.onGameTabOpened});
+
+  final VoidCallback? onGameTabOpened;
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final selectedIndex = 0.obs;
 
   bool _isExitDialogOpen = false;
 
-  void changePage(int index) => selectedIndex.value = index;
-
-  /// Home, stories, badges, and profile switch the shell tab.
-  /// Basketball is drawn on the bar so it matches the screenshot. Opening the
-  /// game is `docs/game/tasks/T-GAME-001`; this tap stays empty.
-  void onNavTap(int index) {
-    if (index == 2) return;
-    changePage(index);
+  void changePage(int index) {
+    selectedIndex.value = index;
+    if (index == 2) onGameTabOpened?.call();
   }
+
+  void onNavTap(int index) => changePage(index);
 
   /// Hardware/gesture back on the main page: close the drawer if one is open,
   /// otherwise confirm before exiting the app.
