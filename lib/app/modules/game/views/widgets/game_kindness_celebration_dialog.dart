@@ -160,7 +160,7 @@ class GameKindnessCelebrationDialog extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'Play the Shoot',
+                        'Continue',
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w900,

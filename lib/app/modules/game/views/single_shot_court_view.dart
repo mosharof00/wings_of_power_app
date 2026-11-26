@@ -134,8 +134,7 @@ class _SingleShotCourtViewState extends State<SingleShotCourtView>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isShooter = widget.controller.isShooter;
-    final shootoutStart = widget.controller.shootoutStart.value;
-    final shooterName = shootoutStart?.shooterName ?? 'Shooter';
+    final shooterName = widget.controller.shooterName;
     final shooterTeam = widget.controller.shooterTeamLabel;
     final shooterXp = widget.controller.shooterTeamXp;
     final result = widget.controller.shootoutResult.value;

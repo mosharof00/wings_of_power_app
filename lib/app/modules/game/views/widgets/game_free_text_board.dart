@@ -54,23 +54,20 @@ class GameFreeTextBoard extends StatelessWidget {
           _buildHeader(),
           SizedBox(height: 16.h),
 
-          // 2. Story Prompt
-          Text(
-            question.prompt.isNotEmpty
-                ? question.prompt
-                : 'Harold loves science. At lunch, some kids laugh at him and call him a nerd. You are sitting nearby.',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1E1B4B),
-              height: 1.45,
+          if (question.storySnippet case final String excerpt
+              when excerpt.isNotEmpty) ...[
+            Text(
+              excerpt,
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: const Color(0xFF1E1B4B),
+                height: 1.45,
+              ),
             ),
-          ),
-          SizedBox(height: 18.h),
-
-          // 3. Question Heading
+            SizedBox(height: 18.h),
+          ],
           Text(
-            'What would you do?',
+            question.prompt,
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w800,

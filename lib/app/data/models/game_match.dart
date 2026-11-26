@@ -481,6 +481,7 @@ class GameQuestionEvent {
   final String roundId;
   final String? questionId;
   final String prompt;
+  final String? storySnippet;
   final List<String> options;
   final String roundType;
   final int index;
@@ -491,6 +492,7 @@ class GameQuestionEvent {
     required this.roundId,
     this.questionId,
     required this.prompt,
+    this.storySnippet,
     required this.options,
     this.roundType = 'Q1_WARMUP',
     this.index = 1,
@@ -510,6 +512,7 @@ class GameQuestionEvent {
       roundId: json['roundId']?.toString() ?? json['round_id']?.toString() ?? '',
       questionId: json['questionId']?.toString() ?? json['question_id']?.toString(),
       prompt: json['prompt']?.toString() ?? '',
+      storySnippet: json['storySnippet']?.toString(),
       options: rawOptions.map((e) => e.toString()).toList(),
       roundType: json['roundType']?.toString() ?? json['round_type']?.toString() ?? 'Q1_WARMUP',
       index: (json['index'] ?? 1) as int,
@@ -519,15 +522,16 @@ class GameQuestionEvent {
   }
 
   Map<String, dynamic> toJson() => {
-        'roundId': roundId,
-        'questionId': questionId,
-        'prompt': prompt,
-        'options': options,
-        'roundType': roundType,
-        'index': index,
-        'total': total,
-        'deadlineAt': deadlineAt?.toIso8601String(),
-      };
+    'roundId': roundId,
+    'questionId': questionId,
+    'prompt': prompt,
+    'storySnippet': storySnippet,
+    'options': options,
+    'roundType': roundType,
+    'index': index,
+    'total': total,
+    'deadlineAt': deadlineAt?.toIso8601String(),
+  };
 }
 
 class GameBuzzWinnerEvent {
@@ -911,8 +915,12 @@ class GameRoundCompleteEvent {
         final valA = teamScores[keys[0]];
         if (valA is Map) {
           teamA = GameRoundTeamSummary(
-            name: valA['name']?.toString() ?? valA['label']?.toString() ?? 'Team A',
-            scoreVs: (valA['scoreVs'] ?? valA['baskets'] ?? 0) as int,
+            name:
+                valA['name']?.toString() ??
+                valA['label']?.toString() ??
+                'Team A',
+            scoreVs:
+                (valA['scoreVs'] ?? (valA['baskets'] as int? ?? 0) * 3) as int,
             coins: (valA['coins'] ?? valA['kindness'] ?? 0) as int,
             xp: (valA['xp'] ?? 0) as int,
           );
@@ -922,8 +930,12 @@ class GameRoundCompleteEvent {
         final valB = teamScores[keys[1]];
         if (valB is Map) {
           teamB = GameRoundTeamSummary(
-            name: valB['name']?.toString() ?? valB['label']?.toString() ?? 'Team B',
-            scoreVs: (valB['scoreVs'] ?? valB['baskets'] ?? 0) as int,
+            name:
+                valB['name']?.toString() ??
+                valB['label']?.toString() ??
+                'Team B',
+            scoreVs:
+                (valB['scoreVs'] ?? (valB['baskets'] as int? ?? 0) * 3) as int,
             coins: (valB['coins'] ?? valB['kindness'] ?? 0) as int,
             xp: (valB['xp'] ?? 0) as int,
           );

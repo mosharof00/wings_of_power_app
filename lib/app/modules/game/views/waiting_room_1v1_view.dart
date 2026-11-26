@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/hero_models.dart';
+
+import '../../../../gen/assets.gen.dart';
 import '../controllers/waiting_room_1v1_controller.dart';
 
 typedef GameWaitingRoomView = WaitingRoom1v1View;
@@ -15,17 +17,22 @@ class WaitingRoom1v1View extends StatelessWidget {
     this.currentUserAvatar,
     this.selectedHero,
     this.initialTicketId,
+    String mode = 'ONE_V_ONE',
+    String? fixtureCode,
     WaitingRoom1v1Controller? controller,
-  }) : controller = controller ??
-            Get.put(
-              WaitingRoom1v1Controller(
-                currentUserId: currentUserId,
-                currentUserNickname: currentUserNickname,
-                currentUserAvatar: currentUserAvatar,
-                selectedHero: selectedHero,
-                initialTicketId: initialTicketId,
-              ),
-            );
+  }) : controller =
+           controller ??
+           Get.put(
+             WaitingRoom1v1Controller(
+               currentUserId: currentUserId,
+               currentUserNickname: currentUserNickname,
+               currentUserAvatar: currentUserAvatar,
+               selectedHero: selectedHero,
+               initialTicketId: initialTicketId,
+               mode: mode,
+               fixtureCode: fixtureCode,
+             ),
+           );
 
   final String? currentUserId;
   final String? currentUserNickname;
@@ -56,7 +63,7 @@ class WaitingRoom1v1View extends StatelessWidget {
             children: [
               SizedBox(height: 20.h),
               // Game Logo
-              _buildGameLogo(),
+              Image.asset(Assets.logos.gameBanner.path),
               SizedBox(height: 32.h),
               // Status Header (Title & Subtitle)
               _buildStatusHeader(),
@@ -77,75 +84,6 @@ class WaitingRoom1v1View extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildGameLogo() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              color: const Color(0xFFFFD54F),
-              size: 20.sp,
-            ),
-            SizedBox(width: 4.w),
-            Text(
-              'Wings of Power',
-              style: TextStyle(
-                fontFamily: 'LilitaOne',
-                fontSize: 26.sp,
-                fontWeight: FontWeight.w900,
-                color: const Color(0xFFFFD54F),
-                shadows: const [
-                  Shadow(
-                    color: Color(0xFF3B0764),
-                    offset: Offset(0, 3),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.auto_awesome,
-              color: const Color(0xFFFFD54F),
-              size: 20.sp,
-            ),
-          ],
-        ),
-        SizedBox(height: 4.h),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4C1D95),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: const Color(0xFFFFD54F),
-              width: 1.5,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x44000000),
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Text(
-            'BASKETBALL EDITION',
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -230,7 +168,7 @@ class WaitingRoom1v1View extends StatelessWidget {
                   ? _buildAvatar(oppAvatar ?? 'assets/images/avatar_02.png')
                   : _buildWaitingAvatar(),
               nameWidget: Text(
-                isFull ? (oppNick ?? 'Classmate') : 'Waiti...',
+                isFull ? (oppNick ?? 'Classmate') : 'Waiting…',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,

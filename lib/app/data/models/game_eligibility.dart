@@ -40,11 +40,13 @@ class GameEligibilityProgress {
   final int storiesCompleted;
   final int chaptersCompleted;
   final double bestQuizPercent;
+  final int basketballXp;
 
   GameEligibilityProgress({
     this.storiesCompleted = 0,
     this.chaptersCompleted = 0,
     this.bestQuizPercent = 0.0,
+    this.basketballXp = 0,
   });
 
   factory GameEligibilityProgress.fromJson(Map<String, dynamic> json) {
@@ -57,14 +59,16 @@ class GameEligibilityProgress {
           (json['completedChapters'] as num?)?.toInt() ??
           0,
       bestQuizPercent: (quizVal as num?)?.toDouble() ?? 0.0,
+      basketballXp: (json['basketballXp'] as num?)?.toInt() ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'storiesCompleted': storiesCompleted,
-        'chaptersCompleted': chaptersCompleted,
-        'bestQuizPercent': bestQuizPercent,
-      };
+    'storiesCompleted': storiesCompleted,
+    'chaptersCompleted': chaptersCompleted,
+    'bestQuizPercent': bestQuizPercent,
+    'basketballXp': basketballXp,
+  };
 }
 
 class GameEligibilityRules {

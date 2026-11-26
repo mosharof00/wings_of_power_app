@@ -186,6 +186,7 @@ class GameSocketService extends GetxService {
       final options = io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
+          .enableForceNew()
           .setAuth({'token': token ?? ''})
           .setExtraHeaders({'Authorization': 'Bearer ${token ?? ''}'})
           .enableReconnection()
@@ -529,29 +530,41 @@ class GameSocketService extends GetxService {
     });
   }
 
-  void leaveMatch(String matchId) {
-    _socket?.emit('match:leave', {'matchId': matchId});
+  Future<bool> leaveMatch(String matchId) async {
+    final socket = _socket;
+    if (socket == null || !isConnected.value) return false;
+    try {
+      final result = await socket.timeout(3000).emitWithAckAsync(
+        'match:leave',
+        {'matchId': matchId},
+      );
+      return result == true;
+    } catch (_) {
+      return false;
+    }
   }
 
   void buzz(String roundId) {
     debugPrint('[GameSocketService] buzz -> roundId: $roundId');
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:buzz', {'roundId': roundId});
-    } else {
+    } else if (AppConfig.useMocks) {
       // Mock mode: handle human buzz
       _handleMockHumanBuzz(roundId);
     }
   }
 
   void submitAnswer(String roundId, {int? optionIndex, String? freeText}) {
-    debugPrint('[GameSocketService] submitAnswer -> roundId: $roundId, option: $optionIndex, freeText: $freeText');
+    debugPrint(
+      '[GameSocketService] submitAnswer -> roundId: $roundId, option: $optionIndex',
+    );
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:answer', {
         'roundId': roundId,
         'optionIndex': ?optionIndex,
         'freeText': ?freeText,
       });
-    } else {
+    } else if (AppConfig.useMocks) {
       if (freeText != null) {
         _handleMockFreeTextAnswer(roundId, freeText);
       } else {
@@ -575,7 +588,7 @@ class GameSocketService extends GetxService {
         'selectedIndex': selectedIndex,
         'optionIndex': selectedIndex,
       });
-    } else {
+    } else if (AppConfig.useMocks) {
       _handleMockVote(
         matchId: matchId,
         roundId: roundId,
@@ -589,7 +602,7 @@ class GameSocketService extends GetxService {
     debugPrint('[GameSocketService] pass -> roundId: $roundId');
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:pass', {'roundId': roundId});
-    } else {
+    } else if (AppConfig.useMocks) {
       _handleMockPass(roundId);
     }
   }
@@ -598,7 +611,7 @@ class GameSocketService extends GetxService {
     debugPrint('[GameSocketService] requestHelp -> roundId: $roundId');
     if (_socket != null && isConnected.value) {
       _socket?.emit('power:help_request', {'roundId': roundId});
-    } else {
+    } else if (AppConfig.useMocks) {
       _handleMockHelpRequest(roundId);
     }
   }
@@ -615,7 +628,7 @@ class GameSocketService extends GetxService {
         if (forUserId != null && forUserId.isNotEmpty) 'forUserId': forUserId,
         'optionIndex': optionIndex,
       });
-    } else {
+    } else if (AppConfig.useMocks) {
       _handleMockHelpSuggest(
         roundId: roundId,
         forUserId: forUserId,
@@ -627,11 +640,8 @@ class GameSocketService extends GetxService {
   void usePower(String roundId, String powerCode) {
     debugPrint('[GameSocketService] usePower -> roundId: $roundId, powerCode: $powerCode');
     if (_socket != null && isConnected.value) {
-      _socket?.emit('power:use', {
-        'roundId': roundId,
-        'powerCode': powerCode,
-      });
-    } else {
+      _socket?.emit('power:use', {'roundId': roundId, 'powerCode': powerCode});
+    } else if (AppConfig.useMocks) {
       _handleMockPowerUse(roundId, powerCode);
     }
   }
@@ -640,7 +650,7 @@ class GameSocketService extends GetxService {
     debugPrint('[GameSocketService] ackIntro -> roundType: $roundType');
     if (_socket != null && isConnected.value) {
       _socket?.emit('round:intro_ack', {'roundType': roundType});
-    } else {
+    } else if (AppConfig.useMocks) {
       _mockTimer?.cancel();
       if (roundType == 'Q2_DEFENSE') {
         _startMockQ2Question();
@@ -666,7 +676,7 @@ class GameSocketService extends GetxService {
         'roundId': roundId,
         'made': made,
       });
-    } else {
+    } else if (AppConfig.useMocks) {
       // Mock mode: evaluate mock shootout swipe
       _handleMockShootoutSwipe(roundId: roundId, made: made);
     }
@@ -678,14 +688,11 @@ class GameSocketService extends GetxService {
   }) {
     debugPrint('[GameSocketService] ackRoundComplete -> matchId: $matchId, roundId: $roundId');
     if (_socket != null && isConnected.value) {
-      _socket?.emit('round:next_ack', {
+      _socket?.emit('round:advance', {
         'matchId': matchId,
         if (roundId != null && roundId.isNotEmpty) 'roundId': roundId,
       });
-      _socket?.emit('round:advance', {
-        'matchId': matchId,
-      });
-    } else {
+    } else if (AppConfig.useMocks) {
       _handleMockRoundAdvance(matchId: matchId);
     }
   }
@@ -2164,6 +2171,9 @@ class GameSocketService extends GetxService {
 
   void disconnect() {
     _cleanupSocket();
+    latestMatch.value = null;
+    latestSnapshot.value = null;
+    latestSnapshotData.value = null;
   }
 
   void simulateMockPeerLeft({

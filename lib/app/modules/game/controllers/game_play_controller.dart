@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:wings_of_power_app/app/core/config/app_config.dart';
 import 'package:wings_of_power_app/app/data/models/game_match.dart';
 import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
 import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
@@ -94,7 +95,7 @@ class GamePlayController extends GetxController {
   final isFreeTextSubmitted = false.obs;
   final isWaitingOthers = false.obs;
   final showKindnessCelebration = false.obs;
-  final userKindnessCoins = 245.obs;
+  final kindnessAwarded = 0.obs;
 
   // Q3 Hobby Hoops & Powers
   final hasUsedPower = false.obs;
@@ -132,6 +133,10 @@ class GamePlayController extends GetxController {
 
   // Subscriptions
   final List<StreamSubscription> _subscriptions = [];
+  Duration _serverClockOffset = Duration.zero;
+
+  bool get isReconnecting =>
+      !AppConfig.useMocks && !_socketService.isConnected.value;
 
   String get youParticipantId {
     if (currentUserId != null && currentUserId!.isNotEmpty) {
@@ -176,18 +181,16 @@ class GamePlayController extends GetxController {
     return true;
   }
 
-  bool get isShooter {
-    final start = shootoutStart.value;
-    if (start == null) return false;
-    if (start.shooterParticipantId.isNotEmpty &&
-        start.shooterParticipantId == youParticipantId) {
-      return true;
-    }
-    if (currentUserNickname != null &&
-        start.shooterName.toLowerCase() == currentUserNickname!.toLowerCase()) {
-      return true;
-    }
-    return false;
+  bool get isShooter =>
+      shootoutStart.value?.shooterParticipantId == youParticipantId;
+
+  String get shooterName {
+    final shot = shootoutStart.value;
+    if (shot == null) return 'Shooter';
+    final player = snapshot.value.allParticipants.firstWhereOrNull(
+      (player) => player.id == shot.shooterParticipantId,
+    );
+    return player?.nickname ?? shot.shooterName;
   }
 
   String get shooterTeamLabel {
@@ -195,7 +198,7 @@ class GamePlayController extends GetxController {
     if (start == null) return 'Team A';
     final pId = start.shooterParticipantId;
     for (final t in snapshot.value.teams) {
-      if (t.members.any((m) => m.id == pId || m.userId == currentUserId)) {
+      if (t.members.any((m) => m.id == pId)) {
         return t.label;
       }
     }
@@ -207,9 +210,7 @@ class GamePlayController extends GetxController {
     if (start == null) return 0;
     for (final t in snapshot.value.teams) {
       if (t.members.any((m) => m.id == start.shooterParticipantId)) {
-        final score = teamScores[t.id];
-        if (score != null) return score * 2;
-        return t.scoreXp;
+        return teamScores['${t.id}_xp'] ?? t.scoreXp;
       }
     }
     return 0;
@@ -252,7 +253,7 @@ class GamePlayController extends GetxController {
   }
 
   void onVoteNowTap() {
-    if (!canSubmitVote) return;
+    if (!canSubmitVote || !_canSendAction) return;
     final q = currentQuestion.value;
     if (q == null) return;
     final idx = selectedVoteOptionIndex.value;
@@ -342,7 +343,7 @@ class GamePlayController extends GetxController {
   }
 
   void onUsePower(String powerCode) {
-    if (!canUsePower) return;
+    if (!canUsePower || !_canSendAction) return;
     final q = currentQuestion.value;
     if (q == null) return;
 
@@ -404,20 +405,9 @@ class GamePlayController extends GetxController {
 
   int getTeamKindness(int teamIndex) {
     final teams = snapshot.value.teams;
-    if (teamIndex < teams.length) {
-      final t = teams[teamIndex];
-      if (teamScores.containsKey('${t.id}_kindness')) {
-        return teamScores['${t.id}_kindness']!;
-      }
-      if (t.scoreKindness > 0) {
-        return t.scoreKindness;
-      }
-      if (teamIndex == 0) {
-        return userKindnessCoins.value;
-      }
-      return 210; // Default Team B kindness in design
-    }
-    return teamIndex == 0 ? userKindnessCoins.value : 210;
+    if (teamIndex >= teams.length) return 0;
+    final team = teams[teamIndex];
+    return teamScores['${team.id}_kindness'] ?? team.scoreKindness;
   }
 
   String get currentRoundSubtitle {
@@ -444,10 +434,6 @@ class GamePlayController extends GetxController {
   void onInit() {
     super.onInit();
     freeTextController = TextEditingController();
-    final firstTeam = snapshot.value.teams.firstOrNull;
-    if (firstTeam != null && firstTeam.scoreKindness > 0) {
-      userKindnessCoins.value = firstTeam.scoreKindness;
-    }
     _initScoresFromSnapshot();
     final you = snapshot.value.you;
     if (you != null && you.powerUsed) {
@@ -459,8 +445,15 @@ class GamePlayController extends GetxController {
         hasUsedPower.value = true;
       }
     }
+    final serverNow = snapshot.value.serverNow;
+    if (serverNow != null) {
+      _serverClockOffset = serverNow.difference(DateTime.now());
+    }
     _listenSocketEvents();
     _startClockTicker();
+    if (!AppConfig.useMocks && _socketService.isConnected.value) {
+      _socketService.requestSnapshot(snapshot.value.matchId);
+    }
 
     // Check if initial snapshot is already in countdown or playing
     final snapPhase = snapshot.value.phase.toUpperCase();
@@ -475,17 +468,8 @@ class GamePlayController extends GetxController {
   }
 
   void _initScoresFromSnapshot() {
-    final s = snapshot.value.scores;
-    if (s != null) {
-      s.forEach((k, v) {
-        if (v is int) {
-          teamScores[k] = v;
-        } else if (v is Map) {
-          final baskets = v['baskets'] ?? v['xp'] ?? 0;
-          teamScores[k] = (baskets is int) ? baskets : int.tryParse('$baskets') ?? 0;
-        }
-      });
-    }
+    final scores = snapshot.value.scores;
+    if (scores != null) _updateScores(scores);
   }
 
   void showPeerLeftToast(GamePeerLeftEvent event) {
@@ -497,14 +481,21 @@ class GamePlayController extends GetxController {
   }
 
   void _listenSocketEvents() {
-    _subscriptions.add(_socketService.onMatchFound.listen((s) {
-      snapshot.value = s;
-      _initScoresFromSnapshot();
-    }));
+    _subscriptions.add(
+      _socketService.onMatchFound.listen((s) {
+        snapshot.value = s;
+        _initScoresFromSnapshot();
+      }),
+    );
 
-    _subscriptions.add(_socketService.onSnapshot.listen((s) {
-      _handleSnapshotRestore(s);
-    }));
+    _subscriptions.add(
+      _socketService.onSnapshotData.listen((data) {
+        final restored = GameMatchSnapshot.fromJson(data);
+        if (restored.matchId == snapshot.value.matchId) {
+          _handleSnapshotRestore(restored, data);
+        }
+      }),
+    );
 
     _subscriptions.add(_socketService.onSnapshotData.listen((data) {
       _handleSnapshotRestore(snapshot.value, data);
@@ -714,9 +705,25 @@ class GamePlayController extends GetxController {
       }
     }));
 
-    _subscriptions.add(_socketService.onKindnessResult.listen((event) {
-      _handleKindnessResult(event);
-    }));
+    _subscriptions.add(
+      _socketService.onStealOpen.listen((event) {
+        stealOpen.value = event;
+        _activeDeadline =
+            event.deadlineAt ?? DateTime.now().add(const Duration(seconds: 10));
+        _updateTimerDerived();
+        final team = snapshot.value.teams.firstWhereOrNull(
+          (team) => team.members.any(
+            (member) =>
+                member.userId == currentUserId || member.id == youParticipantId,
+          ),
+        );
+        questionSubPhase.value =
+            event.eligibleTeamId == null || event.eligibleTeamId == team?.id
+            ? QuestionSubPhase.stealActive
+            : QuestionSubPhase.buzzedOther;
+        isBuzzing.value = false;
+      }),
+    );
 
     _subscriptions.add(_socketService.onStealOpen.listen((event) {
       stealOpen.value = event;
@@ -759,20 +766,8 @@ class GamePlayController extends GetxController {
       phase.value = GamePhase.roundComplete;
       _activeDeadline = event.deadlineAt;
       _updateTimerDerived();
-      if (snapshot.value.teams.isNotEmpty) {
-        teamScores[snapshot.value.teams[0].id] = event.teamA.scoreVs;
-      }
-      if (snapshot.value.teams.length > 1) {
-        teamScores[snapshot.value.teams[1].id] = event.teamB.scoreVs;
-      }
-    }));
-
-    _subscriptions.add(_socketService.onRoundComplete.listen((data) {
-      if (roundComplete.value == null) {
-        final event = GameRoundCompleteEvent.fromJson(data);
-        roundComplete.value = event;
-        phase.value = GamePhase.roundComplete;
-      }
+      final scores = event.rawData['teamScores'];
+      if (scores is Map<String, dynamic>) _updateScores(scores);
     }));
 
     _subscriptions.add(_socketService.onPowerEffect.listen((event) {
@@ -784,86 +779,122 @@ class GamePlayController extends GetxController {
 
   void _setupSocketMatchFinishedListener() {
     _socketService.socket?.on('match:finished', _onSocketMatchFinished);
+    _socketService.socket?.on('match:error', _onSocketMatchError);
   }
 
-  void _handleSnapshotRestore(GameMatchSnapshot snap, [Map<String, dynamic>? rawData]) {
-    debugPrint('[GamePlayController] _handleSnapshotRestore -> phase: ${snap.phase}');
+  void _onSocketMatchError(dynamic data) {
+    if (data is! Map || data['code'] != 'MATCH_GONE' || isClosed) return;
+    _socketService.disconnect();
+    GameModeSelectController.returnToLobby();
+  }
+
+  void _handleSnapshotRestore(
+    GameMatchSnapshot snap, [
+    Map<String, dynamic>? rawData,
+  ]) {
     snapshot.value = snap;
     _initScoresFromSnapshot();
+    final serverNow = snap.serverNow;
+    if (serverNow != null) {
+      _serverClockOffset = serverNow.difference(DateTime.now());
+    }
+    if (snap.you?.powerUsed == true) hasUsedPower.value = true;
+    _activeDeadline = snap.deadlineAt;
+    _updateTimerDerived();
 
-    final phaseStr = snap.phase.toUpperCase();
-    if (phaseStr == 'FINISHED') {
-      if (matchFinished.value == null) {
-        finishMockMatch();
-      }
-      phase.value = GamePhase.complete;
+    switch (snap.phase.toUpperCase()) {
+      case 'FINISHED':
+        if (rawData != null) _onSocketMatchFinished(rawData);
+        return;
+      case 'CANCELLED':
+        _socketService.disconnect();
+        GameModeSelectController.returnToLobby();
+        return;
+      case 'COUNTDOWN':
+        phase.value = GamePhase.countdown;
+        return;
+      case 'PLAYING':
+        break;
+      default:
+        return;
+    }
+
+    final data = rawData ?? const <String, dynamic>{};
+    final completed = data['roundComplete'];
+    if (completed is Map<String, dynamic>) {
+      final result = GameRoundCompleteEvent.fromJson(completed);
+      roundComplete.value = result;
+      phase.value = GamePhase.roundComplete;
+      _activeDeadline = result.deadlineAt;
+      return;
+    }
+    final intro = data['intro'];
+    if (intro is Map<String, dynamic>) {
+      currentIntro.value = GameRoundIntroEvent.fromJson(intro);
+      phase.value = GamePhase.roundIntro;
       return;
     }
 
-    if (phaseStr == 'CANCELLED') {
-      _socketService.disconnect();
-      GameModeSelectController.returnToLobby();
+    final question = data['question'];
+    if (question is Map<String, dynamic>) {
+      final restored = GameQuestionEvent.fromJson(question);
+      if (restored.roundId != currentQuestion.value?.roundId) {
+        freeTextController.clear();
+        freeTextAnswer.value = '';
+      }
+      currentQuestion.value = restored;
+    }
+    final shot = data['shootout'];
+    if (shot is Map<String, dynamic>) {
+      final restored = GameShootoutStartEvent.fromJson(shot);
+      if (restored.roundId != shootoutStart.value?.roundId) {
+        shootoutResult.value = null;
+      }
+      shootoutStart.value = restored;
+      hasSwiped.value = false;
+      phase.value = GamePhase.shootout;
       return;
     }
 
-    if (phaseStr == 'COUNTDOWN') {
-      phase.value = GamePhase.countdown;
-      _activeDeadline = snap.deadlineAt ?? DateTime.now().add(const Duration(seconds: 3));
-      _updateTimerDerived();
-      return;
-    }
-
-    if (phaseStr == 'PLAYING') {
-      GameQuestionEvent? q;
-      if (rawData != null && rawData['question'] != null) {
-        try {
-          q = GameQuestionEvent.fromJson(Map<String, dynamic>.from(rawData['question'] as Map));
-        } catch (_) {}
-      }
-
-      final effectiveQuestion = q ?? currentQuestion.value;
-      if (effectiveQuestion != null) {
-        currentQuestion.value = effectiveQuestion;
-        phase.value = GamePhase.question;
-
-        final effectiveDeadline = snap.deadlineAt ?? effectiveQuestion.deadlineAt;
-        _activeDeadline = effectiveDeadline;
-        _updateTimerDerived();
-
-        final isDeadlinePassed = effectiveDeadline != null &&
-            DateTime.now().isAfter(effectiveDeadline);
-
-        if (isDeadlinePassed) {
-          // If question deadline passed while disconnected, options stay disabled until server advances.
-          // The rejoining phone shows the waiting or result state and answer controls stay disabled.
-          selectedOptionIndex.value = null;
-          isSubmittingAnswer.value = true;
-          questionSubPhase.value = QuestionSubPhase.buzzedOther;
-          waiting.value = GameWaitingEvent(
-            roundId: effectiveQuestion.roundId,
-            reason: 'OPPONENT',
-          );
-        } else {
-          // Restore the board, selection cleared, clock from deadlineAt
-          selectedOptionIndex.value = null;
-          isSubmittingAnswer.value = false;
-          isBuzzing.value = false;
-
-          if (isQ4Finals) {
-            selectedVoteOptionIndex.value = null;
-            isVoteSubmitted.value = false;
-            questionSubPhase.value = QuestionSubPhase.votingActive;
-          } else if (isQ2Defense) {
-            isFreeTextSubmitted.value = false;
-            isWaitingOthers.value = false;
-          } else {
-            final youCanBuzz = snap.you?.canBuzz ?? true;
-            if (youCanBuzz) {
-              questionSubPhase.value = QuestionSubPhase.buzzerActive;
-            }
-          }
-        }
-      }
+    if (currentQuestion.value == null) return;
+    phase.value = GamePhase.question;
+    isBuzzing.value = false;
+    isSubmittingAnswer.value = false;
+    final submitted = data['submitted'] == true;
+    final buzzer = data['buzzWinner'];
+    final team = snap.teams.firstWhereOrNull(
+      (t) => t.members.any(
+        (p) => p.id == youParticipantId || p.userId == currentUserId,
+      ),
+    );
+    final buzzerTeamId = buzzer is Map ? buzzer['teamId'] : null;
+    final buzzerId = buzzer is Map ? buzzer['participantId'] : null;
+    final canBuzz = snap.you?.canBuzz == true;
+    switch (data['roundPhase']) {
+      case 'VOTE':
+        votingTeamLabel.value = snap.teams
+            .firstWhereOrNull((t) => t.id == buzzerTeamId)
+            ?.label;
+        isVoteSubmitted.value = submitted;
+        questionSubPhase.value = team?.id != buzzerTeamId
+            ? QuestionSubPhase.voteWaitingOtherTeam
+            : submitted
+            ? QuestionSubPhase.voteWaitingTeammates
+            : QuestionSubPhase.votingActive;
+      case 'ANSWER' when isQ2Defense:
+        isFreeTextSubmitted.value = submitted;
+        isWaitingOthers.value = submitted;
+      case 'ANSWER':
+        questionSubPhase.value = buzzerId == youParticipantId
+            ? QuestionSubPhase.buzzedYou
+            : QuestionSubPhase.buzzedOther;
+      case 'BUZZ':
+        final eligibleTeam = data['eligibleTeamId'];
+        questionSubPhase.value = !canBuzz
+            ? QuestionSubPhase.buzzedOther
+            : eligibleTeam == null
+            ? QuestionSubPhase.buzzerActive
+            : QuestionSubPhase.stealActive;
     }
   }
 
@@ -923,15 +954,13 @@ class GamePlayController extends GetxController {
       if (v is int) {
         teamScores[k] = v;
       } else if (v is Map) {
-        final baskets = v['baskets'] ??
-            v['score_baskets'] ??
-            v['scoreBaskets'] ??
-            v['xp'] ??
-            0;
+        final baskets = v['baskets'] ?? v['score_baskets'] ?? v['scoreBaskets'];
+        final score = v['scoreVs'] ?? (int.tryParse('$baskets') ?? 0) * 3;
+        final xp = int.tryParse('${v['xp']}');
+        if (xp != null) teamScores['${k}_xp'] = xp;
         final kindness =
             v['kindness'] ?? v['score_kindness'] ?? v['scoreKindness'];
-        teamScores[k] =
-            (baskets is int) ? baskets : int.tryParse('$baskets') ?? 0;
+        teamScores[k] = (score is int) ? score : int.tryParse('$score') ?? 0;
         if (kindness != null) {
           final kindInt =
               (kindness is int) ? kindness : int.tryParse('$kindness') ?? 0;
@@ -942,28 +971,15 @@ class GamePlayController extends GetxController {
   }
 
   void _handleKindnessResult(GameKindnessResultEvent event) {
-    if (event.scores.isNotEmpty) {
-      _updateScores(event.scores);
-    }
-
-    if (event.kindnessDelta == 50) {
-      userKindnessCoins.value += 50;
-
-      final youTeam = snapshot.value.teams.firstWhereOrNull((t) =>
-          t.members.any((m) =>
-              m.userId == currentUserId || m.id == youParticipantId));
-      if (youTeam != null) {
-        final current = teamScores['${youTeam.id}_kindness'] ??
-            (youTeam.scoreKindness > 0 ? youTeam.scoreKindness : 245);
-        teamScores['${youTeam.id}_kindness'] = current + 50;
-      }
-
-      isWaitingOthers.value = false;
-      showKindnessCelebration.value = true;
-    } else {
-      isWaitingOthers.value = false;
-      showKindnessCelebration.value = false;
-    }
+    if (event.scores.isNotEmpty) _updateScores(event.scores);
+    final isMine =
+        event.userId == currentUserId ||
+        event.participantId == youParticipantId;
+    if (!isMine) return;
+    isSubmittingAnswer.value = false;
+    isWaitingOthers.value = true;
+    kindnessAwarded.value = event.kindnessDelta;
+    showKindnessCelebration.value = event.kindnessDelta > 0;
   }
 
   void onFreeTextChanged(String text) {
@@ -971,6 +987,7 @@ class GamePlayController extends GetxController {
   }
 
   void onSubmitFreeText() {
+    if (!_canSendAction) return;
     if (!canSubmitFreeText) return;
     final text = freeTextController.text.trim();
     if (text.isEmpty) return;
@@ -987,6 +1004,7 @@ class GamePlayController extends GetxController {
 
   void onPlayTheShootTap() {
     showKindnessCelebration.value = false;
+    if (!AppConfig.useMocks) return;
     final q = currentQuestion.value;
     _socketService.startMockShootout(
       roundId: q?.roundId ?? 'mock-shootout-q2',
@@ -1007,7 +1025,9 @@ class GamePlayController extends GetxController {
     final deadline = _activeDeadline;
     if (deadline == null) return;
 
-    final diff = deadline.difference(DateTime.now()).inMilliseconds;
+    final diff = deadline
+        .difference(DateTime.now().add(_serverClockOffset))
+        .inMilliseconds;
     final diffSec = (diff / 1000).ceil();
     final remaining = diffSec > 0 ? diffSec : 0;
     secondsLeft.value = remaining;
@@ -1029,12 +1049,21 @@ class GamePlayController extends GetxController {
 
   void onBuzzTap() {
     final q = currentQuestion.value;
-    if (q == null || isBuzzing.value) return;
+    if (q == null || isBuzzing.value || !_canSendAction) return;
+    final stage = questionSubPhase.value;
+    if (stage != QuestionSubPhase.buzzerActive &&
+        stage != QuestionSubPhase.stealActive) {
+      return;
+    }
     isBuzzing.value = true;
     _socketService.buzz(q.roundId);
   }
 
+  bool get _canSendAction =>
+      AppConfig.useMocks || _socketService.isConnected.value;
+
   void onOptionTap(int index) {
+    if (!_canSendAction) return;
     if (isQ4Finals) {
       onVoteOptionTap(index);
       return;
@@ -1051,6 +1080,7 @@ class GamePlayController extends GetxController {
   }
 
   void onPassTap() {
+    if (!_canSendAction) return;
     if (!canPass) return;
     final q = currentQuestion.value;
     if (q == null) return;
@@ -1093,6 +1123,7 @@ class GamePlayController extends GetxController {
   }
 
   void onOpenQuizTap() {
+    if (!_canSendAction) return;
     final intro = currentIntro.value;
     final roundType = intro?.roundType ?? 'Q1_WARMUP';
     _socketService.ackIntro(roundType);
@@ -1103,8 +1134,7 @@ class GamePlayController extends GetxController {
       context: context,
       onConfirmLeave: () async {
         final matchId = snapshot.value.matchId;
-        if (matchId.isNotEmpty) {
-          _socketService.leaveMatch(matchId);
+        if (matchId.isNotEmpty && !await _socketService.leaveMatch(matchId)) {
           try {
             await _repository?.leaveMatch(matchId);
           } catch (_) {}
@@ -1116,7 +1146,7 @@ class GamePlayController extends GetxController {
   }
 
   void onSwipeShoot({required bool made}) {
-    if (!isShooter) return;
+    if (!isShooter || !_canSendAction) return;
     if (hasSwiped.value) return;
     final start = shootoutStart.value;
     if (start == null) return;
@@ -1130,6 +1160,7 @@ class GamePlayController extends GetxController {
   }
 
   void onPlayNextRoundTap() {
+    if (!_canSendAction) return;
     if (isSubmittingAck.value) return;
     isSubmittingAck.value = true;
     final rc = roundComplete.value;
@@ -1289,15 +1320,6 @@ class GamePlayController extends GetxController {
   }
 
   void onBackToLobby() {
-    final matchId = snapshot.value.matchId;
-    if (matchId.isNotEmpty) {
-      try {
-        _socketService.leaveMatch(matchId);
-      } catch (_) {}
-      try {
-        _repository?.leaveMatch(matchId);
-      } catch (_) {}
-    }
     _socketService.disconnect();
 
     GameModeSelectController.returnToLobby();
@@ -1317,6 +1339,13 @@ class GamePlayController extends GetxController {
     );
   }
 
+  int getTeamXp(int teamIndex) {
+    final teams = snapshot.value.teams;
+    if (teamIndex >= teams.length) return 0;
+    final team = teams[teamIndex];
+    return teamScores['${team.id}_xp'] ?? team.scoreXp;
+  }
+
   int getTeamScore(int teamIndex) {
     final teams = snapshot.value.teams;
     if (teamIndex < teams.length) {
@@ -1330,7 +1359,7 @@ class GamePlayController extends GetxController {
       if (teamIndex == 1 && teamScores.containsKey('teamB')) {
         return teamScores['teamB']!;
       }
-      return t.scoreBaskets;
+      return t.scoreBaskets * 3;
     }
     return 0;
   }
@@ -1380,7 +1409,8 @@ class GamePlayController extends GetxController {
   @override
   void onClose() {
     try {
-      _socketService.socket?.off('match:finished');
+      _socketService.socket?.off('match:finished', _onSocketMatchFinished);
+      _socketService.socket?.off('match:error', _onSocketMatchError);
     } catch (_) {}
     _clockTicker?.cancel();
     _bannerTimer?.cancel();

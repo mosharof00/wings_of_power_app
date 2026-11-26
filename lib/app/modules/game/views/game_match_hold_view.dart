@@ -472,12 +472,12 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Vs Pills with kindness coins (245 Vs 210)
+                // Match score stays the same across all four quarters.
                 GameVsPills(
                   teamALabel: _controller.getTeamLabel(0),
-                  teamAScore: _controller.getTeamKindness(0),
+                  teamAScore: _controller.getTeamScore(0),
                   teamBLabel: _controller.getTeamLabel(1),
-                  teamBScore: _controller.getTeamKindness(1),
+                  teamBScore: _controller.getTeamScore(1),
                   isTeamAActive: true,
                   isTeamBActive: false,
                 ),
@@ -515,7 +515,7 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
             // Kindness points celebration modal
             if (_controller.showKindnessCelebration.value)
               GameKindnessCelebrationDialog(
-                points: 50,
+                points: _controller.kindnessAwarded.value,
                 onPlayTheShoot: _controller.onPlayTheShootTap,
               ),
           ],
@@ -596,7 +596,7 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                         ),
                         SizedBox(width: 6.w),
                         Text(
-                          'PRACTICE ARENA',
+                          'BASKETBALL GAME SHOW',
                           style: TextStyle(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w900,
@@ -627,15 +627,6 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                     blurRadius: 6,
                   ),
                 ],
-              ),
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              'Mode: ${_controller.snapshot.value.mode}  •  Phase: ${_controller.snapshot.value.phase}',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white70,
               ),
             ),
             SizedBox(height: 12.h),
@@ -706,37 +697,8 @@ class _GameMatchHoldViewState extends State<GameMatchHoldView> {
                       child: _ParticipantCard(
                         isYou: false,
                         participant: opponent,
-                        fallbackNickname: 'Practice Bot',
+                        fallbackNickname: 'Opponent',
                         fallbackHero: 'Harold',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Match Details & Status
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(14.w),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Match ID: ${_controller.snapshot.value.matchId}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: Colors.white70,
                       ),
                     ),
                   ],
@@ -918,17 +880,6 @@ class _ParticipantCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF4B5563),
               ),
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            participant.heroId != null
-                ? 'Hero: ${participant.heroId}'
-                : (isBot ? 'Bot Seat' : 'Power Ready'),
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFFE86726),
             ),
           ),
         ],

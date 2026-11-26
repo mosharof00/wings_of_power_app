@@ -140,7 +140,9 @@ class GameMatchFinishedEvent {
       tA = GameMatchFinishedTeam(
         id: team0.id,
         label: team0.label,
-        scoreVs: baskets,
+        scoreVs: teamScores is Map
+            ? (teamScores['scoreVs'] as int? ?? baskets * 3)
+            : baskets * 3,
         coins: coins,
         xp: xp,
         members: team0.members,
@@ -163,7 +165,9 @@ class GameMatchFinishedEvent {
       tB = GameMatchFinishedTeam(
         id: team1.id,
         label: team1.label,
-        scoreVs: baskets,
+        scoreVs: teamScores is Map
+            ? (teamScores['scoreVs'] as int? ?? baskets * 3)
+            : baskets * 3,
         coins: coins,
         xp: xp,
         members: team1.members,

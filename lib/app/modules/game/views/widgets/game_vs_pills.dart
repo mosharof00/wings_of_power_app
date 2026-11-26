@@ -73,7 +73,7 @@ class GameVsPills extends StatelessWidget {
     required bool isActive,
   }) {
     return Container(
-      height: 72.h,
+      constraints: BoxConstraints(minHeight: 72.h),
       padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
       decoration: BoxDecoration(
         color: isActive ? const Color(0xFFFFD54F) : const Color(0xFFFEF3DE),
@@ -91,6 +91,7 @@ class GameVsPills extends StatelessWidget {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(

@@ -364,7 +364,7 @@ class ChapterQuizResultView extends GetView<QuizController> {
             ),
           ),
           SizedBox(width: 8.w),
-          AppSvgIcon(Assets.icons.icPointsCoin.path, width: 22.w, height: 22.w),
+          AppSvgIcon(Assets.icons.icStarCoin.path, width: 22.w, height: 22.w),
         ],
       ),
     );

@@ -257,6 +257,10 @@ class $AssetsIconsGen {
   SvgGenImage get icBasketBallFill =>
       const SvgGenImage('assets/icons/ic_basket_ball_fill.svg');
 
+  /// File path: assets/icons/ic_basket_ball_original.svg
+  SvgGenImage get icBasketBallOriginal =>
+      const SvgGenImage('assets/icons/ic_basket_ball_original.svg');
+
   /// File path: assets/icons/ic_bell.svg
   SvgGenImage get icBell => const SvgGenImage('assets/icons/ic_bell.svg');
 
@@ -355,6 +359,10 @@ class $AssetsIconsGen {
   /// File path: assets/icons/ic_speaker.svg
   SvgGenImage get icSpeaker => const SvgGenImage('assets/icons/ic_speaker.svg');
 
+  /// File path: assets/icons/ic_star_coin.svg
+  SvgGenImage get icStarCoin =>
+      const SvgGenImage('assets/icons/ic_star_coin.svg');
+
   /// List of all assets
   List<SvgGenImage> get values => [
     backArrowIcon,
@@ -363,6 +371,7 @@ class $AssetsIconsGen {
     icBadgeFill,
     icBasketBall,
     icBasketBallFill,
+    icBasketBallOriginal,
     icBell,
     icBook,
     icBookFill,
@@ -389,6 +398,7 @@ class $AssetsIconsGen {
     icSafeSpace,
     icSettings,
     icSpeaker,
+    icStarCoin,
   ];
 }
 

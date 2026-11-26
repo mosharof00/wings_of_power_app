@@ -5,7 +5,6 @@ import 'package:wings_of_power_app/app/core/services/local_store_service.dart';
 import 'package:wings_of_power_app/app/core/utils/helper_utils.dart';
 import 'package:wings_of_power_app/app/data/models/game_eligibility.dart';
 import 'package:wings_of_power_app/app/core/services/secure_storage_service.dart';
-import 'package:wings_of_power_app/app/data/models/game_match.dart';
 import 'package:wings_of_power_app/app/data/models/hero_models.dart';
 import 'package:wings_of_power_app/app/data/models/how_to_play.dart';
 import 'package:wings_of_power_app/app/data/repositories/game_repository.dart';
@@ -15,7 +14,6 @@ import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.
 import 'package:wings_of_power_app/app/modules/main_page/controllers/main_page_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
-import '../views/game_match_hold_view.dart';
 import '../views/waiting_room_1v1_view.dart';
 import '../views/waiting_room_5v5_view.dart';
 import '../views/widgets/game_change_avatar_dialog.dart';
@@ -68,7 +66,7 @@ class GameModeSelectController extends GetxController {
   }
 
   Future<void> reloadStudentStats() async {
-    await _loadStudentStats();
+    await Future.wait([_loadStudentStats(), refreshEligibility()]);
   }
 
   Future<void> _loadStudentStats() async {
@@ -127,7 +125,10 @@ class GameModeSelectController extends GetxController {
     eligibilityUnavailable.value = false;
     try {
       final result = await _repository.getEligibility();
-      if (!isClosed) eligibility.value = result;
+      if (!isClosed) {
+        eligibility.value = result;
+        xp.value = result.progress.basketballXp;
+      }
       return result;
     } catch (_) {
       if (!isClosed) eligibilityUnavailable.value = true;
@@ -173,8 +174,8 @@ class GameModeSelectController extends GetxController {
 
     if (HiveService.read<bool>('game_congrats_shown') == true) return true;
     HiveService.write('game_congrats_shown', true);
-    final playNow = await Get.dialog(
-      GameCongratulationsDialog(
+    final playNow = await Get.to(
+      () => GameCongratulationsDialog(
         onPlayNow: () => Get.back(result: true),
         onHowToPlay: onHowToPlay,
       ),
@@ -201,15 +202,12 @@ class GameModeSelectController extends GetxController {
     try {
       if (!await _canPlay()) return;
 
-      final queueResp = await _repository.joinQueue(mode: 'FIVE_V_FIVE');
-
       await Get.to(
         () => WaitingRoom5v5View(
           currentUserId: userId.value,
           currentUserNickname: nickname.value,
           currentUserAvatar: avatarUrl.value,
           selectedHero: selectedHero.value,
-          initialTicketId: queueResp.ticketId,
         ),
         routeName: '/game/waiting-room-5v5',
       );
@@ -233,15 +231,12 @@ class GameModeSelectController extends GetxController {
     try {
       if (!await _canPlay()) return;
 
-      final queueResp = await _repository.joinQueue(mode: 'ONE_V_ONE');
-
       await Get.to(
         () => WaitingRoom1v1View(
           currentUserId: userId.value,
           currentUserNickname: nickname.value,
           currentUserAvatar: avatarUrl.value,
           selectedHero: selectedHero.value,
-          initialTicketId: queueResp.ticketId,
         ),
         routeName: '/game/waiting-room',
       );
@@ -283,73 +278,16 @@ class GameModeSelectController extends GetxController {
     try {
       if (!await _canPlay()) return;
 
-      final queueResp = await _repository.joinQueue(
-        mode: 'SINGLE',
-        fixtureCode: code,
-      );
-
-      // Connect socket
-      await _socketService.connect();
-
-      // Retrieve match snapshot
-      GameMatchSnapshot? snapshot = _socketService.latestMatch.value;
-      if (snapshot == null && queueResp.matchId != null) {
-        try {
-          snapshot = await _repository.getMatchSnapshot(queueResp.matchId!);
-        } catch (_) {}
-      }
-
-      // Fallback single practice snapshot if needed
-      snapshot ??= GameMatchSnapshot(
-        matchId:
-            queueResp.matchId ??
-            'practice-${DateTime.now().millisecondsSinceEpoch}',
-        mode: 'SINGLE',
-        phase: 'COUNTDOWN',
-        deadlineAt: DateTime.now().add(const Duration(seconds: 3)),
-        serverNow: DateTime.now(),
-        teams: [
-          GameMatchTeam(
-            id: 'team-single-1',
-            label: 'Single Player',
-            members: [
-              GameMatchParticipant(
-                id: 'part-you-1',
-                userId: userId.value ?? 'student-alex',
-                nickname: nickname.value,
-                avatarUrl: avatarUrl.value ?? 'assets/images/avatar_01.png',
-                heroId: selectedHero.value?.displayName ?? 'Faith',
-                jerseyNumber: 1,
-                isConnected: true,
-                isBot: false,
-              ),
-              const GameMatchParticipant(
-                id: 'part-bot-1',
-                userId: null,
-                nickname: 'Practice Bot',
-                avatarUrl: null,
-                heroId: 'Harold',
-                jerseyNumber: 2,
-                isConnected: true,
-                isBot: true,
-              ),
-            ],
-          ),
-        ],
-        you: GameMatchYou(
-          participantId: 'part-you-1',
-          heroId: selectedHero.value?.displayName ?? 'Faith',
-          jerseyNumber: 1,
-        ),
-      );
-
-      Get.to(
-        () => GameMatchHoldView(
-          snapshot: snapshot!,
+      await Get.to(
+        () => WaitingRoom1v1View(
           currentUserId: userId.value,
           currentUserNickname: nickname.value,
+          currentUserAvatar: avatarUrl.value,
+          selectedHero: selectedHero.value,
+          mode: 'SINGLE',
+          fixtureCode: code,
         ),
-        routeName: '/game/match',
+        routeName: '/game/practice',
       );
     } catch (e) {
       Get.snackbar(

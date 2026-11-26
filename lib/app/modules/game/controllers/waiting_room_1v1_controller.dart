@@ -17,6 +17,8 @@ class WaitingRoom1v1Controller extends GetxController {
     this.currentUserAvatar,
     this.selectedHero,
     this.initialTicketId,
+    this.mode = 'ONE_V_ONE',
+    this.fixtureCode,
     IGameRepository? repository,
     GameSocketService? socketService,
     this.mockPeerDelay = const Duration(seconds: 4),
@@ -40,6 +42,8 @@ class WaitingRoom1v1Controller extends GetxController {
   final String? currentUserAvatar;
   final HeroModel? selectedHero;
   final String? initialTicketId;
+  final String mode;
+  final String? fixtureCode;
   final Duration mockPeerDelay;
   final bool autoSimulatePeer;
   final Duration findingTimeout;
@@ -60,6 +64,7 @@ class WaitingRoom1v1Controller extends GetxController {
 
   bool _hasTransitionedToMatch = false;
   final List<StreamSubscription> _subscriptions = [];
+  Worker? _connectionWorker;
   Timer? _findingTimer;
   Timer? _queueExpiryTimer;
   Timer? _mockPeerTimer;
@@ -91,25 +96,21 @@ class WaitingRoom1v1Controller extends GetxController {
     _subscriptions.add(_socketService.onQueueUpdate.listen(_handleQueueUpdate));
     _subscriptions.add(_socketService.onMatchFound.listen(_handleMatchFound));
     _subscriptions.add(_socketService.onCountdown.listen(_handleCountdown));
+    _subscriptions.add(_socketService.onSnapshot.listen(_handleSnapshot));
     _subscriptions.add(_socketService.onQueueError.listen(_handleQueueError));
   }
 
   Future<void> _initQueue() async {
-    try {
-      await _socketService.connect();
-    } catch (_) {}
-
-    // Send queue:join over socket
-    _socketService.joinQueue('ONE_V_ONE');
-
-    // If initialTicketId was not provided, call joinQueue REST as well
-    if (ticketId.value == null || ticketId.value!.isEmpty) {
-      try {
-        final resp = await _repository.joinQueue(mode: 'ONE_V_ONE');
-        ticketId.value = resp.ticketId;
-      } catch (e) {
-        debugPrint('[WaitingRoom1v1Controller] joinQueue error: $e');
+    if (!AppConfig.useMocks) {
+      _connectionWorker = ever(_socketService.isConnected, (connected) {
+        if (connected) _joinQueue();
+      });
+      if (_socketService.isConnected.value) {
+        _joinQueue();
+      } else {
+        await _socketService.connect();
       }
+      return;
     }
 
     // Check if mock mode is active
@@ -118,11 +119,26 @@ class WaitingRoom1v1Controller extends GetxController {
     }
   }
 
+  void _joinQueue() {
+    if (!isClosed && !isCancelled.value && !_hasTransitionedToMatch) {
+      _socketService.joinQueue(mode, fixtureCode);
+    }
+  }
+
+  void _handleSnapshot(GameMatchSnapshot snapshot) {
+    if (snapshot.mode != mode) return;
+    if (snapshot.phase == 'QUEUED') {
+      _handleMatchFound(snapshot);
+    } else if (snapshot.phase == 'COUNTDOWN' || snapshot.phase == 'PLAYING') {
+      _enterMatch(snapshot);
+    }
+  }
+
   void _startFindingTimer() {
     _findingTimer?.cancel();
     _findingTimer = Timer(findingTimeout, () {
       if (!isRoomFull.value && !isCancelled.value) {
-        statusTitle.value = 'No one is found';
+        statusTitle.value = 'No opponent yet';
         statusSubtitle.value = 'Wait for others to join';
       }
     });
@@ -177,7 +193,7 @@ class WaitingRoom1v1Controller extends GetxController {
 
   void _handleQueueUpdate(GameQueueUpdate update) {
     if (isCancelled.value) return;
-    if (update.mode != 'ONE_V_ONE') return;
+    if (update.mode != mode || matchId.value != null) return;
 
     if (update.filled >= 2 || update.players.length >= 2) {
       _findingTimer?.cancel();
@@ -226,7 +242,7 @@ class WaitingRoom1v1Controller extends GetxController {
   }
 
   void _handleMatchFound(GameMatchSnapshot snapshot) {
-    if (isCancelled.value) return;
+    if (isCancelled.value || snapshot.mode != mode) return;
     _findingTimer?.cancel();
     matchId.value = snapshot.matchId;
 
@@ -234,7 +250,7 @@ class WaitingRoom1v1Controller extends GetxController {
     final myId = currentUserId ?? '';
     for (final team in snapshot.teams) {
       for (final member in team.members) {
-        if (member.userId != myId && !member.isBot) {
+        if (member.userId != myId && (mode == 'SINGLE' || !member.isBot)) {
           opponentUserId.value = member.userId;
           opponentNickname.value = member.nickname;
           opponentAvatarUrl.value = member.avatarUrl;
@@ -249,21 +265,22 @@ class WaitingRoom1v1Controller extends GetxController {
 
     isRoomFull.value = true;
     statusTitle.value = 'Both players are ready';
-    statusSubtitle.value = 'Click below to start the game';
+    statusSubtitle.value = 'Tap to start the game';
   }
 
   void _handleCountdown(GameCountdownEvent event) {
-    if (isCancelled.value || _hasTransitionedToMatch) return;
-    _hasTransitionedToMatch = true;
-    _cleanupTimers();
-
+    if (isCancelled.value ||
+        _hasTransitionedToMatch ||
+        matchId.value != event.matchId) {
+      return;
+    }
     GameMatchSnapshot? snapshot = _socketService.latestMatch.value;
     if (snapshot == null || snapshot.teams.isEmpty) {
       snapshot = _build1v1Snapshot(event.matchId, event.deadlineAt);
     } else {
       snapshot = GameMatchSnapshot(
         matchId: snapshot.matchId,
-        mode: 'ONE_V_ONE',
+        mode: mode,
         phase: 'COUNTDOWN',
         deadlineAt: event.deadlineAt ??
             DateTime.now().add(Duration(seconds: event.value)),
@@ -276,9 +293,16 @@ class WaitingRoom1v1Controller extends GetxController {
       );
     }
 
+    _enterMatch(snapshot);
+  }
+
+  void _enterMatch(GameMatchSnapshot snapshot) {
+    if (isCancelled.value || _hasTransitionedToMatch) return;
+    _hasTransitionedToMatch = true;
+    _cleanupTimers();
     Get.off(
       () => GameMatchHoldView(
-        snapshot: snapshot!,
+        snapshot: snapshot,
         currentUserId: currentUserId,
         currentUserNickname: currentUserNickname,
       ),
@@ -290,15 +314,16 @@ class WaitingRoom1v1Controller extends GetxController {
     final code = error['code']?.toString() ?? '';
     final message = error['message']?.toString() ?? 'Queue error';
 
-    if (code == 'ALREADY_QUEUED') {
-      // Benign warning if joined via REST then socket
-      return;
-    }
-
-    if (code == 'INELIGIBLE') {
+    if (isCancelled.value || _hasTransitionedToMatch) return;
+    if (code == 'INELIGIBLE' ||
+        code == 'ROOM_CLOSED' ||
+        code == 'ALREADY_QUEUED' ||
+        code == 'ACTIVE_MATCH' ||
+        code == 'INVALID_MODE') {
+      isCancelled.value = true;
       Get.back();
       Get.snackbar(
-        'Not Eligible',
+        'Basketball',
         message,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent,
@@ -313,10 +338,8 @@ class WaitingRoom1v1Controller extends GetxController {
   }
 
   void _handleQueueTimeout() {
-    isCancelled.value = true;
-    _cleanupTimers();
-    _socketService.cancelQueue();
-    _repository.cancelQueue().catchError((_) {});
+    if (isCancelled.value) return;
+    unawaited(_cancelLobby());
     Get.back();
     Get.snackbar(
       'Queue Expired',
@@ -328,22 +351,15 @@ class WaitingRoom1v1Controller extends GetxController {
   }
 
   void onStartGame() {
-    if (isStarting.value || (!_hasTransitionedToMatch && !isRoomFull.value)) {
-      return;
-    }
-    isStarting.value = true;
+    final currentMatchId = matchId.value;
+    if (isStarting.value || !isRoomFull.value || currentMatchId == null) return;
 
-    final currentMatchId = matchId.value ??
-        _socketService.latestMatch.value?.matchId ??
-        'match-1v1-${DateTime.now().millisecondsSinceEpoch}';
-
-    matchId.value = currentMatchId;
-    _socketService.startMatch(currentMatchId);
-
-    if (AppConfig.useMocks ||
-        _socketService.socket == null ||
-        !_socketService.isConnected.value) {
+    if (AppConfig.useMocks) {
+      isStarting.value = true;
       _simulateMockCountdownAndMatch(currentMatchId);
+    } else if (_socketService.isConnected.value) {
+      isStarting.value = true;
+      _socketService.startMatch(currentMatchId);
     }
   }
 
@@ -353,7 +369,7 @@ class WaitingRoom1v1Controller extends GetxController {
     final oppAvatar = opponentAvatarUrl.value ?? 'assets/images/avatar_02.png';
 
     _socketService.simulateMockMatch(
-      mode: 'ONE_V_ONE',
+      mode: mode,
       currentUserId: youId,
       currentUserNickname: effectiveUserNickname,
       opponentNickname: oppNick,
@@ -361,41 +377,39 @@ class WaitingRoom1v1Controller extends GetxController {
     );
   }
 
-  Future<void> onBackToLobby() async {
+  Future<void> _cancelLobby() async {
     isCancelled.value = true;
     _cleanupTimers();
-    _socketService.cancelQueue();
+    final id = matchId.value;
+    if (_socketService.isConnected.value) {
+      if (id != null && !await _socketService.leaveMatch(id)) {
+        try {
+          await _repository.leaveMatch(id);
+        } catch (_) {}
+      }
+      _socketService.cancelQueue();
+      return;
+    }
     try {
+      if (id != null) await _repository.leaveMatch(id);
       await _repository.cancelQueue();
-    } catch (_) {}
-    Get.back();
+    } catch (_) {
+      // A disconnected queue also expires on the server.
+    }
   }
 
-  Future<void> onCancel() async {
-    isCancelled.value = true;
-    _cleanupTimers();
-    final mId = matchId.value;
-    if (mId != null && mId.isNotEmpty) {
-      _socketService.leaveMatch(mId);
-      try {
-        await _repository.leaveMatch(mId);
-      } catch (_) {}
-    }
-    _socketService.cancelQueue();
-    try {
-      await _repository.cancelQueue();
-    } catch (_) {}
-    Get.back();
+  Future<void> onBackToLobby() async {
+    if (isCancelled.value) return;
+    await _cancelLobby();
+    if (!isClosed) Get.back();
   }
+
+  Future<void> onCancel() => onBackToLobby();
 
   Future<void> onExploreStories() async {
-    isCancelled.value = true;
-    _cleanupTimers();
-    _socketService.cancelQueue();
-    try {
-      await _repository.cancelQueue();
-    } catch (_) {}
-    Get.offNamed(Routes.STORY_LIBRARY);
+    if (isCancelled.value) return;
+    await _cancelLobby();
+    if (!isClosed) Get.offNamed(Routes.STORY_LIBRARY);
   }
 
   GameMatchSnapshot _build1v1Snapshot(String mId, DateTime? deadlineAt) {
@@ -404,7 +418,7 @@ class WaitingRoom1v1Controller extends GetxController {
 
     return GameMatchSnapshot(
       matchId: mId,
-      mode: 'ONE_V_ONE',
+      mode: mode,
       phase: 'COUNTDOWN',
       deadlineAt: deadlineAt ?? DateTime.now().add(const Duration(seconds: 3)),
       serverNow: DateTime.now(),
@@ -462,13 +476,13 @@ class WaitingRoom1v1Controller extends GetxController {
   @override
   void onClose() {
     _cleanupTimers();
+    _connectionWorker?.dispose();
     for (final sub in _subscriptions) {
       sub.cancel();
     }
     _subscriptions.clear();
-    if (!isStarting.value && !_hasTransitionedToMatch) {
-      _socketService.cancelQueue();
-      _repository.cancelQueue().catchError((_) {});
+    if (!isCancelled.value && !_hasTransitionedToMatch) {
+      unawaited(_cancelLobby());
     }
     super.onClose();
   }

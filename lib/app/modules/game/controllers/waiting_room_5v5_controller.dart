@@ -86,6 +86,7 @@ class WaitingRoom5v5Controller extends GetxController {
   bool _hasTransitionedToMatch = false;
   bool _isFindingTimedOut = false;
   final List<StreamSubscription> _subscriptions = [];
+  Worker? _connectionWorker;
   Timer? _findingTimer;
   Timer? _queueExpiryTimer;
   Timer? _mockFillTimer;
@@ -139,30 +140,41 @@ class WaitingRoom5v5Controller extends GetxController {
     _subscriptions.add(_socketService.onQueueUpdate.listen(_handleQueueUpdate));
     _subscriptions.add(_socketService.onMatchFound.listen(_handleMatchFound));
     _subscriptions.add(_socketService.onCountdown.listen(_handleCountdown));
+    _subscriptions.add(_socketService.onSnapshot.listen(_handleSnapshot));
     _subscriptions.add(_socketService.onQueueError.listen(_handleQueueError));
   }
 
   Future<void> _initQueue() async {
-    try {
-      await _socketService.connect();
-    } catch (_) {}
-
-    // Send queue:join over socket
-    _socketService.joinQueue('FIVE_V_FIVE');
-
-    // If initialTicketId was not provided, call joinQueue REST as well
-    if (ticketId.value == null || ticketId.value!.isEmpty) {
-      try {
-        final resp = await _repository.joinQueue(mode: 'FIVE_V_FIVE');
-        ticketId.value = resp.ticketId;
-      } catch (e) {
-        debugPrint('[WaitingRoom5v5Controller] joinQueue error: $e');
+    if (!AppConfig.useMocks) {
+      _connectionWorker = ever(_socketService.isConnected, (connected) {
+        if (connected) _joinQueue();
+      });
+      if (_socketService.isConnected.value) {
+        _joinQueue();
+      } else {
+        await _socketService.connect();
       }
+      return;
     }
 
     // Check if mock mode is active
     if (AppConfig.useMocks && autoSimulateFill) {
       _startMockFillSimulation();
+    }
+  }
+
+  void _joinQueue() {
+    if (!isClosed && !isCancelled.value && !_hasTransitionedToMatch) {
+      _socketService.joinQueue('FIVE_V_FIVE');
+    }
+  }
+
+  void _handleSnapshot(GameMatchSnapshot snapshot) {
+    if (snapshot.mode != 'FIVE_V_FIVE') return;
+    if (snapshot.phase == 'QUEUED') {
+      _handleMatchFound(snapshot);
+    } else if (snapshot.phase == 'COUNTDOWN' || snapshot.phase == 'PLAYING') {
+      _enterMatch(snapshot);
     }
   }
 
@@ -196,7 +208,7 @@ class WaitingRoom5v5Controller extends GetxController {
 
   void _handleQueueUpdate(GameQueueUpdate update) {
     if (isCancelled.value) return;
-    if (update.mode != 'FIVE_V_FIVE') return;
+    if (update.mode != 'FIVE_V_FIVE' || matchId.value != null) return;
 
     final filled = update.filled > 0 ? update.filled : (update.players.isNotEmpty ? update.players.length : 1);
     filledCount.value = filled;
@@ -305,7 +317,7 @@ class WaitingRoom5v5Controller extends GetxController {
   }
 
   void _handleMatchFound(GameMatchSnapshot snapshot) {
-    if (isCancelled.value) return;
+    if (isCancelled.value || snapshot.mode != 'FIVE_V_FIVE') return;
     _findingTimer?.cancel();
     matchId.value = snapshot.matchId;
     isRoomFull.value = true;
@@ -371,10 +383,11 @@ class WaitingRoom5v5Controller extends GetxController {
   }
 
   void _handleCountdown(GameCountdownEvent event) {
-    if (isCancelled.value || _hasTransitionedToMatch) return;
-    _hasTransitionedToMatch = true;
-    _cleanupTimers();
-
+    if (isCancelled.value ||
+        _hasTransitionedToMatch ||
+        matchId.value != event.matchId) {
+      return;
+    }
     GameMatchSnapshot? snapshot = _socketService.latestMatch.value;
     if (snapshot == null || snapshot.teams.isEmpty) {
       snapshot = _build5v5Snapshot(event.matchId, event.deadlineAt);
@@ -399,9 +412,16 @@ class WaitingRoom5v5Controller extends GetxController {
       );
     }
 
+    _enterMatch(snapshot);
+  }
+
+  void _enterMatch(GameMatchSnapshot snapshot) {
+    if (isCancelled.value || _hasTransitionedToMatch) return;
+    _hasTransitionedToMatch = true;
+    _cleanupTimers();
     Get.off(
       () => GameMatchHoldView(
-        snapshot: snapshot!,
+        snapshot: snapshot,
         currentUserId: currentUserId,
         currentUserNickname: currentUserNickname,
       ),
@@ -413,14 +433,16 @@ class WaitingRoom5v5Controller extends GetxController {
     final code = error['code']?.toString() ?? '';
     final message = error['message']?.toString() ?? 'Queue error';
 
-    if (code == 'ALREADY_QUEUED') {
-      return;
-    }
-
-    if (code == 'INELIGIBLE') {
+    if (isCancelled.value || _hasTransitionedToMatch) return;
+    if (code == 'INELIGIBLE' ||
+        code == 'ROOM_CLOSED' ||
+        code == 'ALREADY_QUEUED' ||
+        code == 'ACTIVE_MATCH' ||
+        code == 'INVALID_MODE') {
+      isCancelled.value = true;
       Get.back();
       Get.snackbar(
-        'Not Eligible',
+        'Basketball',
         message,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent,
@@ -435,10 +457,8 @@ class WaitingRoom5v5Controller extends GetxController {
   }
 
   void _handleQueueTimeout() {
-    isCancelled.value = true;
-    _cleanupTimers();
-    _socketService.cancelQueue();
-    _repository.cancelQueue().catchError((_) {});
+    if (isCancelled.value) return;
+    unawaited(_cancelLobby());
     Get.back();
     Get.snackbar(
       'Queue Expired',
@@ -450,22 +470,15 @@ class WaitingRoom5v5Controller extends GetxController {
   }
 
   void onStartGame() {
-    if (isStarting.value || (!_hasTransitionedToMatch && !isRoomFull.value)) {
-      return;
-    }
-    isStarting.value = true;
+    final currentMatchId = matchId.value;
+    if (isStarting.value || !isRoomFull.value || currentMatchId == null) return;
 
-    final currentMatchId = matchId.value ??
-        _socketService.latestMatch.value?.matchId ??
-        'match-5v5-${DateTime.now().millisecondsSinceEpoch}';
-
-    matchId.value = currentMatchId;
-    _socketService.startMatch(currentMatchId);
-
-    if (AppConfig.useMocks ||
-        _socketService.socket == null ||
-        !_socketService.isConnected.value) {
+    if (AppConfig.useMocks) {
+      isStarting.value = true;
       _simulateMockCountdownAndMatch(currentMatchId);
+    } else if (_socketService.isConnected.value) {
+      isStarting.value = true;
+      _socketService.startMatch(currentMatchId);
     }
   }
 
@@ -478,41 +491,39 @@ class WaitingRoom5v5Controller extends GetxController {
     );
   }
 
-  Future<void> onBackToLobby() async {
+  Future<void> _cancelLobby() async {
     isCancelled.value = true;
     _cleanupTimers();
-    _socketService.cancelQueue();
+    final id = matchId.value;
+    if (_socketService.isConnected.value) {
+      if (id != null && !await _socketService.leaveMatch(id)) {
+        try {
+          await _repository.leaveMatch(id);
+        } catch (_) {}
+      }
+      _socketService.cancelQueue();
+      return;
+    }
     try {
+      if (id != null) await _repository.leaveMatch(id);
       await _repository.cancelQueue();
-    } catch (_) {}
-    Get.back();
+    } catch (_) {
+      // A disconnected queue also expires on the server.
+    }
   }
 
-  Future<void> onCancel() async {
-    isCancelled.value = true;
-    _cleanupTimers();
-    final mId = matchId.value;
-    if (mId != null && mId.isNotEmpty) {
-      _socketService.leaveMatch(mId);
-      try {
-        await _repository.leaveMatch(mId);
-      } catch (_) {}
-    }
-    _socketService.cancelQueue();
-    try {
-      await _repository.cancelQueue();
-    } catch (_) {}
-    Get.back();
+  Future<void> onBackToLobby() async {
+    if (isCancelled.value) return;
+    await _cancelLobby();
+    if (!isClosed) Get.back();
   }
+
+  Future<void> onCancel() => onBackToLobby();
 
   Future<void> onExploreStories() async {
-    isCancelled.value = true;
-    _cleanupTimers();
-    _socketService.cancelQueue();
-    try {
-      await _repository.cancelQueue();
-    } catch (_) {}
-    Get.offNamed(Routes.STORY_LIBRARY);
+    if (isCancelled.value) return;
+    await _cancelLobby();
+    if (!isClosed) Get.offNamed(Routes.STORY_LIBRARY);
   }
 
   GameMatchSnapshot _build5v5Snapshot(String mId, DateTime? deadlineAt) {
@@ -708,13 +719,13 @@ class WaitingRoom5v5Controller extends GetxController {
   @override
   void onClose() {
     _cleanupTimers();
+    _connectionWorker?.dispose();
     for (final sub in _subscriptions) {
       sub.cancel();
     }
     _subscriptions.clear();
-    if (!isStarting.value && !_hasTransitionedToMatch) {
-      _socketService.cancelQueue();
-      _repository.cancelQueue().catchError((_) {});
+    if (!isCancelled.value && !_hasTransitionedToMatch) {
+      unawaited(_cancelLobby());
     }
     super.onClose();
   }

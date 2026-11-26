@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/hero_models.dart';
+import 'package:wings_of_power_app/gen/assets.gen.dart';
 import '../controllers/waiting_room_5v5_controller.dart';
 
 class WaitingRoom5v5View extends StatelessWidget {
@@ -54,7 +55,7 @@ class WaitingRoom5v5View extends StatelessWidget {
             children: [
               SizedBox(height: 16.h),
               // Game Logo
-              _buildGameLogo(),
+              Image.asset(Assets.logos.gameBanner.path),
               SizedBox(height: 24.h),
               // Status Header (Title & Subtitle)
               _buildStatusHeader(),
@@ -87,74 +88,6 @@ class WaitingRoom5v5View extends StatelessWidget {
     );
   }
 
-  Widget _buildGameLogo() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              color: const Color(0xFFFFD54F),
-              size: 20.sp,
-            ),
-            SizedBox(width: 4.w),
-            Text(
-              'Wings of Power',
-              style: TextStyle(
-                fontFamily: 'LilitaOne',
-                fontSize: 26.sp,
-                fontWeight: FontWeight.w900,
-                color: const Color(0xFFFFD54F),
-                shadows: const [
-                  Shadow(
-                    color: Color(0xFF3B0764),
-                    offset: Offset(0, 3),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.auto_awesome,
-              color: const Color(0xFFFFD54F),
-              size: 20.sp,
-            ),
-          ],
-        ),
-        SizedBox(height: 4.h),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4C1D95),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(
-              color: const Color(0xFFFFD54F),
-              width: 1.5,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x44000000),
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Text(
-            'BASKETBALL EDITION',
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildStatusHeader() {
     return Obx(() {

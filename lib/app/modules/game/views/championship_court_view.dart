@@ -129,8 +129,7 @@ class _ChampionshipCourtViewState extends State<ChampionshipCourtView>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isShooter = widget.controller.isShooter;
-    final shootoutStart = widget.controller.shootoutStart.value;
-    final shooterName = shootoutStart?.shooterName ?? 'Shooter';
+    final shooterName = widget.controller.shooterName;
     final shooterTeam = widget.controller.shooterTeamLabel;
     final result = widget.controller.shootoutResult.value;
 
@@ -138,8 +137,8 @@ class _ChampionshipCourtViewState extends State<ChampionshipCourtView>
     final teamA = teams.isNotEmpty ? teams[0] : null;
     final teamB = teams.length > 1 ? teams[1] : null;
 
-    final teamAXp = widget.controller.getTeamScore(0);
-    final teamBXp = widget.controller.getTeamScore(1);
+    final teamAXp = widget.controller.getTeamXp(0);
+    final teamBXp = widget.controller.getTeamXp(1);
 
     return Container(
       width: double.infinity,
