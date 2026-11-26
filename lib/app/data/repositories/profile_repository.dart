@@ -20,6 +20,11 @@ class ProfileRepository implements IProfileRepository {
 
   ProfileRepository(this._client);
 
+  Map<String, dynamic> _payload(dynamic response) {
+    final result = response as Map;
+    return Map<String, dynamic>.from((result['data'] ?? result) as Map);
+  }
+
   @override
   Future<StudentProfileModel> getProfile() async {
     if (AppConfig.useMocks) {
@@ -28,7 +33,7 @@ class ProfileRepository implements IProfileRepository {
     return _client.handleRequest(
       () => _client.dio.get(ApiEndpoint.studentProfile),
       (dynamic data) =>
-          StudentProfileModel.fromJson(Map<String, dynamic>.from(data as Map)),
+          StudentProfileModel.fromJson(_payload(data)),
       'Get student profile',
     );
   }
@@ -53,7 +58,7 @@ class ProfileRepository implements IProfileRepository {
         },
       ),
       (dynamic data) =>
-          StudentProfileModel.fromJson(Map<String, dynamic>.from(data as Map)),
+          StudentProfileModel.fromJson(_payload(data)),
       'Update student profile',
     );
   }
@@ -66,7 +71,7 @@ class ProfileRepository implements IProfileRepository {
     return _client.handleRequest(
       () => _client.dio.get(ApiEndpoint.studentSettings),
       (dynamic data) =>
-          StudentSettingsModel.fromJson(Map<String, dynamic>.from(data as Map)),
+          StudentSettingsModel.fromJson(_payload(data)),
       'Get student settings',
     );
   }
@@ -82,7 +87,7 @@ class ProfileRepository implements IProfileRepository {
         data: settings.toJson(),
       ),
       (dynamic data) =>
-          StudentSettingsModel.fromJson(Map<String, dynamic>.from(data as Map)),
+          StudentSettingsModel.fromJson(_payload(data)),
       'Update student settings',
     );
   }

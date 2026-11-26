@@ -8,7 +8,6 @@ import 'package:wings_of_power_app/app/data/models/quiz_models.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
 import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 import '../../../global/widgets/bg_header_sky.dart';
 import '../controllers/quiz_controller.dart';

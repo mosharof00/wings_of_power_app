@@ -8,7 +8,6 @@ import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 import '../controllers/achievements_controller.dart';
 import 'widgets/chapter_progress_item.dart';

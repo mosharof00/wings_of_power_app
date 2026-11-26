@@ -7,7 +7,7 @@ import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/points_chip.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
+import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
 
 import '../../../global/widgets/app_scaffold.dart';
 import '../controllers/achievements_controller.dart';
@@ -23,7 +23,6 @@ class BadgesView extends GetView<AchievementsController> {
     final showBackButton = !isEmbeddedInNav && Navigator.of(context).canPop();
 
     return AppScaffold(
-
       body: Stack(
         children: [
           // Sky & clouds background banner
@@ -62,7 +61,9 @@ class BadgesView extends GetView<AchievementsController> {
                       Expanded(
                         child: Text(
                           'Badges & Achievements',
-                          textAlign: showBackButton ? TextAlign.left : TextAlign.center,
+                          textAlign: showBackButton
+                              ? TextAlign.left
+                              : TextAlign.center,
                           style: GoogleFonts.nunito(
                             fontSize: 22.sp,
                             fontWeight: FontWeight.w800,
@@ -84,15 +85,20 @@ class BadgesView extends GetView<AchievementsController> {
                     () => Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${controller.earnedCount.value} of ${controller.totalCount.value} badges earned',
-                          style: GoogleFonts.nunito(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColor.subtitle,
-                          ),
-                        ),
-                        PointsChip(count: controller.points.value),
+                        if (controller.totalCount.value > 0)
+                          Flexible(
+                            child: Text(
+                              '${controller.earnedCount.value} of ${controller.totalCount.value} badges earned',
+                              style: GoogleFonts.nunito(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w700,
+                                color: AppColor.subtitle,
+                              ),
+                            ),
+                          )
+                        else
+                          const SizedBox.shrink(),
+                        PointsChip(count: controller.studentPoints),
                       ],
                     ),
                   ),
@@ -117,6 +123,13 @@ class BadgesView extends GetView<AchievementsController> {
                     }
 
                     final badgesList = controller.badges;
+                    if (badgesList.isEmpty) {
+                      return ShowEmptyResult(
+                        title: 'No badges available yet',
+                        desc: 'Check back when new badges are available.',
+                        refreshOnTap: controller.fetchBadges,
+                      );
+                    }
 
                     return RefreshIndicator(
                       onRefresh: controller.fetchBadges,

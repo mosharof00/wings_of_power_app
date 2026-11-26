@@ -5,9 +5,15 @@ import 'package:wings_of_power_app/app/core/utils/dialog_utils.dart';
 import 'package:get/get.dart';
 
 class MainPageController extends GetxController {
-  MainPageController({this.onGameTabOpened});
+  MainPageController({
+    this.onGameTabOpened,
+    this.onStudentTabOpened,
+    this.onBadgesTabOpened,
+  });
 
   final VoidCallback? onGameTabOpened;
+  final VoidCallback? onStudentTabOpened;
+  final VoidCallback? onBadgesTabOpened;
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final selectedIndex = 0.obs;
 
@@ -16,6 +22,8 @@ class MainPageController extends GetxController {
   void changePage(int index) {
     selectedIndex.value = index;
     if (index == 2) onGameTabOpened?.call();
+    if (index == 3) onBadgesTabOpened?.call();
+    if (index == 0 || index == 4) onStudentTabOpened?.call();
   }
 
   void onNavTap(int index) => changePage(index);

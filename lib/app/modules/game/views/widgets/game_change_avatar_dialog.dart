@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/mocks/profile.dart';
 
 class GameChangeAvatarDialog extends StatefulWidget {
@@ -13,13 +12,13 @@ class GameChangeAvatarDialog extends StatefulWidget {
 
   final String? initialAvatar;
   final String studentName;
-  final ValueChanged<String> onSave;
+  final Future<void> Function(String) onSave;
 
   static Future<void> show({
     required BuildContext context,
     required String? initialAvatar,
     required String studentName,
-    required ValueChanged<String> onSave,
+    required Future<void> Function(String) onSave,
   }) {
     return showDialog(
       context: context,
@@ -45,17 +44,26 @@ class _GameChangeAvatarDialogState extends State<GameChangeAvatarDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedAvatar = (widget.initialAvatar != null &&
+    _selectedAvatar =
+        (widget.initialAvatar != null &&
             _avatars.contains(widget.initialAvatar))
         ? widget.initialAvatar!
         : _avatars.first;
   }
 
   Future<void> _handleSave() async {
+    if (_isSaving) return;
     setState(() => _isSaving = true);
     try {
-      widget.onSave(_selectedAvatar);
-      Get.back();
+      await widget.onSave(_selectedAvatar);
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Couldn’t save your avatar. Please try again.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -73,10 +81,7 @@ class _GameChangeAvatarDialogState extends State<GameChangeAvatarDialog> {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF6EB),
           borderRadius: BorderRadius.circular(28.r),
-          border: Border.all(
-            color: const Color(0xFFFFDFC8),
-            width: 1.5,
-          ),
+          border: Border.all(color: const Color(0xFFFFDFC8), width: 1.5),
           boxShadow: const [
             BoxShadow(
               color: Color(0x33000000),
@@ -102,7 +107,7 @@ class _GameChangeAvatarDialogState extends State<GameChangeAvatarDialog> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Get.back(),
+                  onTap: _isSaving ? null : () => Navigator.of(context).pop(),
                   behavior: HitTestBehavior.opaque,
                   child: Container(
                     width: 32.w,
@@ -137,10 +142,7 @@ class _GameChangeAvatarDialogState extends State<GameChangeAvatarDialog> {
               height: 76.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFFFA726),
-                  width: 3.w,
-                ),
+                border: Border.all(color: const Color(0xFFFFA726), width: 3.w),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x22FFA726),
@@ -219,10 +221,7 @@ class _GameChangeAvatarDialogState extends State<GameChangeAvatarDialog> {
                       alignment: Alignment.center,
                       children: [
                         ClipOval(
-                          child: Image.asset(
-                            avatarPath,
-                            fit: BoxFit.cover,
-                          ),
+                          child: Image.asset(avatarPath, fit: BoxFit.cover),
                         ),
                         if (isSelected)
                           Positioned(

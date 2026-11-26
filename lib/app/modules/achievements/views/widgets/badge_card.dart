@@ -4,12 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/achievement_models.dart';
 
+import 'badge_art.dart';
+
 class BadgeCard extends StatelessWidget {
-  const BadgeCard({
-    super.key,
-    required this.badge,
-    required this.onTap,
-  });
+  const BadgeCard({super.key, required this.badge, required this.onTap});
 
   final BadgeModel badge;
   final VoidCallback onTap;
@@ -37,11 +35,8 @@ class BadgeCard extends StatelessWidget {
           children: [
             Expanded(
               child: Center(
-                child: Image.asset(
-                  badge.isEarned
-                      ? badge.assetPath
-                      : 'assets/badges/badge_locked.png',
-                  fit: BoxFit.contain,
+                child: BadgeArt(
+                  path: badge.isEarned ? badge.assetPath : BadgeArt.lockedPath,
                 ),
               ),
             ),

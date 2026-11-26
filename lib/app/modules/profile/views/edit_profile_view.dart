@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/mocks/profile.dart';
 import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
+import 'package:wings_of_power_app/app/global/widgets/student_avatar_image.dart';
 
 import '../controllers/profile_controller.dart';
 
@@ -88,19 +88,7 @@ class EditProfileView extends GetView<ProfileController> {
                             ],
                           ),
                           child: ClipOval(
-                            child: avatar.startsWith('assets/')
-                                ? Image.asset(
-                                    avatar,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Image.network(
-                                    avatar,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Image.asset(
-                                      'assets/images/avatar_01.png',
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
+                            child: StudentAvatarImage(avatarUrl: avatar),
                           ),
                         );
                       }),
@@ -128,11 +116,11 @@ class EditProfileView extends GetView<ProfileController> {
                         itemCount: ProfileMock.presetAvatars.length,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                          childAspectRatio: 1,
-                        ),
+                              crossAxisCount: 4,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: 1,
+                            ),
                         itemBuilder: (context, index) {
                           final path = ProfileMock.presetAvatars[index];
                           final isCurrent = selected == path;
@@ -154,18 +142,16 @@ class EditProfileView extends GetView<ProfileController> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.06),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.06,
+                                        ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                   child: ClipOval(
-                                    child: Image.asset(
-                                      path,
-                                      fit: BoxFit.cover,
-                                    ),
+                                    child: Image.asset(path, fit: BoxFit.cover),
                                   ),
                                 ),
                                 if (isCurrent)
@@ -269,10 +255,9 @@ class EditProfileView extends GetView<ProfileController> {
                       ),
                       child: Obx(() {
                         final className =
-                            controller.profile.value?.displayClassName ??
-                                'Grade 4, Ms. Smith';
+                            controller.profile.value?.displayClassName ?? '';
                         return Text(
-                          className,
+                          className.isEmpty ? 'No class assigned' : className,
                           style: GoogleFonts.nunito(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w600,

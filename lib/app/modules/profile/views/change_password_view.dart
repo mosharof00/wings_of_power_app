@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 import '../controllers/profile_controller.dart';
 

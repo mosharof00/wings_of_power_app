@@ -2,6 +2,7 @@ import 'package:wings_of_power_app/app/data/repositories/achievement_repository.
 import 'package:wings_of_power_app/app/data/repositories/auth_repository.dart';
 import 'package:wings_of_power_app/app/data/repositories/home_repository.dart';
 import 'package:wings_of_power_app/app/data/repositories/profile_repository.dart';
+import 'package:wings_of_power_app/app/data/services/student_profile_store.dart';
 import 'package:wings_of_power_app/app/data/repositories/story_repository.dart';
 import 'package:wings_of_power_app/app/modules/achievements/controllers/achievements_controller.dart';
 import 'package:wings_of_power_app/app/modules/game/bindings/game_binding.dart';
@@ -24,7 +25,9 @@ class MainPageBinding extends Bindings {
     Get.lazyPut<MainPageController>(
       () => MainPageController(
         onGameTabOpened: () =>
-            Get.find<GameModeSelectController>().refreshEligibility(),
+            Get.find<GameModeSelectController>().reloadStudentStats(),
+        onBadgesTabOpened: () => Get.find<AchievementsController>().fetchBadges(),
+        onStudentTabOpened: () => Get.find<StudentProfileStore>().refresh(),
       ),
     );
     Get.lazyPut<HomeController>(
@@ -40,6 +43,7 @@ class MainPageBinding extends Bindings {
       () => ProfileController(
         Get.find<IProfileRepository>(),
         Get.find<IAuthRepository>(),
+        Get.find<StudentProfileStore>(),
       ),
     );
   }

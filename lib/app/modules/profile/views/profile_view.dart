@@ -5,7 +5,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/bg_header_sky.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
+import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
+import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
+import 'package:wings_of_power_app/app/global/widgets/student_avatar_image.dart';
 
 import '../../../global/widgets/app_scaffold.dart';
 import '../controllers/profile_controller.dart';
@@ -92,15 +94,20 @@ class ProfileView extends GetView<ProfileController> {
 
                   // Avatar with pencil edit badge
                   Obx(() {
-                    final avatarPath =
-                        controller.profile.value?.avatarUrl ??
-                        'assets/images/avatar_01.png';
-                    final name = controller.profile.value?.nickname ?? 'Sarah';
-                    final age =
-                        controller.profile.value?.ageText ?? '4 years old';
-                    final className =
-                        controller.profile.value?.displayClassName ??
-                        'Grade A, Ms. Smith Class';
+                    final profile = controller.profile.value;
+                    if (profile == null) {
+                      if (!controller.profileLoading &&
+                          controller.profileUnavailable) {
+                        return ErrorBlock(
+                          message: 'Couldn’t load your profile.',
+                          onRetry: controller.fetchProfile,
+                        );
+                      }
+                      return const GlobalLoading();
+                    }
+                    final name = profile.nickname;
+                    final age = profile.ageText;
+                    final className = profile.displayClassName;
 
                     return Column(
                       children: [
@@ -131,20 +138,9 @@ class ProfileView extends GetView<ProfileController> {
                                   ],
                                 ),
                                 child: ClipOval(
-                                  child: avatarPath.startsWith('assets/')
-                                      ? Image.asset(
-                                          avatarPath,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : Image.network(
-                                          avatarPath,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, _, _) =>
-                                              Image.asset(
-                                                'assets/images/avatar_01.png',
-                                                fit: BoxFit.cover,
-                                              ),
-                                        ),
+                                  child: StudentAvatarImage(
+                                    avatarUrl: profile.avatarUrl,
+                                  ),
                                 ),
                               ),
 
@@ -196,26 +192,29 @@ class ProfileView extends GetView<ProfileController> {
                         ),
                         SizedBox(height: 4.h),
 
-                        // Age
-                        Text(
-                          age,
-                          style: GoogleFonts.nunito(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColor.subtitle,
+                        if (age.isNotEmpty) ...[
+                          SizedBox(height: 4.h),
+                          Text(
+                            age,
+                            style: GoogleFonts.nunito(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColor.subtitle,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 4.h),
-
-                        // Class Name
-                        Text(
-                          className,
-                          style: GoogleFonts.nunito(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColor.secondary,
+                        ],
+                        if (className.isNotEmpty) ...[
+                          SizedBox(height: 4.h),
+                          Text(
+                            className,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.nunito(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColor.secondary,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     );
                   }),
@@ -223,29 +222,26 @@ class ProfileView extends GetView<ProfileController> {
                   SizedBox(height: 18.h),
 
                   // Three stat cards in cream container
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 14.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColor.cream,
-                        borderRadius: BorderRadius.circular(24.r),
-                      ),
-                      child: Obx(() {
-                        final points = controller.profile.value?.points ?? 245;
-                        final badges = controller.profile.value?.badges ?? 3;
-                        final progress =
-                            controller.profile.value?.progressPercent ?? 30;
-
-                        return Row(
+                  Obx(() {
+                    final profile = controller.profile.value;
+                    if (profile == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 14.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColor.cream,
+                          borderRadius: BorderRadius.circular(24.r),
+                        ),
+                        child: Row(
                           children: [
                             Expanded(
                               child: _buildStatCard(
                                 iconPath: 'assets/icons/ic_profile_points.svg',
-                                value: '$points',
+                                value: '${profile.points}',
                                 label: 'Points',
                                 onTap: controller.openPositivePoints,
                               ),
@@ -254,7 +250,7 @@ class ProfileView extends GetView<ProfileController> {
                             Expanded(
                               child: _buildStatCard(
                                 iconPath: 'assets/icons/ic_profile_badges.svg',
-                                value: '$badges',
+                                value: '${profile.badges}',
                                 label: 'Badges',
                                 onTap: controller.openBadges,
                               ),
@@ -264,16 +260,16 @@ class ProfileView extends GetView<ProfileController> {
                               child: _buildStatCard(
                                 iconPath:
                                     'assets/icons/ic_profile_progress.svg',
-                                value: '$progress%',
+                                value: '${profile.progressPercent}%',
                                 label: 'Progress',
                                 onTap: controller.openReadingProgress,
                               ),
                             ),
                           ],
-                        );
-                      }),
-                    ),
-                  ),
+                        ),
+                      ),
+                    );
+                  }),
 
                   SizedBox(height: 16.h),
 

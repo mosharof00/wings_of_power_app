@@ -4,6 +4,7 @@ import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/app_svg_icon.dart';
 import 'package:wings_of_power_app/app/global/widgets/app_text.dart';
 import 'package:wings_of_power_app/app/global/widgets/points_chip.dart';
+import 'package:wings_of_power_app/app/global/widgets/student_avatar_image.dart';
 import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -42,15 +43,7 @@ class HomeHeader extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipOval(
-            child: avatarUrl != null && avatarUrl!.startsWith('http')
-                ? Image.network(
-                    avatarUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _defaultAvatar(),
-                  )
-                : _defaultAvatar(),
-          ),
+          child: ClipOval(child: StudentAvatarImage(avatarUrl: avatarUrl)),
         ),
         SizedBox(width: 10.w),
         // Greeting & points
@@ -67,10 +60,10 @@ class HomeHeader extends StatelessWidget {
                       greeting,
                       maxLines: 1,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColor.secondary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18.sp,
-                          ),
+                        color: AppColor.secondary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18.sp,
+                      ),
                     ),
                   ),
                   SizedBox(width: 8.w),
@@ -82,10 +75,10 @@ class HomeHeader extends StatelessWidget {
                 subtitle,
                 maxLines: 1,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColor.subtitle,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13.sp,
-                    ),
+                  color: AppColor.subtitle,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13.sp,
+                ),
               ),
             ],
           ),
@@ -119,12 +112,6 @@ class HomeHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _defaultAvatar() {
-    return Assets.characters.heroSamantha.image(
-      fit: BoxFit.cover,
     );
   }
 }

@@ -195,9 +195,17 @@ class $AssetsCharactersGen {
   AssetGenImage get homeBannerReader =>
       const AssetGenImage('assets/characters/home_banner_reader.png');
 
+  /// File path: assets/characters/home_group_play.png
+  AssetGenImage get homeGroupPlay =>
+      const AssetGenImage('assets/characters/home_group_play.png');
+
   /// File path: assets/characters/home_play_game.png
   AssetGenImage get homePlayGame =>
       const AssetGenImage('assets/characters/home_play_game.png');
+
+  /// File path: assets/characters/home_single_play.png
+  AssetGenImage get homeSinglePlay =>
+      const AssetGenImage('assets/characters/home_single_play.png');
 
   /// File path: assets/characters/safe_space_intro.png
   AssetGenImage get safeSpaceIntro =>
@@ -225,7 +233,9 @@ class $AssetsCharactersGen {
     homeBannerContinue,
     homeBannerQuiz,
     homeBannerReader,
+    homeGroupPlay,
     homePlayGame,
+    homeSinglePlay,
     safeSpaceIntro,
     welcomeHeroes,
   ];
@@ -469,6 +479,10 @@ class $AssetsImagesGen {
   AssetGenImage get leaderboard =>
       const AssetGenImage('assets/images/leaderboard.png');
 
+  /// File path: assets/images/leaderboard_coin.png
+  AssetGenImage get leaderboardCoin =>
+      const AssetGenImage('assets/images/leaderboard_coin.png');
+
   /// File path: assets/images/other_categories..png
   AssetGenImage get otherCategories =>
       const AssetGenImage('assets/images/other_categories..png');
@@ -507,6 +521,7 @@ class $AssetsImagesGen {
     exploreKindnessCorner,
     exploreSafeSpace,
     leaderboard,
+    leaderboardCoin,
     otherCategories,
     placeholderImage,
     playGameCard,

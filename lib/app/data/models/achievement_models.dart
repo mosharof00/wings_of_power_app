@@ -50,15 +50,26 @@ class BadgeModel {
       id: (json['id'] ?? '').toString(),
       code: (json['code'] ?? '').toString(),
       name: (json['name'] ?? json['title'] ?? '').toString(),
-      subtitle: (json['subtitle'] ?? 'You make the world brighter with kindness!').toString(),
+      subtitle: (json['subtitle'] ?? json['description'] ?? '').toString(),
       howToEarn: (json['howToEarn'] ?? json['how_to_earn'] ?? json['criteriaDescription'] ?? '').toString(),
-      assetPath: (json['assetPath'] ?? json['asset_path'] ?? 'assets/badges/badge_locked.png').toString(),
+      assetPath: _badgeArtPath(json),
       isEarned: json['isEarned'] == true || json['is_earned'] == true || json['earned'] == true,
       earnedDescription: json['earnedDescription']?.toString() ?? json['earned_description']?.toString(),
-      unlockedAt: json['unlockedAt'] != null
-          ? DateTime.tryParse(json['unlockedAt'].toString())
-          : (json['unlocked_at'] != null ? DateTime.tryParse(json['unlocked_at'].toString()) : null),
+      unlockedAt: DateTime.tryParse(
+        (json['unlockedAt'] ?? json['unlocked_at'] ?? json['earnedAt'] ?? json['earned_at'] ?? '').toString(),
+      ),
     );
+  }
+
+  static String _badgeArtPath(Map<String, dynamic> json) {
+    final art = (json['assetPath'] ?? json['asset_path'] ?? json['artUrl'] ?? json['art_url'])?.toString().trim();
+    if (art != null && art.isNotEmpty) return art;
+    final code = json['code']?.toString().toLowerCase();
+    return switch (code) {
+      'kindness_champion' || 'story_explorer' || 'helping_hand' ||
+      'speak_up' || 'positive_leader' || 'game_show_ready' => 'assets/badges/badge_$code.png',
+      _ => 'assets/badges/badge_locked.png',
+    };
   }
 
   Map<String, dynamic> toJson() => {
@@ -87,15 +98,16 @@ class BadgesResponseModel {
     required this.points,
   });
 
-  factory BadgesResponseModel.fromJson(Map<String, dynamic> json) {
-    final list = (json['badges'] as List? ?? json['items'] as List? ?? [])
-        .map((e) => BadgeModel.fromJson(Map<String, dynamic>.from(e as Map)))
+  factory BadgesResponseModel.fromJson(Object? payload) {
+    final json = payload is Map ? payload : const <String, dynamic>{};
+    final rawBadges = payload is List ? payload : (json['badges'] ?? json['items']) as List? ?? [];
+    final list = rawBadges
+        .map((entry) => BadgeModel.fromJson(Map<String, dynamic>.from(entry as Map)))
         .toList();
-    final earned = json['earnedCount'] as int? ??
-        json['earned_count'] as int? ??
-        list.where((b) => b.isEarned).length;
-    final total = json['totalCount'] as int? ?? json['total_count'] as int? ?? list.length;
-    final pts = json['points'] as int? ?? json['totalPoints'] as int? ?? 248;
+    final earned = (json['earnedCount'] ?? json['earned_count']) as int? ??
+        list.where((badge) => badge.isEarned).length;
+    final total = (json['totalCount'] ?? json['total_count']) as int? ?? list.length;
+    final pts = (json['points'] ?? json['totalPoints']) as int? ?? 0;
 
     return BadgesResponseModel(
       badges: list,
@@ -352,6 +364,7 @@ class ReadingProgressModel {
   });
 
   factory ReadingProgressModel.fromJson(Map<String, dynamic> json) {
+    final summary = json['summary'] as Map?;
     final rawChapters = (json['chapters'] as List? ??
             json['progress'] as List? ??
             [])
@@ -359,9 +372,9 @@ class ReadingProgressModel {
         .toList();
 
     return ReadingProgressModel(
-      overallPercent: json['overallPercent'] as int? ?? json['overall_percent'] as int? ?? 60,
+      overallPercent: ((summary?['overallPercent'] ?? json['overallPercent'] ?? json['overall_percent']) as num?)?.toInt() ?? 0,
       statusMessage: (json['statusMessage'] ?? json['status_message'] ?? 'Keep reading!').toString(),
-      storiesCompleted: json['storiesCompleted'] as int? ?? json['stories_completed'] as int? ?? 1,
+      storiesCompleted: ((summary?['storiesCompleted'] ?? json['storiesCompleted'] ?? json['stories_completed']) as num?)?.toInt() ?? 0,
       storiesTotal: json['storiesTotal'] as int? ?? json['stories_total'] as int? ?? 8,
       quizScoreMean: json['quizScoreMean'] as int? ?? json['quiz_score_mean'] as int? ?? 52,
       streakDays: json['streakDays'] as int? ?? json['streak_days'] as int? ?? 5,

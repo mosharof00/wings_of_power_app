@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/core/network/api_client.dart';
+import '../services/student_profile_store.dart';
 import 'auth_repository.dart';
 import 'achievement_repository.dart';
 import 'hero_repository.dart';
@@ -32,6 +33,7 @@ class AppRepositoryBinding extends Bindings {
       () => ProfileRepository(Get.find<ApiClient>()),
       fenix: true,
     );
+    Get.put(StudentProfileStore(Get.find<IProfileRepository>()), permanent: true);
     Get.lazyPut<IStoryRepository>(
       () => StoryRepository(Get.find<ApiClient>()),
       fenix: true,

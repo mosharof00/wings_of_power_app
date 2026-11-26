@@ -4,6 +4,7 @@ import 'package:wings_of_power_app/app/core/network/api_exception.dart';
 import 'package:wings_of_power_app/app/core/utils/logger.dart';
 import 'package:wings_of_power_app/app/data/models/achievement_models.dart';
 import 'package:wings_of_power_app/app/data/repositories/achievement_repository.dart';
+import 'package:wings_of_power_app/app/data/services/student_profile_store.dart';
 import 'package:wings_of_power_app/app/modules/main_page/controllers/main_page_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
@@ -12,6 +13,9 @@ import '../views/widgets/badge_unlock_dialog.dart';
 
 class AchievementsController extends GetxController {
   final IAchievementRepository _repository;
+  final _profileStore = Get.isRegistered<StudentProfileStore>()
+      ? Get.find<StudentProfileStore>()
+      : null;
 
   AchievementsController(this._repository);
 
@@ -19,9 +23,10 @@ class AchievementsController extends GetxController {
   final isBadgesLoading = false.obs;
   final badgesError = ''.obs;
   final badges = <BadgeModel>[].obs;
-  final earnedCount = 6.obs;
-  final totalCount = 6.obs;
-  final points = 248.obs;
+  final earnedCount = 0.obs;
+  final totalCount = 0.obs;
+  final points = 0.obs;
+  int get studentPoints => _profileStore?.profile.value?.points ?? points.value;
   final fixtureState = 'all_earned'.obs;
 
   // ── Positive Points State ─────────────────────────────────────────────────
@@ -61,6 +66,8 @@ class AchievementsController extends GetxController {
 
   // ── Badges Actions ───────────────────────────────────────────────────────
   Future<void> fetchBadges({String? fixture}) async {
+    if (isBadgesLoading.value && fixture == null) return;
+    final refreshProfile = _profileStore?.refresh();
     isBadgesLoading.value = true;
     badgesError.value = '';
     final state = fixture ?? fixtureState.value;
@@ -75,6 +82,7 @@ class AchievementsController extends GetxController {
       badgesError.value = e is ApiException ? e.message : 'Failed to load badges';
     } finally {
       isBadgesLoading.value = false;
+      await refreshProfile;
     }
   }
 

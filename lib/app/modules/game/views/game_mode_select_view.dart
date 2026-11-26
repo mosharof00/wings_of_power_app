@@ -1,6 +1,7 @@
+import 'package:wings_of_power_app/app/global/widgets/student_avatar_image.dart';
+
 import 'dart:math' as math;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -34,6 +35,28 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
               child: Column(
                 children: [
                   _buildTopBar(),
+                  Obx(() {
+                    final nickname = controller.nickname;
+                    if (nickname == null || nickname.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 6.h),
+                        child: Text(
+                          nickname,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                   SizedBox(height: 16.h),
                   Image.asset(Assets.logos.gameBanner.path),
                   SizedBox(height: 16.h),
@@ -142,7 +165,12 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
               onLongPress: kDebugMode
                   ? controller.onSinglePlayerLongPress
                   : null,
-              characterWidget: _buildSinglePlayerArt(),
+              characterWidget: Center(
+                child: Assets.characters.homeSinglePlay.image(
+                  height: 145.h,
+                  fit: BoxFit.contain,
+                ),
+              ),
               extraWidget: fixtureCode == null || fixtureCode.isEmpty
                   ? null
                   : Text(
@@ -160,7 +188,12 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                   : 'Multi Player',
               isSelected: !selectedSingle,
               onTap: controller.onMultiPlayerCardTap,
-              characterWidget: _buildMultiPlayerArt(),
+              characterWidget: Center(
+                child: Assets.characters.homeGroupPlay.image(
+                  height: 145.h,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
         ],
@@ -176,7 +209,7 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
           onTap: controller.onChangeAvatar,
           behavior: HitTestBehavior.opaque,
           child: Obx(() {
-            final avatar = controller.avatarUrl.value;
+            final avatar = controller.avatarUrl;
             return Container(
               width: 44.w,
               height: 44.w,
@@ -191,21 +224,7 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                   ),
                 ],
               ),
-              child: ClipOval(
-                child: avatar != null && avatar.startsWith('http')
-                    ? CachedNetworkImage(
-                        imageUrl: avatar,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => Image.asset(
-                          'assets/images/avatar_01.png',
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Image.asset(
-                        avatar ?? 'assets/images/avatar_01.png',
-                        fit: BoxFit.cover,
-                      ),
-              ),
+              child: ClipOval(child: StudentAvatarImage(avatarUrl: avatar)),
             );
           }),
         ),
@@ -231,7 +250,7 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
                 _buildCoinIcon(),
                 SizedBox(width: 6.w),
                 Text(
-                  '${controller.coins.value}',
+                  '${controller.coins}',
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
@@ -277,49 +296,61 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
         }),
         SizedBox(width: 8.w),
         // Selected Hero Chip in Header
-        Obx(() {
-          final hero = controller.selectedHero.value;
-          if (hero == null) return const SizedBox.shrink();
-          return GestureDetector(
-            onTap: controller.onChooseHero,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4C1D95),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(color: const Color(0xFFFFD54F), width: 1.2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x22000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.bolt_rounded,
-                    color: const Color(0xFFFFD54F),
-                    size: 15.sp,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    hero.displayName,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Obx(() {
+              final hero = controller.selectedHero.value;
+              if (hero == null) return const SizedBox.shrink();
+              return GestureDetector(
+                onTap: controller.onChooseHero,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4C1D95),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: const Color(0xFFFFD54F),
+                      width: 1.2,
                     ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        }),
-        const Spacer(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bolt_rounded,
+                        color: const Color(0xFFFFD54F),
+                        size: 15.sp,
+                      ),
+                      SizedBox(width: 4.w),
+                      Flexible(
+                        child: Text(
+                          hero.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        SizedBox(width: 8.w),
         // Home Button
         GestureDetector(
           onTap: controller.onHomeTap,
@@ -379,62 +410,6 @@ class GameModeSelectView extends GetView<GameModeSelectController> {
           painter: _BasketballPainter(),
         ),
       ),
-    );
-  }
-
-
-
-  Widget _buildSinglePlayerArt() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Angel Wings backdrop
-        Icon(
-          Icons.workspace_premium_rounded,
-          color: const Color(0xFFFFD54F).withValues(alpha: 0.35),
-          size: 130.sp,
-        ),
-        // Faith character with basketball
-        Assets.characters.homePlayGame.image(
-          height: 125.h,
-          fit: BoxFit.contain,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMultiPlayerArt() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Angel Wings backdrop
-        Icon(
-          Icons.workspace_premium_rounded,
-          color: const Color(0xFFFFD54F).withValues(alpha: 0.35),
-          size: 130.sp,
-        ),
-        // Two heroes side by side
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Assets.characters.homePlayGame.image(
-                height: 115.h,
-                fit: BoxFit.contain,
-              ),
-              Transform.translate(
-                offset: Offset(-14.w, 0),
-                child: Assets.characters.heroHarold.image(
-                  height: 112.h,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -549,12 +524,12 @@ class _ModeCard extends StatelessWidget {
             Expanded(
               child: Center(
                 child: Padding(
-                  padding: EdgeInsets.only(top: 12.h),
+                  padding: EdgeInsets.only(top: 8.h),
                   child: characterWidget,
                 ),
               ),
             ),
-            if (extraWidget != null) ...[extraWidget!, SizedBox(height: 6.h)],
+            if (extraWidget != null) ...[extraWidget!, SizedBox(height: 4.h)],
             Padding(
               padding: EdgeInsets.only(bottom: 16.h),
               child: Text(

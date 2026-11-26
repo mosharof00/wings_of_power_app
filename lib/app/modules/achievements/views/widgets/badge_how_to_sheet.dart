@@ -5,6 +5,8 @@ import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/data/models/achievement_models.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
 
+import 'badge_art.dart';
+
 void showBadgeHowToSheet(BuildContext context, BadgeModel badge) {
   showModalBottomSheet<void>(
     context: context,
@@ -49,12 +51,7 @@ class BadgeHowToSheet extends StatelessWidget {
           SizedBox(height: 18.h),
 
           // Badge Artwork
-          Image.asset(
-            badge.assetPath,
-            width: 105.w,
-            height: 105.w,
-            fit: BoxFit.contain,
-          ),
+          BadgeArt(path: badge.assetPath, width: 105.w, height: 105.w),
           SizedBox(height: 14.h),
 
           // "Locked" pill

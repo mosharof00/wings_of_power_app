@@ -7,6 +7,8 @@ import 'package:wings_of_power_app/app/data/models/achievement_models.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_button.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
+import 'badge_art.dart';
+
 void showBadgeNotificationDialog(
   BuildContext context, {
   required BadgeModel badge,
@@ -14,10 +16,8 @@ void showBadgeNotificationDialog(
 }) {
   showDialog<void>(
     context: context,
-    builder: (ctx) => _BadgeNotificationDialog(
-      badge: badge,
-      onAwesomeTap: onAwesomeTap,
-    ),
+    builder: (ctx) =>
+        _BadgeNotificationDialog(badge: badge, onAwesomeTap: onAwesomeTap),
   );
 }
 
@@ -28,18 +28,13 @@ void showBadgeCelebrationDialog(
 }) {
   showDialog<void>(
     context: context,
-    builder: (ctx) => _BadgeCelebrationDialog(
-      badge: badge,
-      onViewBadgeTap: onViewBadgeTap,
-    ),
+    builder: (ctx) =>
+        _BadgeCelebrationDialog(badge: badge, onViewBadgeTap: onViewBadgeTap),
   );
 }
 
 class _BadgeNotificationDialog extends StatelessWidget {
-  const _BadgeNotificationDialog({
-    required this.badge,
-    this.onAwesomeTap,
-  });
+  const _BadgeNotificationDialog({required this.badge, this.onAwesomeTap});
 
   final BadgeModel badge;
   final VoidCallback? onAwesomeTap;
@@ -65,12 +60,7 @@ class _BadgeNotificationDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              badge.assetPath,
-              width: 120.w,
-              height: 120.w,
-              fit: BoxFit.contain,
-            ),
+            BadgeArt(path: badge.assetPath, width: 120.w, height: 120.w),
             SizedBox(height: 16.h),
             Text(
               '${badge.name}!',
@@ -112,10 +102,7 @@ class _BadgeNotificationDialog extends StatelessWidget {
 }
 
 class _BadgeCelebrationDialog extends StatelessWidget {
-  const _BadgeCelebrationDialog({
-    this.badge,
-    this.onViewBadgeTap,
-  });
+  const _BadgeCelebrationDialog({this.badge, this.onViewBadgeTap});
 
   final BadgeModel? badge;
   final VoidCallback? onViewBadgeTap;
@@ -141,11 +128,11 @@ class _BadgeCelebrationDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              badge?.assetPath ?? 'assets/badges/badge_story_explorer.png',
+            BadgeArt(
+              path:
+                  badge?.assetPath ?? 'assets/badges/badge_story_explorer.png',
               width: 120.w,
               height: 120.w,
-              fit: BoxFit.contain,
             ),
             SizedBox(height: 16.h),
             Text(

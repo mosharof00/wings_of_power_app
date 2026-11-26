@@ -6,7 +6,6 @@ import 'package:wings_of_power_app/app/core/theme/app_color.dart';
 import 'package:wings_of_power_app/app/global/widgets/error_block.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/global/widgets/show_empty_result.dart';
-import 'package:wings_of_power_app/gen/assets.gen.dart';
 
 import '../../../global/widgets/bg_header_sky.dart';
 import '../controllers/achievements_controller.dart';

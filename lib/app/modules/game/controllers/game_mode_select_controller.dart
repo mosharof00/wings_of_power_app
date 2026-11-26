@@ -6,11 +6,12 @@ import 'package:wings_of_power_app/app/core/utils/helper_utils.dart';
 import 'package:wings_of_power_app/app/data/models/game_eligibility.dart';
 import 'package:wings_of_power_app/app/core/services/secure_storage_service.dart';
 import 'package:wings_of_power_app/app/data/models/hero_models.dart';
+import 'package:wings_of_power_app/app/data/models/user_models/student_profile_model.dart';
 import 'package:wings_of_power_app/app/data/models/how_to_play.dart';
 import 'package:wings_of_power_app/app/data/repositories/game_repository.dart';
 import 'package:wings_of_power_app/app/data/repositories/igame_repository.dart';
 import 'package:wings_of_power_app/app/data/services/game_socket_service.dart';
-import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
+import 'package:wings_of_power_app/app/data/services/student_profile_store.dart';
 import 'package:wings_of_power_app/app/modules/main_page/controllers/main_page_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
@@ -44,13 +45,19 @@ class GameModeSelectController extends GetxController {
   /// true = Single Player selected, false = Multi Player selected
   final isSinglePlayer = true.obs;
 
-  final coins = 0.obs;
+  final _profileStore = Get.isRegistered<StudentProfileStore>()
+      ? Get.find<StudentProfileStore>()
+      : null;
+  late final _profile = _profileStore?.profile ?? Rxn<StudentProfileModel>();
   final xp = 0.obs;
-  final avatarUrl = RxnString();
-  final nickname = 'Alex'.obs;
-  final userId = RxnString();
+  int get coins => _profile.value?.points ?? 0;
+  String? get avatarUrl => _profile.value?.avatarUrl;
+  String? get nickname => _profile.value?.nickname;
+  String? get userId => _profile.value?.id ?? _storedUserId;
+  String? _storedUserId;
 
   final selectedHero = Rxn<HeroModel>();
+  int _heroSelectionVersion = 0;
   final fixtureCode = RxnString();
   final isStartingPractice = false.obs;
   final eligibility = Rxn<GameEligibilityModel>();
@@ -60,49 +67,30 @@ class GameModeSelectController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadStudentStats();
-    _loadHeroes();
-    refreshEligibility();
+    reloadStudentStats();
   }
 
   Future<void> reloadStudentStats() async {
-    await Future.wait([_loadStudentStats(), refreshEligibility()]);
+    await Future.wait([
+      if (_profileStore case final StudentProfileStore store) store.refresh(),
+      _loadUserId(),
+      _loadHeroes(),
+      refreshEligibility(),
+    ]);
   }
 
-  Future<void> _loadStudentStats() async {
-    final uid = await SecureStorageService.instance.getUserID();
-    if (uid != null) {
-      userId.value = uid;
-    }
-
-    if (Get.isRegistered<HomeController>()) {
-      final homeController = Get.find<HomeController>();
-      try {
-        await homeController.fetchHome();
-      } catch (_) {}
-      coins.value = homeController.points;
-      avatarUrl.value =
-          homeController.avatarUrl ?? 'assets/images/avatar_01.png';
-      final greeting = homeController.greeting;
-      if (greeting.contains('Hey ')) {
-        final name = greeting.replaceAll('Hey ', '').replaceAll('!', '').trim();
-        if (name.isNotEmpty) {
-          nickname.value = name;
-        }
-      }
-    } else {
-      avatarUrl.value = 'assets/images/avatar_01.png';
-    }
+  Future<void> _loadUserId() async {
+    _storedUserId = HelperUtils.userId.isNotEmpty
+        ? HelperUtils.userId
+        : await SecureStorageService.instance.getUserID();
   }
 
   Future<void> _loadHeroes() async {
+    final version = _heroSelectionVersion;
     try {
       final heroes = await _repository.getHeroes();
-      final current =
-          heroes.firstWhereOrNull((h) => h.isSelected) ??
-          heroes.firstWhereOrNull((h) => h.isUnlocked);
-      if (current != null) {
-        selectedHero.value = current;
+      if (!isClosed && version == _heroSelectionVersion) {
+        selectedHero.value = heroes.firstWhereOrNull((h) => h.isSelected);
       }
     } catch (_) {}
   }
@@ -149,6 +137,8 @@ class GameModeSelectController extends GetxController {
       }
       return false;
     }
+    if (isClosed) return false;
+    if (_profile.value == null) await _profileStore?.refresh();
     if (isClosed) return false;
     if (Get.currentRoute == Routes.MAIN_PAGE &&
         Get.isRegistered<MainPageController>() &&
@@ -204,9 +194,9 @@ class GameModeSelectController extends GetxController {
 
       await Get.to(
         () => WaitingRoom5v5View(
-          currentUserId: userId.value,
-          currentUserNickname: nickname.value,
-          currentUserAvatar: avatarUrl.value,
+          currentUserId: userId,
+          currentUserNickname: nickname,
+          currentUserAvatar: avatarUrl,
           selectedHero: selectedHero.value,
         ),
         routeName: '/game/waiting-room-5v5',
@@ -233,9 +223,9 @@ class GameModeSelectController extends GetxController {
 
       await Get.to(
         () => WaitingRoom1v1View(
-          currentUserId: userId.value,
-          currentUserNickname: nickname.value,
-          currentUserAvatar: avatarUrl.value,
+          currentUserId: userId,
+          currentUserNickname: nickname,
+          currentUserAvatar: avatarUrl,
           selectedHero: selectedHero.value,
         ),
         routeName: '/game/waiting-room',
@@ -280,9 +270,9 @@ class GameModeSelectController extends GetxController {
 
       await Get.to(
         () => WaitingRoom1v1View(
-          currentUserId: userId.value,
-          currentUserNickname: nickname.value,
-          currentUserAvatar: avatarUrl.value,
+          currentUserId: userId,
+          currentUserNickname: nickname,
+          currentUserAvatar: avatarUrl,
           selectedHero: selectedHero.value,
           mode: 'SINGLE',
           fixtureCode: code,
@@ -310,6 +300,7 @@ class GameModeSelectController extends GetxController {
         repository: _repository,
         currentSelectedHeroId: selectedHero.value?.id,
         onHeroSelected: (hero) {
+          _heroSelectionVersion++;
           selectedHero.value = hero;
         },
       );
@@ -317,20 +308,15 @@ class GameModeSelectController extends GetxController {
   }
 
   void onChangeAvatar() {
-    final ctx = Get.context;
-    if (ctx != null) {
-      GameChangeAvatarDialog.show(
-        context: ctx,
-        initialAvatar: avatarUrl.value,
-        studentName: nickname.value,
-        onSave: (newAvatar) async {
-          avatarUrl.value = newAvatar;
-          try {
-            await _repository.updateAvatar(newAvatar);
-          } catch (_) {}
-        },
-      );
-    }
+    final context = Get.context;
+    final store = _profileStore;
+    if (context == null || store == null) return;
+    GameChangeAvatarDialog.show(
+      context: context,
+      initialAvatar: avatarUrl,
+      studentName: nickname ?? '',
+      onSave: (avatarUrl) => store.update(avatarUrl: avatarUrl),
+    );
   }
 
   Future<void> onHowToPlay() async {
@@ -352,9 +338,6 @@ class GameModeSelectController extends GetxController {
   static void returnToLobby() {
     if (Get.isRegistered<MainPageController>()) {
       HelperUtils.backToMain(tab: 2);
-      if (Get.isRegistered<GameModeSelectController>()) {
-        Get.find<GameModeSelectController>().reloadStudentStats();
-      }
     } else {
       Get.offAllNamed(Routes.GAME_MODE_SELECT);
     }

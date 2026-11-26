@@ -13,7 +13,7 @@ Rows that leave this module depend on those tasks. The hub can be built against 
 Profile hub (`Profile.png`):
 
 - Avatar, name Sarah, the two lines under the name as laid out on the PNG (“4 years old” and “Grade A, Ms. Smith Class”)
-- Age vs grade on that frame conflicts (inventory). Show both lines in the layout. Bind the class line to class name from `GET /api/student/profile` / `GET /api/auth/me`. The age line has no field in `docs/API.md`. The mock fixture uses the PNG’s “4 years old” so the frame can be checked. Do not add an age endpoint and do not compute age
+- Bind age and the approved class to `GET /api/student/profile`. Show each line when the account has that value.
 - Stat cards: Points 245, Badges 3, Progress 30% in the fixture — each opens `T-APP-015`
 - Menu: My Power Hero, My Reading Progress, Badges & Achievements, Positive Points, Leaderboard, My Reports, Notifications
 - Gear → settings
@@ -137,3 +137,5 @@ How the app works: no API.
 - Implemented HowAppWorksSheet bottom sheet with information cards and Got It button.
 - Wired SETTINGS, EDIT_PROFILE, and CHANGE_PASSWORD routes in app_pages.dart.
 - flutter analyze clean (0 issues) and flutter test passing.
+
+- Profile, Home, and Basketball use the same saved student record. Avatar changes update all three views only after the server accepts the save.

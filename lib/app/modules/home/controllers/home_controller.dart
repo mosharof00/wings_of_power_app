@@ -4,15 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/models/home_models.dart';
 import 'package:wings_of_power_app/app/data/repositories/home_repository.dart';
+import 'package:wings_of_power_app/app/data/services/student_profile_store.dart';
 import 'package:wings_of_power_app/app/modules/main_page/controllers/main_page_controller.dart';
 import 'package:wings_of_power_app/app/modules/stories/controllers/stories_controller.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
 class HomeController extends GetxController {
   HomeController([IHomeRepository? repository])
-      : _repository = repository ?? Get.find<IHomeRepository>();
+    : _repository = repository ?? Get.find<IHomeRepository>();
 
   final IHomeRepository _repository;
+  final _profileStore = Get.isRegistered<StudentProfileStore>()
+      ? Get.find<StudentProfileStore>()
+      : null;
 
   final homeData = Rxn<HomeDataModel>();
   final isLoading = true.obs;
@@ -40,12 +44,17 @@ class HomeController extends GetxController {
   }
 
   Future<void> fetchHome() async {
+    final profileRefresh = _profileStore?.refresh();
+    if (profileRefresh != null) unawaited(profileRefresh);
     isLoading.value = true;
     errorMessage.value = '';
     try {
       homeData.value = await _repository.getHome();
     } catch (e) {
-      errorMessage.value = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      errorMessage.value = e.toString().replaceFirst(
+        RegExp(r'^Exception:\s*'),
+        '',
+      );
     } finally {
       isLoading.value = false;
     }
@@ -65,10 +74,18 @@ class HomeController extends GetxController {
 
   HomeBannerModel? get banner => homeData.value?.banner;
   List<HomeCategoryModel> get categories => homeData.value?.categories ?? [];
-  int get points => homeData.value?.points ?? 0;
-  String get greeting => homeData.value?.greeting ?? 'Hey Sarah!';
+  int get points =>
+      _profileStore?.profile.value?.points ?? homeData.value?.points ?? 0;
+  String get greeting {
+    final nickname = _profileStore?.profile.value?.nickname;
+    return nickname != null && nickname.isNotEmpty
+        ? 'Hey $nickname!'
+        : homeData.value?.greeting ?? 'Welcome!';
+  }
+
   String get subtitle => homeData.value?.subtitle ?? 'Ready to learn today?';
-  String? get avatarUrl => homeData.value?.avatarUrl;
+  String? get avatarUrl =>
+      _profileStore?.profile.value?.avatarUrl ?? homeData.value?.avatarUrl;
 
   void onPlayGame() {
     if (Get.isRegistered<MainPageController>()) {
@@ -92,10 +109,9 @@ class HomeController extends GetxController {
 
   /// Navigates to stories filtered by theme / category.
   void onCategoryTap(HomeCategoryModel category) {
-    _openStoryLibrary(arguments: {
-      'themeId': category.id,
-      'category': category.title,
-    });
+    _openStoryLibrary(
+      arguments: {'themeId': category.id, 'category': category.title},
+    );
   }
 
   /// Navigates to story details when available; else library.

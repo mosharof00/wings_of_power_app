@@ -215,9 +215,9 @@ class HomeDataModel {
       greeting: json['greeting'] as String? ??
           (json['greetingName'] != null
               ? 'Hey ${json['greetingName']}!'
-              : 'Hey Sarah!'),
+              : 'Welcome!'),
       subtitle: json['subtitle'] as String? ?? 'Ready to learn today?',
-      points: (json['points'] ?? json['pointsTotal'] as num?)?.toInt() ?? 0,
+      points: ((json['points'] ?? json['pointsTotal']) as num?)?.toInt() ?? 0,
       avatarUrl: json['avatarUrl'] as String?,
       banner: banner,
       categories: (json['categories'] as List? ?? [])

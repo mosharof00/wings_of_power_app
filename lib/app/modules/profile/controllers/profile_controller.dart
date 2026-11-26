@@ -7,6 +7,7 @@ import 'package:wings_of_power_app/app/data/models/user_models/student_profile_m
 import 'package:wings_of_power_app/app/data/models/user_models/student_settings_model.dart';
 import 'package:wings_of_power_app/app/data/repositories/auth_repository.dart';
 import 'package:wings_of_power_app/app/data/repositories/profile_repository.dart';
+import 'package:wings_of_power_app/app/data/services/student_profile_store.dart';
 import 'package:wings_of_power_app/app/routes/app_pages.dart';
 
 import '../views/widgets/how_app_works_sheet.dart';
@@ -16,9 +17,13 @@ class ProfileController extends GetxController {
   final IProfileRepository _profileRepo;
   final IAuthRepository _authRepo;
 
-  ProfileController(this._profileRepo, this._authRepo);
+  ProfileController(this._profileRepo, this._authRepo, this._profileStore);
 
-  final profile = Rxn<StudentProfileModel>();
+  final StudentProfileStore _profileStore;
+
+  Rxn<StudentProfileModel> get profile => _profileStore.profile;
+  bool get profileUnavailable => _profileStore.loadFailed.value;
+  bool get profileLoading => _profileStore.isLoading.value;
   final settings = Rx<StudentSettingsModel>(const StudentSettingsModel());
 
   final isLoading = false.obs;
@@ -54,25 +59,13 @@ class ProfileController extends GetxController {
   Future<void> loadData() async {
     isLoading.value = true;
     try {
-      await Future.wait([
-        fetchProfile(),
-        fetchSettings(),
-      ]);
+      await Future.wait([fetchProfile(), fetchSettings()]);
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> fetchProfile() async {
-    try {
-      final res = await _profileRepo.getProfile();
-      profile.value = res;
-      selectedAvatar.value = res.avatarUrl;
-      nameController.text = res.nickname;
-    } catch (_) {
-      // Keep existing or default
-    }
-  }
+  Future<void> fetchProfile() => _profileStore.refresh();
 
   Future<void> fetchSettings() async {
     try {
@@ -118,8 +111,9 @@ class ProfileController extends GetxController {
   // ── Edit Profile ─────────────────────────────────────────────
 
   void initEditForm() {
-    selectedAvatar.value = profile.value?.avatarUrl ?? ProfileMock.presetAvatars.first;
-    nameController.text = profile.value?.nickname ?? 'Sarah';
+    selectedAvatar.value =
+        profile.value?.avatarUrl ?? ProfileMock.presetAvatars.first;
+    nameController.text = profile.value?.nickname ?? '';
   }
 
   void selectAvatar(String path) {
@@ -127,16 +121,23 @@ class ProfileController extends GetxController {
   }
 
   Future<void> saveProfile() async {
+    if (isSaving.value) return;
+    final nickname = nameController.text.trim();
+    if (nickname.isEmpty) {
+      Get.snackbar('Profile', 'Enter a nickname to save your profile.');
+      return;
+    }
     isSaving.value = true;
     try {
-      final updated = await _profileRepo.updateProfile(
-        nickname: nameController.text.trim(),
+      await _profileStore.update(
+        nickname: nickname,
         avatarUrl: selectedAvatar.value,
       );
-      profile.value = updated;
-      Get.back();
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to update profile: $e');
+      if (!isClosed && Get.currentRoute == Routes.EDIT_PROFILE) Get.back();
+    } catch (_) {
+      if (!isClosed) {
+        Get.snackbar('Profile', 'Couldn’t save your changes. Please try again.');
+      }
     } finally {
       isSaving.value = false;
     }

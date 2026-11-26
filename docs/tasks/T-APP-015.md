@@ -145,3 +145,4 @@ Mock until `T-BE-011`:
 - Added comprehensive mock fixtures covering partial badges, all locked badges, points history (with empty ledger support), and leaderboard.
 - Validation: `flutter analyze` clean (0 issues), `flutter test` passed (10/10 tests).
 - Refreshed the student leaderboard with a sky sunburst, a three-dimensional podium, coin scores, and a rounded rankings panel. The podium respects the API order and displays the official rank for ties. Smaller rosters leave unused podium slots empty.
+- Badges reads the live catalogue, earned flags, artwork, and saved student points. An empty catalogue shows a refreshable empty state.

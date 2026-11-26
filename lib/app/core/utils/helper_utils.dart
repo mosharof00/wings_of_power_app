@@ -4,6 +4,7 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:wings_of_power_app/app/data/repositories/auth_repository.dart';
+import 'package:wings_of_power_app/app/data/services/student_profile_store.dart';
 import 'package:wings_of_power_app/app/global/widgets/global_loading.dart';
 import 'package:wings_of_power_app/app/modules/home/controllers/home_controller.dart';
 
@@ -57,6 +58,7 @@ class HelperUtils {
       await storage.clearAll();
     }
 
+    if (HelperUtils.userId != userId) _resetStudentProfile();
     HelperUtils.userId = userId;
     HelperUtils.token = token;
     HelperUtils.userRole = role ?? '';
@@ -122,6 +124,7 @@ class HelperUtils {
   // Clear user (logout)
   // -----------------------------
   static Future<void> clearUser() async {
+    _resetStudentProfile();
     final storage = SecureStorageService.instance;
     await storage.clearAll();
 
@@ -145,6 +148,12 @@ class HelperUtils {
       okOnPress: logout,
       cancelOnPress: () {},
     );
+  }
+
+  static void _resetStudentProfile() {
+    if (Get.isRegistered<StudentProfileStore>()) {
+      Get.find<StudentProfileStore>().reset();
+    }
   }
 
   /// Tells the server to end the session (best effort), then always clears the

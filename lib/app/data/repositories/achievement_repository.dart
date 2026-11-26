@@ -34,12 +34,9 @@ class AchievementRepository implements IAchievementRepository {
 
     return _client.handleRequest(
       () => _client.dio.get(ApiEndpoint.badges),
-      (dynamic data) {
-        final map = (data is Map && data['data'] is Map)
-            ? data['data'] as Map<String, dynamic>
-            : (data is Map ? data as Map<String, dynamic> : <String, dynamic>{});
-        return BadgesResponseModel.fromJson(map);
-      },
+      (dynamic response) => BadgesResponseModel.fromJson(
+        response is Map && response.containsKey('data') ? response['data'] : response,
+      ),
       'Get Badges',
     );
   }

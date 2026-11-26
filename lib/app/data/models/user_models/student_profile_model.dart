@@ -37,12 +37,12 @@ class StudentProfileModel {
     this.status,
     required this.points,
     required this.badges,
-    this.progressPercent = 30,
-    this.ageText = '4 years old',
+    this.progressPercent = 0,
+    this.ageText = '',
     this.studentClass,
   });
 
-  String get displayClassName => studentClass?.name ?? 'Grade A, Ms. Smith Class';
+  String get displayClassName => studentClass?.name ?? '';
 
   factory StudentProfileModel.fromJson(Map<String, dynamic> json) {
     StudentClassInfo? cls;
@@ -54,16 +54,22 @@ class StudentProfileModel {
 
     return StudentProfileModel(
       id: json['id'] as String? ?? '',
-      nickname: (json['nickname'] ?? json['name'] ?? 'Sarah') as String,
+      nickname: (json['nickname'] ?? json['name'] ?? '').toString(),
       realName: json['realName'] as String?,
       avatarUrl: (json['avatarUrl'] ?? json['avatar'] ?? 'assets/images/avatar_01.png') as String,
       status: json['status'] as String?,
-      points: (json['points'] as num?)?.toInt() ?? 245,
-      badges: (json['badges'] as num?)?.toInt() ?? 3,
-      progressPercent: (json['progressPercent'] ?? json['progress'] as num?)?.toInt() ?? 30,
-      ageText: (json['ageText'] ?? json['age'] ?? '4 years old') as String,
+      points: (json['points'] as num?)?.toInt() ?? 0,
+      badges: (json['badges'] as num?)?.toInt() ?? 0,
+      progressPercent: ((json['progressPercent'] ?? json['progress']) as num?)?.toInt() ?? 0,
+      ageText: _ageLabel(json['ageText'] ?? json['age']),
       studentClass: cls,
     );
+  }
+
+  static String _ageLabel(dynamic value) {
+    final age = int.tryParse(value?.toString() ?? '');
+    if (age == null) return value is String ? value : '';
+    return age == 1 ? '1 year old' : '$age years old';
   }
 
   Map<String, dynamic> toJson() => {
